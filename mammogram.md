@@ -1,0 +1,27 @@
+Mammogram
+================
+
+Read in the data.
+
+``` r
+cancer = read_csv("./data/cancerxx.csv") %>%
+  select(HHX, FMX, FPX, WTFA_SA, STRAT_P, PSU_P, REGION, MAMHAD, MAM6YR, 
+         RMAM1_MT, RMAM1YR, RMAM1N, RMAM1T, RMAM2, RMAM3A, RMAM3B, MAMPAY, 
+         MAMREAS, MDRECMAM, MAMDNBR, MAMABN1, MFOLLOW0, MFOLLO01, MFOLLO02, 
+         MFOLLO03, MFOLLO04, MFOLLO05, MNOTFOL1, MAMMODE, MAMCAN1)
+
+adult = read_csv("./data/samadult.csv") %>%
+  select(HHX, FMX, FPX, WTFA_SA, STRAT_P, PSU_P, REGION, SEX, HISPAN_I, 
+         RACERPI2, MRACRPI2, MRACBPI2, AGE_P)
+
+house = read_csv("./data/househld.csv") %>%
+  select(HHX, REGION, WTFA_HH, STRAT_P, PSU_P)
+
+cancer2 = left_join(adult, cancer, by = c("HHX", "FMX", "FPX")) %>%
+  filter(SEX == 2) %>%
+  rename(WTFA_SA = WTFA_SA.x,
+         STRAT_P = STRAT_P.x,
+         PSU_P = PSU_P.x,
+         REGION = REGION.x) %>%
+  select(-WTFA_SA.y, -STRAT_P.y, -PSU_P.y, -REGION.y)
+```
