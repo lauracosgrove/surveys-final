@@ -2,7 +2,9 @@
 title: "Pap Smear"
 author: "Laura Cosgrove"
 date: "11/23/2019"
-output: github_document
+output: 
+  github_document:
+    toc: TRUE
 ---
 
 ```{r  message=FALSE}
@@ -10,7 +12,8 @@ library(tidyverse)
 library(survey)
 ```
 
-```{r}
+# Read data
+```{r message = FALSE}
 #getting pap data from cancer df
 pap_dat <- read_csv("./data/cancerxx.csv") %>%
   janitor::clean_names() %>% 
@@ -62,6 +65,8 @@ adult_dat <- read_csv("./data/samadult/samadult.csv") %>%
     fla1ar) #functional limitation
 
 ```
+
+# Data Manipulation / Creating Covariates 
 
 ```{r}
 pap_dat <- pap_dat %>% 
@@ -248,9 +253,97 @@ pap_dat <- pap_dat %>%
 ```{r}
 des <- svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE, data = pap_dat)
 pap_dat %>% select(ends_with("cat"))  %>% names()
-tab <- svytable(paprec_3bcat ~ age_cat, design = des)
-tab
+pap_dat %>% count(paprec_3bcat) #unwt
 
 
 ```
+
+# unstratified descriptive stats
+
+```{r}
+##nonstratified by age
+#pap smear by age
+age_pct <- svyby(~paprec_3bcat, by = ~age_cat, svymean, na.rm = TRUE, design = des)
+age_pct %>% knitr::kable()
+age_tot <- svyby(~paprec_3bcat, by = ~age_cat, svytotal, na.rm = TRUE, design = des)
+age_tot  %>% knitr::kable()
+#pap smear by education
+edu_pct <- svyby(~paprec_3bcat, by = ~educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct %>% knitr::kable()
+edu_tot <- svyby(~paprec_3bcat, by = ~educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot %>% knitr::kable()
+#pap smear by finc
+finc_pct <- svyby(~paprec_3bcat, by = ~finc_cat, svymean, na.rm = TRUE, design = des)
+finc_pct  %>% knitr::kable()
+finc_tot <- svyby(~paprec_3bcat, by = ~finc_cat, svytotal, na.rm = TRUE, design = des)
+finc_tot %>% knitr::kable()
+#pap smear by usual care
+ausualp_pct <- svyby(~paprec_3bcat, by = ~ausualpl_cat, svymean, na.rm = TRUE, design = des)
+ausualp_pct %>% knitr::kable()
+ausualp_tot <- svyby(~paprec_3bcat, by = ~ausualpl_cat, svytotal, na.rm = TRUE, design = des)
+ausualp_tot %>% knitr::kable()
+#pap smear by health coverage
+cover_pct <- svyby(~paprec_3bcat, by = ~cover_cat, svymean, na.rm = TRUE, design = des)
+cover_pct %>% knitr::kable()
+cover_tot <- svyby(~paprec_3bcat, by = ~cover_cat, svytotal, na.rm = TRUE, design = des)
+cover_tot %>% knitr::kable()
+#pap smear by chronic conditions
+lcond_chronic_pct <- svyby(~paprec_3bcat, by = ~lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
+lcond_chronic_pct %>% knitr::kable()
+lcond_chronic_tot <- svyby(~paprec_3bcat, by = ~lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
+lcond_chronic_tot %>% knitr::kable()
+#pap smear by race
+race_pct <- svyby(~paprec_3bcat, by = ~race_cat, svymean, na.rm = TRUE, design = des)
+race_pct %>% knitr::kable()
+race_tot <- svyby(~paprec_3bcat, by = ~race_cat, svytotal, na.rm = TRUE, design = des)
+race_tot %>% knitr::kable()
+#pap smear by ethnicity
+eth_pct <- svyby(~paprec_3bcat, by = ~eth_cat, svymean, na.rm = TRUE, design = des)
+eth_pct %>% knitr::kable()
+eth_tot <- svyby(~paprec_3bcat, by = ~eth_cat, svytotal, na.rm = TRUE, design = des)
+eth_tot %>% knitr::kable()
+
+```
+
+# stratified descriptive stats by age
+
+```{r}
+#pap smear by education
+edu_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct_strat %>% knitr::kable()
+edu_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot_strat %>% knitr::kable()
+#pap smear by finc
+finc_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+finc_cat, svymean, na.rm = TRUE, design = des)
+finc_pct_strat  %>% knitr::kable()
+finc_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+finc_cat, svytotal, na.rm = TRUE, design = des)
+finc_tot_strat %>% knitr::kable()
+#pap smear by usual care
+ausualp_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+ausualpl_cat, svymean, na.rm = TRUE, design = des)
+ausualp_pct_strat %>% knitr::kable()
+ausualp_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
+ausualp_tot_strat %>% knitr::kable()
+#pap smear by health coverage
+cover_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+cover_cat, svymean, na.rm = TRUE, design = des)
+cover_pct_strat %>% knitr::kable()
+cover_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+cover_cat, svytotal, na.rm = TRUE, design = des)
+cover_tot_strat %>% knitr::kable()
+#pap smear by chronic conditions
+lcond_chronic_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
+lcond_chronic_pct_strat %>% knitr::kable()
+lcond_chronic_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
+lcond_chronic_tot_strat %>% knitr::kable()
+#pap smear by race
+race_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+race_cat, svymean, na.rm = TRUE, design = des)
+race_pct_strat %>% knitr::kable()
+race_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+race_cat, svytotal, na.rm = TRUE, design = des)
+race_tot_strat %>% knitr::kable()
+#pap smear by ethnicity
+eth_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+eth_cat, svymean, na.rm = TRUE, design = des)
+eth_pct_strat %>% knitr::kable()
+eth_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+eth_cat, svytotal, na.rm = TRUE, design = des)
+eth_tot_strat %>% knitr::kable()
+
+```
+
 
