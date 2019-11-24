@@ -1,0 +1,256 @@
+---
+title: "Pap Smear"
+author: "Laura Cosgrove"
+date: "11/23/2019"
+output: github_document
+---
+
+```{r  message=FALSE}
+library(tidyverse)
+library(survey)
+```
+
+```{r}
+#getting pap data from cancer df
+pap_dat <- read_csv("./data/cancerxx.csv") %>%
+  janitor::clean_names() %>% 
+  select(hhx, fmx, fpx, #identifiers
+         wtfa_sa, #weights
+         strat_p, psu_p, #for design
+         region, 
+         paphad1, # Ever had Pap smear/Pap test
+         papfrst1, #Age when had first Pap test
+         pap6yr1, # Number of Pap tests, last 6 years 
+         rpap1_m1, #  Month of most recent Pap test 
+         rpap1y1, # Year of most recent Pap test 
+         rpap1n1, #  Time ago date of most recent Pap test: # of units 
+         rpap1t1, # Time ago date of most recent Pap test: Time unit 
+         rpap21, #  Most recent Pap test, time categories 
+         rpap3a1, # Most recent Pap test, time categories (using 2005 method) 
+         rpap3b1, #  Most recent Pap test, time categories (using 2000 method) 
+         hpvhrd, #  Ever heard of HPV 
+         hpvpap, #  Had HPV test with Pap test 
+         paprea2, #  Main reason had Pap/Pap or HPV 
+         papabn3, # Pap test results in last 3 years 
+         papnot2, #  Most important reason never had Pap or HPV test 
+         mdrecp1, #  Doctor recommended Pap test 
+         paphpvpy) #Paid for Pap or HPV test out of pocket 
+
+## getting covariates
+fam_dat <- read_csv("./data/familyxx/familyxx.csv") %>%
+    janitor::clean_names() %>% 
+  select(hhx, fmx,  #identifiers
+         rat_cat4, rat_cat5) # Ratio of family income to the poverty threshold (not sure the difference)
+
+pers_dat <- read_csv("./data/personsx/personsx.csv") %>%
+   janitor::clean_names() %>% 
+  select(hhx, fmx, fpx, #identifiers
+         age_p, #age
+         educ1, #education
+         sex, #gender
+         notcov, cover, cover65, cover65o,  #coverage > 65, 65+, alternate 65+
+         la1ar, #limitation
+         lcondrt, #limitation is chronic
+         lachronr, #chronic limitation
+         hiscodi3, #ethnicity recode,
+         racreci3)#race recode
+
+adult_dat <- read_csv("./data/samadult/samadult.csv") %>%
+   janitor::clean_names() %>% 
+  select(hhx, fmx, fpx, #identifiers
+    ausualpl, ahcplrou, ahcplknd, #Usual source of care - different options
+    fla1ar) #functional limitation
+
+```
+
+```{r}
+pap_dat <- pap_dat %>% 
+  left_join(adult_dat, by = c("hhx", "fmx", "fpx")) %>% 
+  left_join(pers_dat, by = c("hhx", "fmx", "fpx")) %>% 
+  left_join(fam_dat, by = c("hhx", "fmx"))
+
+##outcome##
+#disregarding clustered structure: looking for 3 or less as recommended
+pap_dat %>% 
+  count(rpap21)
+
+pap_dat %>% 
+  count(rpap3b1) #choose 2000 method of q for best comparison (also less NA)
+
+pap_dat <- pap_dat %>% 
+  mutate(paprec_3bcat = if_else(rpap3b1 <= 3, 1, 0))
+
+##covariates##
+pap_dat %>% 
+  ggplot() +
+  geom_histogram(aes(x = age_p, weight = wtfa_sa), bins = 10)
+
+pap_dat <- pap_dat %>% 
+  mutate(age_cat = case_when(age_p >= 25 & age_p < 40 ~ "25–39",
+                              age_p >= 40 & age_p < 50 ~ "40–49",
+                              age_p >= 50 & age_p < 65 ~ "50–64",
+                              age_p >= 65 ~ "65+"))
+
+pap_dat %>% 
+  count(educ1)
+
+# Less than high school: < 13
+# High school graduate: 13 or 14
+# Some college or AA degree 15, 16, 17
+# College graduate (BA/BS) 18, 19, 20, 21
+
+pap_dat <- pap_dat %>% 
+  mutate(educ_cat = case_when(educ1 < 13 ~ "Less than high school",
+                              educ1 >= 13 & educ1 < 15 ~ "High school",
+                              educ1 >= 15 & educ1 < 18 ~ "Some college",
+                              educ1 >= 18 & educ1 <= 21 ~ "College graduate"))
+
+# Family income/poverty ratio	
+# <200%	
+# 200–299%
+# 300–399%		
+# 400–499%	
+# ≥500%
+
+# 01 Under 0.50 1718 4.06
+# 02 0.50 - 0.74 1566 3.70
+# 03 0.75 - 0.99 1953 4.62
+# 04 1.00 - 1.24 1852 4.38
+# 05 1.25 - 1.49 1657 3.92
+# 06 1.50 - 1.74 1658 3.92
+# 07 1.75 - 1.99 1500 3.55
+# 08 2.00 - 2.49 3145 7.44
+# 09 2.50 - 2.99 2504 5.92
+# 10 3.00 - 3.49 2339 5.53
+# 11 3.50 - 3.99 1746 4.13
+# 12 4.00 - 4.49 1834 4.34
+# 13 4.50 - 4.99 1316 3.11
+# 14 5.00 and over 8318 19.67
+# 15 Less than 1.00 (no further detail) 845 2.00
+# 16 1.00 - 1.99 (no further detail) 1381 3.27
+# 17 2.00 and over (no further detail) 3615 8.55
+# 96 Undefinable 548 1.30
+# 99 Unknown 2793 6.60 
+
+pap_dat %>% count(rat_cat5)
+pap_dat <- pap_dat %>% 
+  mutate(finc_cat = case_when(rat_cat5 <= 7 |  rat_cat5 %in% c(15, 16) ~ "<200%",
+                              rat_cat5 %in% c(8, 9) ~ "200–299%", 
+                              rat_cat5 %in% c(10, 11) ~ "300–399%",
+                              rat_cat5 >= 18 & educ1 <= 21 ~ "400–499%",
+                              rat_cat5 == 14  ~">=500%",
+                              rat_cat5 == 17  ~">=200%, no further detail",
+                              rat_cat5 %in% c(96, 99) ~ "Unknown"))
+
+#usually go when sick
+# 1 Yes 28445 84.48
+# 2 There is NO place 4506 13.38
+# 3 There is MORE THAN ONE place 454 1.35
+# 7 Refused 7 0.02
+# 8 Not ascertained 255 0.76
+# 9 Don't know 5 0.01
+pap_dat <- pap_dat %>% 
+  mutate(ausualpl_cat  = case_when(ausualpl == 2 ~ "No",
+                                 ausualpl %in% c(1, 3) ~ "Yes",
+                                 ausualpl %in% c(7, 8, 9) ~ "Other"))
+
+# Health insurance
+# None
+# Public
+# Private/military
+# NOTCOV Frequency Percent
+# ------------------------------------------
+# 1 Not covered 10506 10.12
+# 2 Covered 92181 88.82
+# 7 Refused 0 0.00
+# 8 Not ascertained 0 0.00
+# 9 Don't know 1102 1.06 
+# cover
+# 1 Private 53793 60.81
+# 2 Medicaid and other public 19851 22.44
+# 3 Other coverage 3413 3.86
+# 4 Uninsured 10381 11.73
+# 5 Don't know 1030 1.16 
+# COVER65 Frequency Percent
+# ---------------------------------------------------------------------
+# 1 Private 6430 41.97
+# 2 Dual eligible 1197 7.81
+# 3 Medicare Advantage 3295 21.51
+# 4 Medicare only excluding Medicare Advantage 2893 18.88
+# 5 Other coverage 1290 8.42
+# 6 Uninsured 125 0.82
+# 7 Don't know 91 0.59 
+
+pap_dat %>% count(cover)
+pap_dat %>% count(!is.na(cover65))
+pap_dat %>% count(cover65o)
+
+pap_dat <- pap_dat %>% 
+  mutate(cover_cat  = case_when(notcov == 1 | cover == 4 | cover65 == 6 ~ "None",
+                                cover == 2 | cover65 %in% 2:4 ~ "Public",
+                                cover %in% c(1, 3) | cover65 %in% c(1, 5) ~ "Private/Military"))
+
+# Chronic disability
+# Yes
+# No
+# LCONDRT Frequency
+# 1 At least one condition causing limitation of activity is chronic 13835
+# 2 No condition causing limitation of activity is chronic 199
+# 9 Unknown if any condition causing limitation of activity is chronic 269 
+
+pap_dat %>% count(lcondrt)
+pap_dat <- pap_dat %>% 
+  mutate(lcond_chronic_cat = if_else(lcondrt == 1, "Yes", "No"))
+
+# Race/ethnicity
+# hispanic, nonhispanic white, nonhispanic black, nonhispanic asian, nonhispanic alaska native/american indian
+pap_dat %>% count(racreci3)
+pap_dat %>% count(hiscodi3)
+# race (white, black, asian, alaska native/american indian)
+# RACRECI3 Frequency Percent
+# ------------------------------------------------------------------
+# 1 White 79077 76.19
+# 2 Black 14997 14.45
+# 3 Asian 7414 7.14
+# 4 All other race groups (See file layout) 2301 2.22
+# HHC.200_01.000: Race/ethnicity recode
+# HISCODI3 Frequency Percent
+# -------------------------------------------------------------
+# 1 Hispanic 23318 22.47
+# 2 Non-Hispanic White 57953 55.84
+# 3 Non-Hispanic Black 14039 13.53
+# 4 Non-Hispanic Asian 6965 6.71
+# 5 Non-Hispanic All other race groups 1514 1.46 
+
+pap_dat <- pap_dat %>% 
+  mutate(race_cat = case_when(racreci3 == 1 ~ "White",
+                              racreci3 == 2 ~ "Black",
+                              racreci3 == 3 ~ "Asian",
+                              racreci3 == 4 ~ "AN/AI"),
+         eth_cat = case_when(hiscodi3 == 1 ~ "Hispanic",
+                             hiscodi3 == 2 ~ "Non-Hispanic White",
+                             hiscodi3 == 3 ~ "Non-Hispanic Black",
+                             hiscodi3 == 4 ~ "Non-Hispanic Asian",
+                             hiscodi3 == 5 ~ "Non-Hispanic AN/AI"))
+
+#filters
+##filter age less than 25 per cancer paper
+##filter to only women
+pap_dat %>% count(sex)
+pap_dat <- pap_dat %>% 
+  filter(age_p >= 25) %>% 
+  filter(sex == 2)
+
+```
+
+
+# survey design
+```{r}
+des <- svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE, data = pap_dat)
+pap_dat %>% select(ends_with("cat"))  %>% names()
+tab <- svytable(paprec_3bcat ~ age_cat, design = des)
+tab
+
+
+```
+
