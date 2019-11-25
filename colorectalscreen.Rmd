@@ -1,0 +1,236 @@
+---
+title: "Colorectal Screening"
+author: "Justin Hsie"
+date: "11/25/2019"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(survey)
+```
+
+Data Import
+
+```{r}
+cancer = read_csv("./data/cancerxx.csv") %>% 
+  janitor::clean_names() %>% 
+  select(hhx, fmx, fpx, wtfa_sa, strat_p, psu_p, region, hfobhad1, 
+         rhfo2_mt, rhfo2yr, rhfo2n, rhfo2t, rhfo2, rhfob3a,
+         rhfob3b, hfobrea2, fobhad1, rfob2_mt, rfob2yr,
+         rfob2n, rfob2t, rofob3a, rofob3b, rfobres1)
+
+adult = read_csv("./data/samadult.csv") %>%
+  janitor::clean_names() %>% 
+  select(hhx, fmx, fpx, ausualpl, ahcplrou, ahcplknd, fla1ar)
+
+family = read_csv("./data/familyxx.csv") %>%
+  janitor::clean_names() %>% 
+  select(hhx, fmx, rat_cat4, rat_cat5)
+
+person = read_csv("./data/personsx.csv") %>%
+  janitor::clean_names() %>% 
+  select(hhx, fmx, fpx, age_p, educ1, sex, notcov, cover65, cover65o, 
+         la1ar, lcondrt, lachronr, hiscodi3, racreci3, cover)
+
+col_dat = cancer %>%
+  left_join(adult, by = c("hhx", "fmx", "fpx")) %>%
+  left_join(person, by = c("hhx", "fmx", "fpx")) %>%
+  left_join(family, by = c("hhx", "fmx"))
+```
+
+Data Manipulation
+
+```{r}
+#home stool test within last year
+col_dat = col_dat %>%
+  mutate(col_2 = if_else(rhfo2 <= 1, 1, 0))
+
+# create the age category
+col_dat = col_dat %>% 
+  mutate(age_cat = case_when(age_p >= 25 & age_p < 40 ~ "25–39",
+                             age_p >= 40 & age_p < 50 ~ "40–49",
+                             age_p >= 50 & age_p < 65 ~ "50–64",
+                             age_p >= 65 ~ "65+"))
+# create educ category
+col_dat = col_dat %>% 
+  mutate(educ_cat = case_when(educ1 < 13 ~ "Less than high school",
+                              educ1 >= 13 & educ1 < 15 ~ "High school",
+                              educ1 >= 15 & educ1 < 18 ~ "Some college",
+                              educ1 >= 18 & educ1 <= 21 ~ "College graduate"))
+
+# create financial category
+col_dat = col_dat %>% 
+  mutate(finc_cat = case_when(rat_cat5 <= 7 |  rat_cat5 %in% c(15, 16) ~ "<200%",
+                              rat_cat5 %in% c(8, 9) ~ "200–299%", 
+                              rat_cat5 %in% c(10, 11) ~ "300–399%",
+                              rat_cat5 >= 18 & educ1 <= 21 ~ "400–499%",
+                              rat_cat5 == 14  ~">=500%",
+                              rat_cat5 == 17  ~">=200%, no further detail",
+                              rat_cat5 %in% c(96, 99) ~ "Unknown"))
+
+# create as usual category
+col_dat = col_dat %>% 
+  mutate(ausualpl_cat  = case_when(ausualpl == 2 ~ "No",
+                                   ausualpl %in% c(1, 3) ~ "Yes",
+                                   ausualpl %in% c(7, 8, 9) ~ "Other"))
+# coverage status
+col_dat = col_dat %>% 
+  mutate(cover_cat  = case_when(notcov == 1 | cover == 4 | cover65 == 6 ~ "None",
+                                cover == 2 | cover65 %in% 2:4 ~ "Public",
+                                cover %in% c(1, 3) | cover65 %in% c(1, 5) ~
+                                  "Private/Military"))
+
+# disability
+col_dat = col_dat %>% 
+  mutate(lcond_chronic_cat = if_else(lcondrt == 1, "Yes", "No"))
+
+# race
+col_dat = col_dat %>% 
+  mutate(race_cat = case_when(racreci3 == 1 ~ "White",
+                              racreci3 == 2 ~ "Black",
+                              racreci3 == 3 ~ "Asian",
+                              racreci3 == 4 ~ "AN/AI"),
+         eth_cat = case_when(hiscodi3 == 1 ~ "Hispanic",
+                             hiscodi3 == 2 ~ "Non-Hispanic White",
+                             hiscodi3 == 3 ~ "Non-Hispanic Black",
+                             hiscodi3 == 4 ~ "Non-Hispanic Asian",
+                             hiscodi3 == 5 ~ "Non-Hispanic AN/AI"))
+```
+
+Survey Design
+
+```{r}
+des = svydesign(ids = ~ psu_p, strata = ~ strat_p, 
+                weights = ~ wtfa_sa, nest = TRUE, data = col_dat)
+```
+
+Tables
+
+```{r}
+#percentage
+age_pct = svyby(~col_2, by = ~age_cat, svymean, na.rm = TRUE, design = des)
+age_pct %>% knitr::kable()
+
+#total
+age_tot = svyby(~col_2, by = ~age_cat, svytotal, na.rm = TRUE, design = des)
+age_tot  %>% knitr::kable()
+
+#education
+edu_pct = svyby(~col_2, by = ~educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct %>% knitr::kable()
+
+#education total
+edu_tot = svyby(~col_2, by = ~educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot %>% knitr::kable()
+
+#finc
+finc_pct = svyby(~col_2, by = ~finc_cat, svymean, na.rm = TRUE, design = des)
+finc_pct  %>% knitr::kable()
+
+#finc total
+finc_tot = svyby(~col_2, by = ~finc_cat, svytotal, na.rm = TRUE, design = des)
+finc_tot %>% knitr::kable()
+
+#usual care
+ausualp_pct = svyby(~col_2, by = ~ausualpl_cat, svymean, na.rm = TRUE, design = des)
+ausualp_pct %>% knitr::kable()
+
+#usual care total
+ausualp_tot = svyby(~col_2, by = ~ausualpl_cat, svytotal, na.rm = TRUE, design = des)
+ausualp_tot %>% knitr::kable()
+
+#health coverage
+cover_pct = svyby(~col_2, by = ~cover_cat, svymean, na.rm = TRUE, design = des)
+cover_pct %>% knitr::kable()
+
+#health coverage total
+cover_tot = svyby(~col_2, by = ~cover_cat, svytotal, na.rm = TRUE, design = des)
+cover_tot %>% knitr::kable()
+
+#chronic conditions
+lcond_chronic_pct = svyby(~col_2, by = ~lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
+lcond_chronic_pct %>% knitr::kable()
+
+#chronic conditions total
+lcond_chronic_tot = svyby(~col_2, by = ~lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
+lcond_chronic_tot %>% knitr::kable()
+
+#race
+race_pct = svyby(~col_2, by = ~race_cat, svymean, na.rm = TRUE, design = des)
+race_pct %>% knitr::kable()
+
+#race total
+race_tot = svyby(~col_2, by = ~race_cat, svytotal, na.rm = TRUE, design = des)
+race_tot %>% knitr::kable()
+
+#ethnicity
+eth_pct = svyby(~col_2, by = ~eth_cat, svymean, na.rm = TRUE, design = des)
+eth_pct %>% knitr::kable()
+
+#ethnicity total
+eth_tot = svyby(~col_2, by = ~eth_cat, svytotal, na.rm = TRUE, design = des)
+eth_tot %>% knitr::kable()
+```
+
+Tables by Age
+
+```{r}
+#education
+edu_pct_strat = svyby(~col_2, by = ~age_cat+educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct_strat %>% knitr::kable()
+
+#education total
+edu_tot_strat = svyby(~col_2, by = ~age_cat+educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot_strat %>% knitr::kable()
+
+#finc
+finc_pct_strat = svyby(~col_2, by = ~age_cat+finc_cat, svymean, na.rm = TRUE, design = des)
+finc_pct_strat  %>% knitr::kable()
+
+#finc total
+finc_tot_strat = svyby(~col_2, by = ~age_cat+finc_cat, svytotal, na.rm = TRUE, design = des)
+finc_tot_strat %>% knitr::kable()
+
+#usual care
+ausualp_pct_strat = svyby(~col_2, by = ~age_cat+ausualpl_cat, svymean, na.rm = TRUE, design = des)
+ausualp_pct_strat %>% knitr::kable()
+
+#usual care total
+ausualp_tot_strat = svyby(~col_2, by = ~age_cat+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
+ausualp_tot_strat %>% knitr::kable()
+
+#health coverage
+cover_pct_strat = svyby(~col_2, by = ~age_cat+cover_cat, svymean, na.rm = TRUE, design = des)
+cover_pct_strat %>% knitr::kable()
+
+#health coverage total
+cover_tot_strat = svyby(~col_2, by = ~age_cat+cover_cat, svytotal, na.rm = TRUE, design = des)
+cover_tot_strat %>% knitr::kable()
+
+#chronic conditions
+lcond_chronic_pct_strat = svyby(~col_2, by = ~age_cat+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
+lcond_chronic_pct_strat %>% knitr::kable()
+
+#chronic conditions total
+lcond_chronic_tot_strat = svyby(~col_2, by = ~age_cat+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
+lcond_chronic_tot_strat %>% knitr::kable()
+
+#race
+race_pct_strat = svyby(~col_2, by = ~age_cat+race_cat, svymean, na.rm = TRUE, design = des)
+race_pct_strat %>% knitr::kable()
+
+#race total
+race_tot_strat = svyby(~col_2, by = ~age_cat+race_cat, svytotal, na.rm = TRUE, design = des)
+race_tot_strat %>% knitr::kable()
+
+#ethnicity
+eth_pct_strat = svyby(~col_2, by = ~age_cat+eth_cat, svymean, na.rm = TRUE, design = des)
+eth_pct_strat %>% knitr::kable()
+
+#ethnicity total
+eth_tot_strat = svyby(~col_2, by = ~age_cat+eth_cat, svytotal, na.rm = TRUE, design = des)
+eth_tot_strat %>% knitr::kable()
+```
+
+
