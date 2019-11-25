@@ -18,18 +18,87 @@ cancer = read_csv("./data/cancerxx.csv") %>%
          MFOLLO03, MFOLLO04, MFOLLO05, MNOTFOL1, MAMMODE, MAMCAN1)
 
 adult = read_csv("./data/samadult.csv") %>%
-  select(HHX, FMX, FPX, WTFA_SA, STRAT_P, PSU_P, REGION, SEX, HISPAN_I, 
-         RACERPI2, MRACRPI2, MRACBPI2, AGE_P)
+  select(HHX, FMX, FPX, AUSUALPL, AHCPLROU, AHCPLKND, FLA1AR)
 
-house = read_csv("./data/househld.csv") %>%
-  select(HHX, REGION, WTFA_HH, STRAT_P, PSU_P)
+family = read_csv("./data/familyxx.csv") %>%
+  select(HHX, FMX, RAT_CAT4, RAT_CAT5)
 
-cancer2 = left_join(adult, cancer, by = c("HHX", "FMX", "FPX")) %>%
-  filter(SEX == 2) %>%
-  rename(WTFA_SA = WTFA_SA.x,
-         STRAT_P = STRAT_P.x,
-         PSU_P = PSU_P.x,
-         REGION = REGION.x) %>%
-  select(-WTFA_SA.y, -STRAT_P.y, -PSU_P.y, -REGION.y)
+person = read_csv("./data/personsx.csv") %>%
+  select(HHX, FMX, FPX, AGE_P, EDUC1, SEX, NOTCOV, COVER65, COVER65O, LA1AR,
+         LCONDRT, LACHRONR, HISCODI3, RACRECI3, COVER)
+
+mam_dat = cancer %>%
+  left_join(adult, by = c("HHX", "FMX", "FPX")) %>%
+  left_join(person, by = c("HHX", "FMX", "FPX")) %>%
+  left_join(family, by = c("HHX", "FMX")) %>%
+  filter(SEX == 2)
+```
+
+Data Manipulation
+```{r}
+# outcome is having a mammogram in the last 2 years:RMAM2 = 1,2
+mam_dat = mam_dat %>%
+  mutate(mam_2 = if_else(RMAM2 <= 2, 1, 0))
+
+# create the age category
+mam_dat = mam_dat %>% 
+  mutate(age_cat = case_when(AGE_P >= 25 & AGE_P < 40 ~ "25–39",
+                             AGE_P >= 40 & AGE_P < 50 ~ "40–49",
+                             AGE_P >= 50 & AGE_P < 65 ~ "50–64",
+                             AGE_P >= 65 ~ "65+"))
+# create educ category
+mam_dat = mam_dat %>% 
+  mutate(educ_cat = case_when(EDUC1 < 13 ~ "Less than high school",
+                              EDUC1 >= 13 & EDUC1 < 15 ~ "High school",
+                              EDUC1 >= 15 & EDUC1 < 18 ~ "Some college",
+                              EDUC1 >= 18 & EDUC1 <= 21 ~ "College graduate"))
+
+# create financial category
+mam_dat = mam_dat %>% 
+  mutate(finc_cat = case_when(RAT_CAT5 <= 7 |  RAT_CAT5 %in% c(15, 16) ~ "<200%",
+                              RAT_CAT5 %in% c(8, 9) ~ "200–299%", 
+                              RAT_CAT5 %in% c(10, 11) ~ "300–399%",
+                              RAT_CAT5 >= 18 & EDUC1 <= 21 ~ "400–499%",
+                              RAT_CAT5 == 14  ~">=500%",
+                              RAT_CAT5 == 17  ~">=200%, no further detail",
+                              RAT_CAT5 %in% c(96, 99) ~ "Unknown"))
+
+# create as usual category
+mam_dat = mam_dat %>% 
+  mutate(ausualpl_cat  = case_when(AUSUALPL == 2 ~ "No",
+                                   AUSUALPL %in% c(1, 3) ~ "Yes",
+                                   AUSUALPL %in% c(7, 8, 9) ~ "Other"))
+# coverage status
+mam_dat = mam_dat %>% 
+  mutate(cover_cat  = case_when(NOTCOV == 1 | COVER == 4 | COVER65 == 6 ~ "None",
+                                COVER == 2 | COVER65 %in% 2:4 ~ "Public",
+                                COVER %in% c(1, 3) | COVER65 %in% c(1, 5) ~ "Private/Military"))
+
+# disability
+mam_dat = mam_dat %>% 
+  mutate(lcond_chronic_cat = if_else(LCONDRT == 1, "Yes", "No"))
+
+# race
+mam_dat = mam_dat %>% 
+  mutate(race_cat = case_when(RACRECI3 == 1 ~ "White",
+                              RACRECI3 == 2 ~ "Black",
+                              RACRECI3 == 3 ~ "Asian",
+                              RACRECI3 == 4 ~ "AN/AI"),
+         eth_cat = case_when(HISCODI3 == 1 ~ "Hispanic",
+                             HISCODI3 == 2 ~ "Non-Hispanic White",
+                             HISCODI3 == 3 ~ "Non-Hispanic Black",
+                             HISCODI3 == 4 ~ "Non-Hispanic Asian",
+                             HISCODI3 == 5 ~ "Non-Hispanic AN/AI"))
+
+mam_dat = mam_dat %>%
+  filter(AGE_P >= 40)
+```
+
+
+Survey Design
+```{r}
+des = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat)
+
+
 ```
 
