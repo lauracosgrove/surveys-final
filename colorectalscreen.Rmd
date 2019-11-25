@@ -2,7 +2,7 @@
 title: "Colorectal Screening"
 author: "Justin Hsie"
 date: "11/25/2019"
-output: html_document
+output: github_document
 ---
 
 ```{r}
