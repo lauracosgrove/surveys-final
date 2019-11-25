@@ -30,8 +30,7 @@ person = read_csv("./data/personsx.csv") %>%
 mam_dat = cancer %>%
   left_join(adult, by = c("HHX", "FMX", "FPX")) %>%
   left_join(person, by = c("HHX", "FMX", "FPX")) %>%
-  left_join(family, by = c("HHX", "FMX")) %>%
-  filter(SEX == 2)
+  left_join(family, by = c("HHX", "FMX")) 
 ```
 
 Data Manipulation
@@ -90,15 +89,36 @@ mam_dat = mam_dat %>%
                              HISCODI3 == 4 ~ "Non-Hispanic Asian",
                              HISCODI3 == 5 ~ "Non-Hispanic AN/AI"))
 
-mam_dat = mam_dat %>%
-  filter(AGE_P >= 40)
+
 ```
 
 
 Survey Design
 ```{r}
+mam_dat = mam_dat %>%
+  filter(SEX == 2) %>%
+  filter(AGE_P >= 40) 
+
 des = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat)
 
 
 ```
+
+Tables
+```{r, tables}
+# percent of women who have had mammogram in the last two years
+# unsure-can't filter before the design because then it gives me an error about only one PSU in strata 73
+options(survey.lonely.psu = "certainty")
+age_pct = svyby(~mam_2, by = ~age_cat, svymean, na.rm = TRUE, design = des)
+age_pct %>% knitr::kable()
+age_tot = svyby(~mam_2, by = ~age_cat, svytotal, na.rm = TRUE, design = des)
+age_tot  %>% knitr::kable()
+
+# education percent
+edu_pct = svyby(~mam_2, by = ~educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct %>% knitr::kable()
+edu_tot = svyby(~mam_2, by = ~educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot %>% knitr::kable()
+```
+
 

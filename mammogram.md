@@ -23,8 +23,7 @@ person = read_csv("./data/personsx.csv") %>%
 mam_dat = cancer %>%
   left_join(adult, by = c("HHX", "FMX", "FPX")) %>%
   left_join(person, by = c("HHX", "FMX", "FPX")) %>%
-  left_join(family, by = c("HHX", "FMX")) %>%
-  filter(SEX == 2)
+  left_join(family, by = c("HHX", "FMX")) 
 ```
 
 Data Manipulation
@@ -83,13 +82,66 @@ mam_dat = mam_dat %>%
                              HISCODI3 == 3 ~ "Non-Hispanic Black",
                              HISCODI3 == 4 ~ "Non-Hispanic Asian",
                              HISCODI3 == 5 ~ "Non-Hispanic AN/AI"))
-
-mam_dat = mam_dat %>%
-  filter(AGE_P >= 40)
 ```
 
 Survey Design
 
 ``` r
+mam_dat = mam_dat %>%
+  filter(SEX == 2) %>%
+  filter(AGE_P >= 40) 
+
 des = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat)
 ```
+
+Tables
+
+``` r
+# percent of women who have had mammogram in the last two years
+# unsure-can't filter before the design because then it gives me an error about only one PSU in strata 73
+options(survey.lonely.psu = "certainty")
+age_pct = svyby(~mam_2, by = ~age_cat, svymean, na.rm = TRUE, design = des)
+age_pct %>% knitr::kable()
+```
+
+|       | age\_cat |     mam\_2|         se|
+|-------|:---------|----------:|----------:|
+| 40–49 | 40–49    |  0.3176038|  0.0266974|
+| 50–64 | 50–64    |  0.3264640|  0.0174216|
+| 65+   | 65+      |  0.2648560|  0.0140081|
+
+``` r
+age_tot = svyby(~mam_2, by = ~age_cat, svytotal, na.rm = TRUE, design = des)
+age_tot  %>% knitr::kable()
+```
+
+|       | age\_cat |   mam\_2|        se|
+|-------|:---------|--------:|---------:|
+| 40–49 | 40–49    |  1160711|  107452.8|
+| 50–64 | 50–64    |  2793509|  183442.9|
+| 65+   | 65+      |  2282234|  140819.0|
+
+``` r
+# education percent
+edu_pct = svyby(~mam_2, by = ~educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct %>% knitr::kable()
+```
+
+|                       | educ\_cat             |     mam\_2|         se|
+|-----------------------|:----------------------|----------:|----------:|
+| College graduate      | College graduate      |  0.3859343|  0.0231881|
+| High school           | High school           |  0.2395907|  0.0162449|
+| Less than high school | Less than high school |  0.2921496|  0.0247296|
+| Some college          | Some college          |  0.2944866|  0.0190413|
+
+``` r
+edu_tot = svyby(~mam_2, by = ~educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot %>% knitr::kable()
+```
+
+|                       | educ\_cat             |   mam\_2|        se|
+|-----------------------|:----------------------|--------:|---------:|
+| College graduate      | College graduate      |  2009887|  148288.3|
+| High school           | High school           |  1413381|  105605.7|
+| Less than high school | Less than high school |  1013725|  105001.2|
+| Some college          | Some college          |  1783546|  125719.6|
