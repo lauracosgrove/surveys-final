@@ -238,20 +238,21 @@ pap_dat <- pap_dat %>%
                              hiscodi3 == 4 ~ "Non-Hispanic Asian",
                              hiscodi3 == 5 ~ "Non-Hispanic AN/AI"))
 
-#filters
+#create indicator inclusion criteria variable
 ##filter age less than 25 per cancer paper
 ##filter to only women
 pap_dat %>% count(sex)
 pap_dat <- pap_dat %>% 
-  filter(age_p >= 25) %>% 
-  filter(sex == 2)
+  mutate(inc = if_else(age_p >= 25 & sex == 2, 1, 0))
+#create indicator variable and include it in domain analysis 
 
 ```
 
 
 # survey design
 ```{r}
-des <- svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE, data = pap_dat)
+des <- svydesign(ids = ~psu_p, strata = ~strat_p, 
+                 weights = ~wtfa_sa, nest = TRUE, data = pap_dat)
 pap_dat %>% select(ends_with("cat"))  %>% names()
 pap_dat %>% count(paprec_3bcat) #unwt
 
@@ -263,45 +264,45 @@ pap_dat %>% count(paprec_3bcat) #unwt
 ```{r}
 ##nonstratified by age
 #pap smear by age
-age_pct <- svyby(~paprec_3bcat, by = ~age_cat, svymean, na.rm = TRUE, design = des)
-age_pct %>% knitr::kable()
-age_tot <- svyby(~paprec_3bcat, by = ~age_cat, svytotal, na.rm = TRUE, design = des)
-age_tot  %>% knitr::kable()
+age_pct <- svyby(~paprec_3bcat , by = ~inc+age_cat, svymean, na.rm = TRUE, design = des)
+age_pct %>% filter(inc ==1) %>% knitr::kable()
+age_tot <- svyby(~paprec_3bcat, by = ~inc+age_cat, svytotal, na.rm = TRUE, design = des)
+age_tot %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by education
-edu_pct <- svyby(~paprec_3bcat, by = ~educ_cat, svymean, na.rm = TRUE, design = des)
-edu_pct %>% knitr::kable()
-edu_tot <- svyby(~paprec_3bcat, by = ~educ_cat, svytotal, na.rm = TRUE, design = des)
-edu_tot %>% knitr::kable()
+edu_pct <- svyby(~paprec_3bcat, by = ~inc+educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct %>% filter(inc ==1) %>% knitr::kable()
+edu_tot <- svyby(~paprec_3bcat, by = ~inc+educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by finc
-finc_pct <- svyby(~paprec_3bcat, by = ~finc_cat, svymean, na.rm = TRUE, design = des)
-finc_pct  %>% knitr::kable()
-finc_tot <- svyby(~paprec_3bcat, by = ~finc_cat, svytotal, na.rm = TRUE, design = des)
-finc_tot %>% knitr::kable()
+finc_pct <- svyby(~paprec_3bcat, by = ~inc+finc_cat, svymean, na.rm = TRUE, design = des)
+finc_pct  %>% filter(inc ==1) %>% knitr::kable()
+finc_tot <- svyby(~paprec_3bcat, by = ~inc+finc_cat, svytotal, na.rm = TRUE, design = des)
+finc_tot %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by usual care
-ausualp_pct <- svyby(~paprec_3bcat, by = ~ausualpl_cat, svymean, na.rm = TRUE, design = des)
-ausualp_pct %>% knitr::kable()
-ausualp_tot <- svyby(~paprec_3bcat, by = ~ausualpl_cat, svytotal, na.rm = TRUE, design = des)
-ausualp_tot %>% knitr::kable()
+ausualp_pct <- svyby(~paprec_3bcat, by = ~inc+ausualpl_cat, svymean, na.rm = TRUE, design = des)
+ausualp_pct %>% filter(inc ==1) %>% knitr::kable()
+ausualp_tot <- svyby(~paprec_3bcat, by = ~inc+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
+ausualp_tot %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by health coverage
-cover_pct <- svyby(~paprec_3bcat, by = ~cover_cat, svymean, na.rm = TRUE, design = des)
-cover_pct %>% knitr::kable()
-cover_tot <- svyby(~paprec_3bcat, by = ~cover_cat, svytotal, na.rm = TRUE, design = des)
-cover_tot %>% knitr::kable()
+cover_pct <- svyby(~paprec_3bcat, by = ~inc+cover_cat, svymean, na.rm = TRUE, design = des)
+cover_pct %>% filter(inc ==1) %>% knitr::kable()
+cover_tot <- svyby(~paprec_3bcat, by = ~inc+cover_cat, svytotal, na.rm = TRUE, design = des)
+cover_tot %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by chronic conditions
-lcond_chronic_pct <- svyby(~paprec_3bcat, by = ~lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
-lcond_chronic_pct %>% knitr::kable()
-lcond_chronic_tot <- svyby(~paprec_3bcat, by = ~lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
-lcond_chronic_tot %>% knitr::kable()
+lcond_chronic_pct <- svyby(~paprec_3bcat, by = ~inc+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
+lcond_chronic_pct %>% filter(inc ==1) %>% knitr::kable()
+lcond_chronic_tot <- svyby(~paprec_3bcat, by = ~inc+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
+lcond_chronic_tot %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by race
-race_pct <- svyby(~paprec_3bcat, by = ~race_cat, svymean, na.rm = TRUE, design = des)
-race_pct %>% knitr::kable()
-race_tot <- svyby(~paprec_3bcat, by = ~race_cat, svytotal, na.rm = TRUE, design = des)
-race_tot %>% knitr::kable()
+race_pct <- svyby(~paprec_3bcat, by = ~inc+race_cat, svymean, na.rm = TRUE, design = des)
+race_pct %>% filter(inc ==1) %>% knitr::kable()
+race_tot <- svyby(~paprec_3bcat, by = ~inc+race_cat, svytotal, na.rm = TRUE, design = des)
+race_tot %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by ethnicity
-eth_pct <- svyby(~paprec_3bcat, by = ~eth_cat, svymean, na.rm = TRUE, design = des)
-eth_pct %>% knitr::kable()
-eth_tot <- svyby(~paprec_3bcat, by = ~eth_cat, svytotal, na.rm = TRUE, design = des)
-eth_tot %>% knitr::kable()
+eth_pct <- svyby(~paprec_3bcat, by = ~inc+eth_cat, svymean, na.rm = TRUE, design = des)
+eth_pct %>% filter(inc ==1) %>% knitr::kable()
+eth_tot <- svyby(~paprec_3bcat, by = ~inc+eth_cat, svytotal, na.rm = TRUE, design = des)
+eth_tot %>% filter(inc ==1) %>% knitr::kable()
 
 ```
 
@@ -309,40 +310,40 @@ eth_tot %>% knitr::kable()
 
 ```{r}
 #pap smear by education
-edu_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+educ_cat, svymean, na.rm = TRUE, design = des)
-edu_pct_strat %>% knitr::kable()
-edu_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+educ_cat, svytotal, na.rm = TRUE, design = des)
-edu_tot_strat %>% knitr::kable()
+edu_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct_strat %>% filter(inc ==1) %>% knitr::kable()
+edu_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+educ_cat, svytotal, na.rm = TRUE, design = des)
+edu_tot_strat %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by finc
-finc_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+finc_cat, svymean, na.rm = TRUE, design = des)
-finc_pct_strat  %>% knitr::kable()
-finc_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+finc_cat, svytotal, na.rm = TRUE, design = des)
-finc_tot_strat %>% knitr::kable()
+finc_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+finc_cat, svymean, na.rm = TRUE, design = des)
+finc_pct_strat  %>% filter(inc ==1) %>% knitr::kable()
+finc_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+finc_cat, svytotal, na.rm = TRUE, design = des)
+finc_tot_strat %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by usual care
-ausualp_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+ausualpl_cat, svymean, na.rm = TRUE, design = des)
-ausualp_pct_strat %>% knitr::kable()
-ausualp_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
-ausualp_tot_strat %>% knitr::kable()
+ausualp_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+ausualpl_cat, svymean, na.rm = TRUE, design = des)
+ausualp_pct_strat %>% filter(inc ==1) %>% knitr::kable()
+ausualp_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
+ausualp_tot_strat %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by health coverage
-cover_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+cover_cat, svymean, na.rm = TRUE, design = des)
-cover_pct_strat %>% knitr::kable()
-cover_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+cover_cat, svytotal, na.rm = TRUE, design = des)
-cover_tot_strat %>% knitr::kable()
+cover_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+cover_cat, svymean, na.rm = TRUE, design = des)
+cover_pct_strat %>% filter(inc ==1) %>% knitr::kable()
+cover_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+cover_cat, svytotal, na.rm = TRUE, design = des)
+cover_tot_strat %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by chronic conditions
-lcond_chronic_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
-lcond_chronic_pct_strat %>% knitr::kable()
-lcond_chronic_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
-lcond_chronic_tot_strat %>% knitr::kable()
+lcond_chronic_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
+lcond_chronic_pct_strat %>% filter(inc ==1) %>% knitr::kable()
+lcond_chronic_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
+lcond_chronic_tot_strat %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by race
-race_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+race_cat, svymean, na.rm = TRUE, design = des)
-race_pct_strat %>% knitr::kable()
-race_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+race_cat, svytotal, na.rm = TRUE, design = des)
-race_tot_strat %>% knitr::kable()
+race_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+race_cat, svymean, na.rm = TRUE, design = des)
+race_pct_strat %>% filter(inc ==1) %>% knitr::kable()
+race_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+race_cat, svytotal, na.rm = TRUE, design = des)
+race_tot_strat %>% filter(inc ==1) %>% knitr::kable()
 #pap smear by ethnicity
-eth_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+eth_cat, svymean, na.rm = TRUE, design = des)
-eth_pct_strat %>% knitr::kable()
-eth_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+eth_cat, svytotal, na.rm = TRUE, design = des)
-eth_tot_strat %>% knitr::kable()
+eth_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+eth_cat, svymean, na.rm = TRUE, design = des)
+eth_pct_strat %>% filter(inc ==1) %>% knitr::kable()
+eth_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+eth_cat, svytotal, na.rm = TRUE, design = des)
+eth_tot_strat %>% filter(inc ==1) %>% knitr::kable()
 
 ```
 
