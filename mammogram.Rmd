@@ -7,6 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(survey)
+library(car)
 ```
 
 Read in the data.
@@ -418,6 +419,29 @@ barplot(b3$mam_2, beside = FALSE,
 Models
 
 ```{r}
+mam_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat), 
+       design = des, subset = domain == 1, family = binomial(link = "logit"))
 
+summary(mam_fit)
+
+Anova(mam_fit, type = 3)
+
+mam_fit2 = svyglm(mam_2 ~ as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(race_cat) + as.factor(eth_cat), design = des, subset = domain == 1,
+                  family = binomial(link = "logit"))
+
+summary(mam_fit2)
+
+Anova(mam_fit2, type = 3)
 ```
 
+Usual Care, Type of Coverage, Race, and Ethnicity are significant predictors of having a recent mammogram.   
+The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.503.   
+The OR for having a recent mammogram when comparing having private/military insurance to none is 2.67.   
+The OR for having a recent mammogram when comparing having public insurance to none is 1.796.   
+The OR for having a recent mammogram when comparing Asian women to Alaskan Native/American Indian women is 0.382.   
+The OR for having a recent mammogram when comparing Black women to Alaskan Native/American Indian women is 5.022.   
+The OR for having a recent mammogram when comparing White women to Alaskan Native/American Indian women is 4.467.   
+The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 1.566.   
+The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 6.164.   
+The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.631.   
+The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.422.

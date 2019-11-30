@@ -741,3 +741,186 @@ barplot(b3$mam_2, beside = FALSE,
 ![](mammogram_files/figure-markdown_github/unnamed-chunk-4-3.png)
 
 Models
+
+``` r
+mam_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat), 
+       design = des, subset = domain == 1, family = binomial(link = "logit"))
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+``` r
+summary(mam_fit)
+```
+
+    ## 
+    ## Call:
+    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat), 
+    ##     design = des, subset = domain == 1, family = binomial(link = "logit"))
+    ## 
+    ## Survey design:
+    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
+    ##     nest = TRUE, data = mam_dat)
+    ## 
+    ## Coefficients:
+    ##                                              Estimate Std. Error t value
+    ## (Intercept)                                   -0.7972     1.7195  -0.464
+    ## as.factor(age_cat)50–64                       -0.2498     0.3233  -0.773
+    ## as.factor(age_cat)65+                         -0.7079     0.3510  -2.017
+    ## as.factor(educ_cat)High school                -0.3738     0.2712  -1.378
+    ## as.factor(educ_cat)Less than high school      -0.7492     0.3232  -2.318
+    ## as.factor(educ_cat)Some college               -0.3273     0.2893  -1.132
+    ## as.factor(finc_cat)>=200%, no further detail  -0.2472     0.3902  -0.634
+    ## as.factor(finc_cat)>=500%                      0.2423     0.3651   0.664
+    ## as.factor(finc_cat)200–299%                   -0.1199     0.3167  -0.379
+    ## as.factor(finc_cat)300–399%                   -0.4340     0.4944  -0.878
+    ## as.factor(finc_cat)400–499%                    0.2877     0.3302   0.871
+    ## as.factor(ausualpl_cat)Other                 -10.6454     1.2399  -8.586
+    ## as.factor(ausualpl_cat)Yes                     0.7072     0.5924   1.194
+    ## as.factor(cover_cat)Private/Military           1.5366     0.4754   3.232
+    ## as.factor(cover_cat)Public                     1.5240     0.4811   3.168
+    ## as.factor(lcond_chronic_cat)Yes               -0.5082     0.5778  -0.880
+    ## as.factor(race_cat)Asian                     -13.2760     1.7913  -7.411
+    ## as.factor(race_cat)Black                      -0.6715     1.9099  -0.352
+    ## as.factor(race_cat)White                      -0.3841     1.4404  -0.267
+    ## as.factor(eth_cat)Non-Hispanic AN/AI          -0.6207     1.6015  -0.388
+    ## as.factor(eth_cat)Non-Hispanic Asian          12.5512     1.1511  10.904
+    ## as.factor(eth_cat)Non-Hispanic Black          -0.4184     1.3042  -0.321
+    ## as.factor(eth_cat)Non-Hispanic White          -0.8985     0.3194  -2.813
+    ##                                              Pr(>|t|)    
+    ## (Intercept)                                   0.64367    
+    ## as.factor(age_cat)50–64                       0.44106    
+    ## as.factor(age_cat)65+                         0.04580 *  
+    ## as.factor(educ_cat)High school                0.17044    
+    ## as.factor(educ_cat)Less than high school      0.02200 *  
+    ## as.factor(educ_cat)Some college               0.25989    
+    ## as.factor(finc_cat)>=200%, no further detail  0.52750    
+    ## as.factor(finc_cat)>=500%                     0.50802    
+    ## as.factor(finc_cat)200–299%                   0.70549    
+    ## as.factor(finc_cat)300–399%                   0.38166    
+    ## as.factor(finc_cat)400–499%                   0.38525    
+    ## as.factor(ausualpl_cat)Other                 2.39e-14 ***
+    ## as.factor(ausualpl_cat)Yes                    0.23471    
+    ## as.factor(cover_cat)Private/Military          0.00156 ** 
+    ## as.factor(cover_cat)Public                    0.00191 ** 
+    ## as.factor(lcond_chronic_cat)Yes               0.38071    
+    ## as.factor(race_cat)Asian                     1.42e-11 ***
+    ## as.factor(race_cat)Black                      0.72571    
+    ## as.factor(race_cat)White                      0.79014    
+    ## as.factor(eth_cat)Non-Hispanic AN/AI          0.69897    
+    ## as.factor(eth_cat)Non-Hispanic Asian          < 2e-16 ***
+    ## as.factor(eth_cat)Non-Hispanic Black          0.74889    
+    ## as.factor(eth_cat)Non-Hispanic White          0.00567 ** 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 0.816151)
+    ## 
+    ## Number of Fisher Scoring iterations: 12
+
+``` r
+Anova(mam_fit, type = 3)
+```
+
+    ## Analysis of Deviance Table (Type III tests)
+    ## 
+    ## Response: mam_2
+    ##                              Df    Chisq Pr(>Chisq)    
+    ## (Intercept)                   1   0.2150   0.642892    
+    ## as.factor(age_cat)            2   5.4389   0.065912 .  
+    ## as.factor(educ_cat)           3   5.3977   0.144885    
+    ## as.factor(finc_cat)           5   3.0014   0.699770    
+    ## as.factor(ausualpl_cat)       2  92.4528  < 2.2e-16 ***
+    ## as.factor(cover_cat)          2  10.7613   0.004605 ** 
+    ## as.factor(lcond_chronic_cat)  1   0.7737   0.379085    
+    ## as.factor(race_cat)           3 138.4048  < 2.2e-16 ***
+    ## as.factor(eth_cat)            4 128.2984  < 2.2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+mam_fit2 = svyglm(mam_2 ~ as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(race_cat) + as.factor(eth_cat), design = des, subset = domain == 1,
+                  family = binomial(link = "logit"))
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+``` r
+summary(mam_fit2)
+```
+
+    ## 
+    ## Call:
+    ## svyglm(formula = mam_2 ~ as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(race_cat) + as.factor(eth_cat), design = des, subset = domain == 
+    ##     1, family = binomial(link = "logit"))
+    ## 
+    ## Survey design:
+    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
+    ##     nest = TRUE, data = mam_dat)
+    ## 
+    ## Coefficients:
+    ##                                      Estimate Std. Error t value Pr(>|t|)
+    ## (Intercept)                           -3.3317     0.7127  -4.675 4.69e-06
+    ## as.factor(ausualpl_cat)Other          -8.8627     1.0628  -8.339 4.14e-15
+    ## as.factor(ausualpl_cat)Yes             0.9173     0.2373   3.865 0.000140
+    ## as.factor(cover_cat)Private/Military   0.9819     0.2611   3.760 0.000209
+    ## as.factor(cover_cat)Public             0.5858     0.2547   2.300 0.022214
+    ## as.factor(race_cat)Asian              -0.9625     1.3132  -0.733 0.464257
+    ## as.factor(race_cat)Black               1.6138     0.8369   1.928 0.054890
+    ## as.factor(race_cat)White               1.4967     0.6641   2.254 0.025027
+    ## as.factor(eth_cat)Non-Hispanic AN/AI   0.4483     0.9347   0.480 0.631881
+    ## as.factor(eth_cat)Non-Hispanic Asian   1.8188     1.1369   1.600 0.110839
+    ## as.factor(eth_cat)Non-Hispanic Black  -0.4610     0.5204  -0.886 0.376477
+    ## as.factor(eth_cat)Non-Hispanic White  -0.8632     0.1532  -5.634 4.50e-08
+    ##                                         
+    ## (Intercept)                          ***
+    ## as.factor(ausualpl_cat)Other         ***
+    ## as.factor(ausualpl_cat)Yes           ***
+    ## as.factor(cover_cat)Private/Military ***
+    ## as.factor(cover_cat)Public           *  
+    ## as.factor(race_cat)Asian                
+    ## as.factor(race_cat)Black             .  
+    ## as.factor(race_cat)White             *  
+    ## as.factor(eth_cat)Non-Hispanic AN/AI    
+    ## as.factor(eth_cat)Non-Hispanic Asian    
+    ## as.factor(eth_cat)Non-Hispanic Black    
+    ## as.factor(eth_cat)Non-Hispanic White ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 0.9499377)
+    ## 
+    ## Number of Fisher Scoring iterations: 10
+
+``` r
+Anova(mam_fit2, type = 3)
+```
+
+    ## Analysis of Deviance Table (Type III tests)
+    ## 
+    ## Response: mam_2
+    ##                         Df    Chisq Pr(>Chisq)    
+    ## (Intercept)              1  21.8530  2.944e-06 ***
+    ## as.factor(ausualpl_cat)  2 106.3710  < 2.2e-16 ***
+    ## as.factor(cover_cat)     2  19.7960  5.028e-05 ***
+    ## as.factor(race_cat)      3   9.6052    0.02224 *  
+    ## as.factor(eth_cat)       4  36.3262  2.479e-07 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Usual Care, Type of Coverage, Race, and Ethnicity are significant predictors of having a recent mammogram.
+The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.503.
+The OR for having a recent mammogram when comparing having private/military insurance to none is 2.67.
+The OR for having a recent mammogram when comparing having public insurance to none is 1.796.
+The OR for having a recent mammogram when comparing Asian women to Alaskan Native/American Indian women is 0.382.
+The OR for having a recent mammogram when comparing Black women to Alaskan Native/American Indian women is 5.022.
+The OR for having a recent mammogram when comparing White women to Alaskan Native/American Indian women is 4.467.
+The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 1.566.
+The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 6.164.
+The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.631.
+The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.422.
