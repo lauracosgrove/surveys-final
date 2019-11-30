@@ -160,58 +160,170 @@ Tables By Age Group
 
 ```{r, age_table}
 # mammogram by education
-edu_pct_strat = svyby(~mam_2, by = ~domain+age_cat+educ_cat, svymean, na.rm = TRUE, design = des)
-edu_tab = edu_pct_strat %>% filter(domain == 1) %>% select(-domain, -se) 
+edu_pct_strat = svyby(~mam_2, by = ~domain + age_cat + educ_cat, svymean, 
+                      na.rm = TRUE, design = des, vartype = c("se", "ci"))
+edu_tab = edu_pct_strat %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se) 
+
 edu_tab %>% knitr::kable()
-edu_tot_strat = svyby(~mam_2, by = ~domain+age_cat+educ_cat, svytotal, na.rm = TRUE, design = des)
-edu_tot_strat %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+
+edu_tot_strat = svyby(~mam_2, by = ~domain + age_cat + educ_cat, svytotal, 
+                      na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+edu_tot_strat %>% 
+  knitr::kable()
+
+num = edu_tot_strat$num
+
+edu_tab = cbind(edu_tab, num) 
 
 # mammogram by finc
-finc_pct_strat = svyby(~mam_2, by = ~domain+age_cat+finc_cat, svymean, na.rm = TRUE, design = des)
-finc_tab = finc_pct_strat %>% filter(domain == 1) %>% select(-domain, -se) 
+finc_pct_strat = svyby(~mam_2, by = ~domain + age_cat + finc_cat, svymean, 
+                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
+
+finc_tab = finc_pct_strat %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se) 
+
 finc_tab %>% knitr::kable()
-finc_tot_strat = svyby(~mam_2, by = ~domain+age_cat+finc_cat, svytotal, na.rm = TRUE, design = des)
-finc_tot_strat %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+
+finc_tot_strat = svyby(~mam_2, by = ~ domain + age_cat + finc_cat, svytotal,
+                       na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+
+num = finc_tot_strat$num
+
+finc_tab = cbind(finc_tab, num)
+
 
 # mammogram by usual care
-ausualp_pct_strat = svyby(~mam_2, by = ~domain+age_cat+ausualpl_cat, svymean, na.rm = TRUE, design = des)
-usual_tab = ausualp_pct_strat %>% filter(domain == 1) %>% select(-domain, -se) 
+ausualp_pct_strat = svyby(~mam_2, by = ~domain + age_cat + ausualpl_cat,
+                          svymean, na.rm = TRUE, design = des, 
+                          vartype = c("se", "ci"))
+
+usual_tab = ausualp_pct_strat %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se) 
+
 usual_tab %>% knitr::kable()
-ausualp_tot_strat = svyby(~mam_2, by = ~domain+age_cat+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
-ausualp_tot_strat %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+
+ausualp_tot_strat = svyby(~mam_2, by = ~domain + age_cat +ausualpl_cat,
+                          svytotal, na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+
+num = ausualp_tot_strat$num
+
+usual_tab = cbind(usual_tab, num)
 
 # mammogram by health coverage
-cover_pct_strat = svyby(~mam_2, by = ~domain+age_cat+cover_cat, svymean, na.rm = TRUE, design = des)
-ins_tab = cover_pct_strat %>% filter(domain == 1) %>% select(-domain, -se) 
+cover_pct_strat = svyby(~mam_2, by = ~domain + age_cat + cover_cat, svymean,
+                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
+
+ins_tab = cover_pct_strat %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se)
+
 ins_tab %>% knitr::kable()
-cover_tot_strat = svyby(~mam_2, by = ~domain+age_cat+cover_cat, svytotal, na.rm = TRUE, design = des)
-cover_tot_strat %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+
+cover_tot_strat = svyby(~mam_2, by = ~domain + age_cat + cover_cat, svytotal,
+                        na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+
+num = cover_tot_strat$num
+
+ins_tab = cbind(ins_tab, num)
 
 # mammogram by chronic conditions
-lcond_chronic_pct_strat = svyby(~mam_2, by = ~domain+age_cat+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
-dis_tab = lcond_chronic_pct_strat %>% filter(domain == 1) %>% select(-domain, -se) 
+lcond_chronic_pct_strat = svyby(~mam_2, 
+                                by = ~domain + age_cat + lcond_chronic_cat,
+                                svymean, na.rm = TRUE, design = des,
+                                vartype = c("se", "ci"))
+
+dis_tab = lcond_chronic_pct_strat %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se) 
+
 dis_tab %>% knitr::kable()
-lcond_chronic_tot_strat = svyby(~mam_2, by = ~domain+age_cat+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
-lcond_chronic_tot_strat %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+
+lcond_chronic_tot_strat = svyby(~mam_2, 
+                                by = ~domain + age_cat + lcond_chronic_cat,
+                                svytotal, na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+
+num = lcond_chronic_tot_strat$num
+
+dis_tab = cbind(dis_tab, num)
 
 # mammogram by race
-race_pct_strat = svyby(~mam_2, by = ~domain+age_cat+race_cat, svymean, na.rm = TRUE, design = des)
-race_tab = race_pct_strat %>% filter(domain == 1) %>% select(-domain, -se) 
+race_pct_strat = svyby(~mam_2, by = ~domain + age_cat + race_cat, svymean, 
+                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
+
+race_tab = race_pct_strat %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se) 
+
 race_tab %>% knitr::kable()
-race_tot_strat = svyby(~mam_2, by = ~domain+age_cat+race_cat, svytotal, na.rm = TRUE, design = des)
-race_tot_strat %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+
+race_tot_strat = svyby(~mam_2, by = ~domain + age_cat + race_cat, svytotal,
+                       na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+
+num = race_tot_strat$num
+
+race_tab = cbind(race_tab, num)
 
 # mammogram by ethnicity
-eth_pct_strat = svyby(~mam_2, by = ~domain+age_cat+eth_cat, svymean, na.rm = TRUE, design = des)
-eth_tab = eth_pct_strat %>% filter(domain == 1) %>% select(-domain, -se) 
+eth_pct_strat = svyby(~mam_2, by = ~domain + age_cat + eth_cat, svymean, 
+                      na.rm = TRUE, design = des, vartype = c("se", "ci"))
+
+eth_tab = eth_pct_strat %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se) 
+
 eth_tab %>% knitr::kable()
-eth_tot_strat = svyby(~mam_2, by = ~domain+age_cat+eth_cat, svytotal, na.rm = TRUE, design = des)
-eth_tot_strat %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+
+eth_tot_strat = svyby(~mam_2, by = ~domain + age_cat + eth_cat, svytotal, 
+                      na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+
+num = eth_tot_strat$num
+
+eth_tab = cbind(eth_tab, num)
 
 # total gotten mammogram
-total = svyby(~mam_2, by = ~domain+age_cat, svymean, na.rm = TRUE, design = des)
-tot_tab = total %>% filter(domain == 1) %>% select(-domain, -se) 
+total = svyby(~mam_2, by = ~domain + age_cat, svymean, na.rm = TRUE, 
+              design = des, vartype = c("se", "ci"))
+
+tot_tab = total %>% 
+  filter(domain == 1) %>% 
+  select(-domain, -se) 
+
 tot_tab %>% knitr::kable()
+
+tot_num = svyby(~mam_2, by = ~domain + age_cat, svytotal, na.rm = TRUE, 
+                design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se) %>%
+  rename(num = mam_2)
+
+num = tot_num$num
+
+tot_tab = cbind(tot_tab, num)
 ```
 
 Combine into paper table
@@ -251,10 +363,61 @@ race_tab2 = race_tab %>%
 
 # create table of percentages of women who have gotten mammograms within the last two years (still need to add CIs)
 tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, eth_tab2, race_tab2) %>%
-  mutate(mam_2 = round(mam_2*100, 2)) %>%
-  pivot_wider(names_from = age_cat, values_from = mam_2) 
+  mutate(mam_2 = round(mam_2*100, 2),
+         ci_l = round(ci_l*100, 2),
+         ci_u = round(ci_u*100, 2),
+         CI = str_c(ci_l, ", ", ci_u)) %>%
+  rename(Percent = mam_2,
+         No = num) %>%
+  select(-ci_l, -ci_u) %>%
+  pivot_wider(names_from = age_cat, values_from = c(No, Percent, CI)) %>%
+  janitor::clean_names() %>%
+  select(type, level, no_40_49, percent_40_49, ci_40_49, no_50_64, percent_50_64, ci_50_64, everything())
 
 # print percentages
 tab_one %>% knitr::kable()
+```
+
+Barplots of Usual Care
+
+```{r}
+b = svyby(~mam_2, by = ~domain + age_cat + ausualpl_cat,
+                          svymean, na.rm = TRUE, design = des) %>%
+  filter(domain == 1,
+         ausualpl_cat != "Other") %>%
+  select(-domain)
+
+b1 = b %>%
+  filter(trimws(age_cat) == "40–49")
+
+b2 = b %>%
+  filter(trimws(age_cat) == "50–64")
+
+b3 = b %>%
+  filter(age_cat == "65+")
+
+
+
+barplot(b1$mam_2, beside = FALSE,
+        names.arg = c("No", "Yes"),
+        main = "Recent Mammogram for Women 40-49 by Usual Care",
+        ylim = c(0, 0.4))
+
+barplot(b2$mam_2, beside = FALSE,
+        names.arg = c("No", "Yes"),
+        main = "Recent Mammogram for Women 50-64 by Usual Care",
+        ylim = c(0, 0.4))
+
+barplot(b3$mam_2, beside = FALSE,
+        names.arg = c("No", "Yes"),
+        main = "Recent Mammogran for Women 65+ by Usual Care",
+        ylim = c(0, 0.4))
+```
+
+
+Models
+
+```{r}
+
 ```
 
