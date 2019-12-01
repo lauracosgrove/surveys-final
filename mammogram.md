@@ -822,6 +822,60 @@ summary(mam_fit)
     ## Number of Fisher Scoring iterations: 11
 
 ``` r
+summ(mam_fit)
+```
+
+    ## MODEL INFO:
+    ## Observations: 2673
+    ## Dependent Variable: mam_2
+    ## Type: Analysis of complex survey design 
+    ##  Family: binomial 
+    ##  Link function: logit 
+    ## 
+    ## MODEL FIT:
+    ## Pseudo-R² (Cragg-Uhler) = 0.06
+    ## Pseudo-R² (McFadden) = 0.21
+    ## AIC = 2745.63 
+    ## 
+    ## --------------------------------------------------------------------------
+    ##                                                Est.   S.E.   t val.      p
+    ## ------------------------------------------ -------- ------ -------- ------
+    ## (Intercept)                                    1.02   1.27     0.80   0.42
+    ## as.factor(age_cat)50â€“64                     -0.02   0.22    -0.08   0.94
+    ## as.factor(age_cat)65+                         -0.64   0.22    -2.90   0.00
+    ## as.factor(educ_cat)High                       -0.40   0.17    -2.34   0.02
+    ## school                                                                    
+    ## as.factor(educ_cat)Less than                  -0.54   0.21    -2.58   0.01
+    ## high school                                                               
+    ## as.factor(educ_cat)Some                       -0.16   0.18    -0.90   0.37
+    ## college                                                                   
+    ## as.factor(finc_cat)>=200%,                    -0.52   0.28    -1.86   0.06
+    ## no further detail                                                         
+    ## as.factor(finc_cat)>=500%                      0.45   0.23     1.96   0.05
+    ## as.factor(finc_cat)200â€“299%                 -0.12   0.18    -0.66   0.51
+    ## as.factor(finc_cat)300â€“399%                  0.23   0.26     0.88   0.38
+    ## as.factor(finc_cat)400â€“499%                  0.14   0.19     0.72   0.47
+    ## as.factor(ausualpl_cat)Other                 -11.44   1.11   -10.27   0.00
+    ## as.factor(ausualpl_cat)Yes                     0.83   0.33     2.49   0.01
+    ## as.factor(cover_cat)Private/Military           1.10   0.34     3.26   0.00
+    ## as.factor(cover_cat)Public                     1.15   0.36     3.19   0.00
+    ## as.factor(lcond_chronic_cat)Yes               -0.09   0.34    -0.27   0.79
+    ## as.factor(race_cat)Asian                      -1.87   1.67    -1.12   0.26
+    ## as.factor(race_cat)Black                      -1.50   1.42    -1.06   0.29
+    ## as.factor(race_cat)White                      -1.12   1.12    -0.99   0.32
+    ## as.factor(eth_cat)Non-Hispanic                -1.22   1.27    -0.95   0.34
+    ## AN/AI                                                                     
+    ## as.factor(eth_cat)Non-Hispanic                -0.09   1.28    -0.07   0.94
+    ## Asian                                                                     
+    ## as.factor(eth_cat)Non-Hispanic                 0.06   0.90     0.07   0.94
+    ## Black                                                                     
+    ## as.factor(eth_cat)Non-Hispanic                -0.77   0.22    -3.48   0.00
+    ## White                                                                     
+    ## --------------------------------------------------------------------------
+    ## 
+    ## Estimated dispersion parameter = 0.83
+
+``` r
 Anova(mam_fit, type = 3)
 ```
 
@@ -912,6 +966,56 @@ summary(mam_fit2)
     ## Number of Fisher Scoring iterations: 4
 
 ``` r
+summ(mam_fit2)
+```
+
+    ## MODEL INFO:
+    ## Observations: 9422
+    ## Dependent Variable: mam_2
+    ## Type: Analysis of complex survey design 
+    ##  Family: binomial 
+    ##  Link function: logit 
+    ## 
+    ## MODEL FIT:
+    ## Pseudo-R² (Cragg-Uhler) = 0.02
+    ## Pseudo-R² (McFadden) = 0.06
+    ## AIC = 10151.01 
+    ## 
+    ## -------------------------------------------------------------------------
+    ##                                               Est.   S.E.   t val.      p
+    ## ------------------------------------------ ------- ------ -------- ------
+    ## (Intercept)                                  -0.30   0.21    -1.42   0.16
+    ## as.factor(age_cat)50â€“64                    -0.06   0.10    -0.59   0.56
+    ## as.factor(age_cat)65+                        -0.39   0.10    -3.92   0.00
+    ## as.factor(educ_cat)High                      -0.36   0.09    -3.89   0.00
+    ## school                                                                   
+    ## as.factor(educ_cat)Less than                 -0.54   0.12    -4.39   0.00
+    ## high school                                                              
+    ## as.factor(educ_cat)Some                      -0.23   0.10    -2.37   0.02
+    ## college                                                                  
+    ## as.factor(finc_cat)>=200%,                    0.13   0.17     0.80   0.42
+    ## no further detail                                                        
+    ## as.factor(finc_cat)>=500%                     0.59   0.11     5.40   0.00
+    ## as.factor(finc_cat)200â€“299%                 0.15   0.10     1.41   0.16
+    ## as.factor(finc_cat)300â€“399%                 0.36   0.12     3.10   0.00
+    ## as.factor(finc_cat)400â€“499%                 0.43   0.12     3.70   0.00
+    ## as.factor(ausualpl_cat)Other                  0.90   1.12     0.80   0.42
+    ## as.factor(ausualpl_cat)Yes                    1.06   0.14     7.85   0.00
+    ## as.factor(cover_cat)Private/Military          0.92   0.17     5.58   0.00
+    ## as.factor(cover_cat)Public                    0.87   0.17     5.09   0.00
+    ## as.factor(eth_cat)Non-Hispanic               -0.47   0.44    -1.07   0.29
+    ## AN/AI                                                                    
+    ## as.factor(eth_cat)Non-Hispanic               -0.78   0.18    -4.27   0.00
+    ## Asian                                                                    
+    ## as.factor(eth_cat)Non-Hispanic               -0.17   0.14    -1.20   0.23
+    ## Black                                                                    
+    ## as.factor(eth_cat)Non-Hispanic               -0.58   0.12    -4.91   0.00
+    ## White                                                                    
+    ## -------------------------------------------------------------------------
+    ## 
+    ## Estimated dispersion parameter = 1
+
+``` r
 Anova(mam_fit2, type = 3)
 ```
 
@@ -929,23 +1033,23 @@ Anova(mam_fit2, type = 3)
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram.
-The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448.
-The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784.
-The OR for having a recent mammogram when comparing women who only have a high school degree to women who have a college degree is 0.6985.
-The OR for having a recent mammogram when comparing women who have less than a high school degree to women who have a college degree is 0.5821.
-The OR for having a recent mammogram when comparing women who have some college education to women who have a college degree is 0.7943.
-The OR for having a recent mammogram when comparing women who are only known as having a poverty ratio of &gt;200% to women who have a poverty ratio &lt;200% is 1.1436.
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 200-299% to women who have a poverty ratio &lt;200% is 1.1586.
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 300-399% to women who have a poverty ratio &lt;200% is 1.4398.
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 400-499% to women who have a poverty ratio &lt;200% is 1.5428.
-The OR for having a recent mammogram when comparing women who have a poverty ratio &gt;=500% to women who have a poverty ratio &lt;200% is 1.8111.
-The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.8878.
-The OR for having a recent mammogram when comparing having private/military insurance to none is 2.5213.
-The OR for having a recent mammogram when comparing having public insurance to none is 2.3978.
-The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 0.623.
-The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 0.4583.
-The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.8474.
-The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.5621.
+Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram. 
+The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448. 
+The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784. 
+The OR for having a recent mammogram when comparing women who only have a high school degree to women who have a college degree is 0.6985. 
+The OR for having a recent mammogram when comparing women who have less than a high school degree to women who have a college degree is 0.5821. 
+The OR for having a recent mammogram when comparing women who have some college education to women who have a college degree is 0.7943. 
+The OR for having a recent mammogram when comparing women who are only known as having a poverty ratio of &gt;200% to women who have a poverty ratio &lt;200% is 1.1436. 
+The OR for having a recent mammogram when comparing women who have a poverty ratio between 200-299% to women who have a poverty ratio &lt;200% is 1.1586. 
+The OR for having a recent mammogram when comparing women who have a poverty ratio between 300-399% to women who have a poverty ratio &lt;200% is 1.4398. 
+The OR for having a recent mammogram when comparing women who have a poverty ratio between 400-499% to women who have a poverty ratio &lt;200% is 1.5428. 
+The OR for having a recent mammogram when comparing women who have a poverty ratio &gt;=500% to women who have a poverty ratio &lt;200% is 1.8111. 
+The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.8878. 
+The OR for having a recent mammogram when comparing having private/military insurance to none is 2.5213. 
+The OR for having a recent mammogram when comparing having public insurance to none is 2.3978. 
+The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 0.623. 
+The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 0.4583. 
+The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.8474. 
+The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.5621. 
 
 The groups least likely to have had a recent mammogram are women aged 65+, women who have less than a high school degree, women who have a poverty ratio &lt;200%, women who do not have a usual source of care, women who have no insurance, and Non-Hispanic women.

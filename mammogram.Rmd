@@ -424,6 +424,7 @@ mam_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(fi
        design = des, subset = domain == 1, family = binomial(link = "logit"))
 
 summary(mam_fit)
+summ(mam_fit)
 
 Anova(mam_fit, type = 3)
 
@@ -431,27 +432,29 @@ mam_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(f
                   family = binomial(link = "logit"))
 
 summary(mam_fit2)
+summ(mam_fit2)
 
 Anova(mam_fit2, type = 3)
 ```
 
-Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram.   
-The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448.   
-The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784.   
-The OR for having a recent mammogram when comparing women who only have a high school degree to women who have a college degree is 0.6985.   
-The OR for having a recent mammogram when comparing women who have less than a high school degree to women who have a college degree is 0.5821.   
-The OR for having a recent mammogram when comparing women who have some college education to women who have a college degree is 0.7943.   
-The OR for having a recent mammogram when comparing women who are only known as having a poverty ratio of >200% to women who have a poverty ratio <200% is 1.1436.   
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 200-299% to women who have a poverty ratio <200% is 1.1586.   
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 300-399% to women who have a poverty ratio <200% is 1.4398.   
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 400-499% to women who have a poverty ratio <200% is 1.5428.   
-The OR for having a recent mammogram when comparing women who have a poverty ratio >=500% to women who have a poverty ratio <200% is 1.8111.   
-The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.8878.   
-The OR for having a recent mammogram when comparing having private/military insurance to none is 2.5213.   
-The OR for having a recent mammogram when comparing having public insurance to none is 2.3978.   
-The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 0.623.   
-The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 0.4583.   
-The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.8474.   
-The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.5621.   
+Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram.\   
+The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448.\   
+The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784.\   
+The OR for having a recent mammogram when comparing women who only have a high school degree to women who have a college degree is 0.6985.\   
+The OR for having a recent mammogram when comparing women who have less than a high school degree to women who have a college degree is 0.5821.\   
+The OR for having a recent mammogram when comparing women who have some college education to women who have a college degree is 0.7943.\   
+The OR for having a recent mammogram when comparing women who are only known as having a poverty ratio of >200% to women who have a poverty ratio <200% is 1.1436.\   
+The OR for having a recent mammogram when comparing women who have a poverty ratio between 200-299% to women who have a poverty ratio <200% is 1.1586.\   
+The OR for having a recent mammogram when comparing women who have a poverty ratio between 300-399% to women who have a poverty ratio <200% is 1.4398.\   
+The OR for having a recent mammogram when comparing women who have a poverty ratio between 400-499% to women who have a poverty ratio <200% is 1.5428.\   
+The OR for having a recent mammogram when comparing women who have a poverty ratio >=500% to women who have a poverty ratio <200% is 1.8111.\   
+The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.8878.\   
+The OR for having a recent mammogram when comparing having private/military insurance to none is 2.5213.\   
+The OR for having a recent mammogram when comparing having public insurance to none is 2.3978.\   
+The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 0.623.\   
+The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 0.4583.\   
+The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.8474.\   
+The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.5621.\   
 
 The groups least likely to have had a recent mammogram are women aged 65+, women who have less than a high school degree, women who have a poverty ratio <200%, women who do not have a usual source of care, women who have no insurance, and Non-Hispanic women.
+
