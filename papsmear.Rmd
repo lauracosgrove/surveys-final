@@ -283,7 +283,8 @@ pap_by <- pap_dat %>%
   tibble(var = .) %>% 
   mutate(pct = map(var, ~pct_func(var1 = .x))) %>% 
   mutate(tot = map(var, ~tot_func(var1 = .x))) %>% 
-  mutate(pct_byage = map(var, ~pct_func(var1 = "age_cat", var2 = .x)))
+  mutate(pct_byage = map(var, ~pct_func(var1 = "age_cat", var2 = .x))) %>% 
+  mutate(tot_byage = map(var, ~tot_func(var1 = "age_cat", var2 = .x)))
 ```
 
 ```{r}
@@ -317,15 +318,19 @@ pap_sel %>%
   knitr::kable(names = c("Variable", "Levels", "Percent", "Total"))
 
 pap_strat <- pap_by %>% 
-  select(variable, pct_byage) %>% 
+  select(variable, pct_byage, tot_byage) %>% 
   filter(variable != "age_cat") %>% 
   mutate(pct_byage = map2(.x = pct_byage, .y = variable, ~.x %>% rename(levels = .y))) %>% 
-  unnest(pct_byage) %>% 
+  mutate(tot_byage = map(.x = tot_byage, ~.x %>% rename(tot = paprec_3bcat) %>% select(tot)) ) %>% 
+  unnest(c(pct_byage, tot_byage)) %>% 
   filter(inc == 1) %>%
   mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
-  mutate(pct = paste0(paprec_3bcat, " (", ci_l, ", ", ci_u, ")")) %>% 
-  select(-paprec_3bcat, -ci_l, -ci_u, -inc) %>% 
-  pivot_wider(names_from = "age_cat", values_from = pct) 
+  mutate(CI = paste0(" (", ci_l, ", ", ci_u, ")")) %>% 
+  rename(pct = paprec_3bcat) %>% 
+  mutate(tot = paste0(round(tot/1e6, 1), "M")) %>% 
+  select(-ci_l, -ci_u, -inc) %>% 
+  pivot_wider(names_from = "age_cat", values_from = c(tot, pct, CI)) %>% 
+  select(variable, levels, ends_with("39"), ends_with("49"), ends_with("64"))
 
 pap_strat %>% 
   filter(!levels %in% c("Unknown", "Other")) %>% 
