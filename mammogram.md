@@ -123,16 +123,16 @@ age_tot %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 ``` r
 # mammogram by education
-edu_pct = svyby(~mam_2, by = ~domain+educ_cat, svymean, na.rm = TRUE, design = des)
+edu_pct = svyby(~mam_2, by = ~domain+educ_cat, svymean, na.rm = TRUE, design = des, vartype = c("se", "ci"))
 edu_pct %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 ```
 
-| educ\_cat             |     mam\_2|         se|
-|:----------------------|----------:|----------:|
-| College graduate      |  0.7952259|  0.0098218|
-| High school           |  0.6785310|  0.0120987|
-| Less than high school |  0.6233975|  0.0180323|
-| Some college          |  0.7298794|  0.0108725|
+| educ\_cat             |     mam\_2|         se|      ci\_l|      ci\_u|
+|:----------------------|----------:|----------:|----------:|----------:|
+| College graduate      |  0.7952259|  0.0098218|  0.7759755|  0.8144763|
+| High school           |  0.6785310|  0.0120987|  0.6548180|  0.7022440|
+| Less than high school |  0.6233975|  0.0180323|  0.5880548|  0.6587402|
+| Some college          |  0.7298794|  0.0108725|  0.7085698|  0.7511891|
 
 ``` r
 edu_tot = svyby(~mam_2, by = ~domain+educ_cat, svytotal, na.rm = TRUE, design = des)
@@ -148,19 +148,19 @@ edu_tot %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 ``` r
 # mammogram by finc
-finc_pct = svyby(~mam_2, by = ~domain+finc_cat, svymean, na.rm = TRUE, design = des)
+finc_pct = svyby(~mam_2, by = ~domain+finc_cat, svymean, na.rm = TRUE, design = des, vartype = c("se", "ci"))
 finc_pct %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 ```
 
-| finc\_cat                    |     mam\_2|         se|
-|:-----------------------------|----------:|----------:|
-| &lt;200%                     |  0.6336404|  0.0119245|
-| &gt;=200%, no further detail |  0.6829528|  0.0329961|
-| &gt;=500%                    |  0.8049806|  0.0113068|
-| 200–299%                     |  0.6846054|  0.0190000|
-| 300–399%                     |  0.7389614|  0.0185501|
-| 400–499%                     |  0.7582742|  0.0162872|
-| Unknown                      |  0.4531864|  0.1295039|
+| finc\_cat                    |     mam\_2|         se|      ci\_l|      ci\_u|
+|:-----------------------------|----------:|----------:|----------:|----------:|
+| &lt;200%                     |  0.6336404|  0.0119245|  0.6102688|  0.6570120|
+| &gt;=200%, no further detail |  0.6829528|  0.0329961|  0.6182815|  0.7476241|
+| &gt;=500%                    |  0.8049806|  0.0113068|  0.7828196|  0.8271415|
+| 200–299%                     |  0.6846054|  0.0190000|  0.6473660|  0.7218448|
+| 300–399%                     |  0.7389614|  0.0185501|  0.7026038|  0.7753189|
+| 400–499%                     |  0.7582742|  0.0162872|  0.7263519|  0.7901964|
+| Unknown                      |  0.4531864|  0.1295039|  0.1993634|  0.7070094|
 
 ``` r
 finc_tot = svyby(~mam_2, by = ~domain+finc_cat, svytotal, na.rm = TRUE, design = des)
@@ -179,15 +179,15 @@ finc_tot %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 ``` r
 # mammogram by usual care
-ausualp_pct = svyby(~mam_2, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE, design = des)
+ausualp_pct = svyby(~mam_2, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE, design = des, vartype = c("se", "ci"))
 ausualp_pct %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 ```
 
-| ausualpl\_cat |     mam\_2|         se|
-|:--------------|----------:|----------:|
-| No            |  0.4426809|  0.0290530|
-| Other         |  0.6349977|  0.3277802|
-| Yes           |  0.7374589|  0.0059183|
+| ausualpl\_cat |     mam\_2|         se|       ci\_l|      ci\_u|
+|:--------------|----------:|----------:|-----------:|----------:|
+| No            |  0.4426809|  0.0290530|   0.3857382|  0.4996237|
+| Other         |  0.6349977|  0.3277802|  -0.0074398|  1.2774351|
+| Yes           |  0.7374589|  0.0059183|   0.7258591|  0.7490586|
 
 ``` r
 ausualp_tot = svyby(~mam_2, by = ~domain+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
@@ -202,15 +202,15 @@ ausualp_tot %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 ``` r
 # mammogram by health coverage
-cover_pct = svyby(~mam_2, by = ~domain+cover_cat, svymean, na.rm = TRUE, design = des)
+cover_pct = svyby(~mam_2, by = ~domain+cover_cat, svymean, na.rm = TRUE, design = des, vartype = c("se", "ci"))
 cover_pct %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 ```
 
-| cover\_cat       |     mam\_2|         se|
-|:-----------------|----------:|----------:|
-| None             |  0.4711737|  0.0361064|
-| Private/Military |  0.7605363|  0.0070446|
-| Public           |  0.6643714|  0.0119487|
+| cover\_cat       |     mam\_2|         se|      ci\_l|      ci\_u|
+|:-----------------|----------:|----------:|----------:|----------:|
+| None             |  0.4711737|  0.0361064|  0.4004064|  0.5419410|
+| Private/Military |  0.7605363|  0.0070446|  0.7467293|  0.7743434|
+| Public           |  0.6643714|  0.0119487|  0.6409525|  0.6877904|
 
 ``` r
 cover_tot = svyby(~mam_2, by = ~domain+cover_cat, svytotal, na.rm = TRUE, design = des)
@@ -225,14 +225,14 @@ cover_tot %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 ``` r
 # mammogram by chronic conditions
-lcond_chronic_pct = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
+lcond_chronic_pct = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svymean, na.rm = TRUE, design = des, vartype = c("se", "ci"))
 lcond_chronic_pct %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 ```
 
-| lcond\_chronic\_cat |     mam\_2|         se|
-|:--------------------|----------:|----------:|
-| No                  |  0.6235415|  0.0832900|
-| Yes                 |  0.6105575|  0.0133315|
+| lcond\_chronic\_cat |     mam\_2|         se|      ci\_l|      ci\_u|
+|:--------------------|----------:|----------:|----------:|----------:|
+| No                  |  0.6235415|  0.0832900|  0.4602961|  0.7867868|
+| Yes                 |  0.6105575|  0.0133315|  0.5844282|  0.6366868|
 
 ``` r
 lcond_chronic_tot = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
@@ -246,16 +246,16 @@ lcond_chronic_tot %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 ``` r
 #mammogram by race
-race_pct = svyby(~mam_2, by = ~domain+race_cat, svymean, na.rm = TRUE, design = des)
+race_pct = svyby(~mam_2, by = ~domain+race_cat, svymean, na.rm = TRUE, design = des, vartype = c("se", "ci"))
 race_pct %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 ```
 
-| race\_cat |     mam\_2|         se|
-|:----------|----------:|----------:|
-| AN/AI     |  0.6382206|  0.0564566|
-| Asian     |  0.7023464|  0.0277336|
-| Black     |  0.7688270|  0.0154351|
-| White     |  0.7203100|  0.0066914|
+| race\_cat |     mam\_2|         se|      ci\_l|      ci\_u|
+|:----------|----------:|----------:|----------:|----------:|
+| AN/AI     |  0.6382206|  0.0564566|  0.5275676|  0.7488735|
+| Asian     |  0.7023464|  0.0277336|  0.6479896|  0.7567032|
+| Black     |  0.7688270|  0.0154351|  0.7385748|  0.7990792|
+| White     |  0.7203100|  0.0066914|  0.7071951|  0.7334248|
 
 ``` r
 race_tot = svyby(~mam_2, by = ~domain+race_cat, svytotal, na.rm = TRUE, design = des)
@@ -271,17 +271,17 @@ race_tot %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 ``` r
 # mammogram by ethnicity
-eth_pct = svyby(~mam_2, by = ~domain+eth_cat, svymean, na.rm = TRUE, design = des)
+eth_pct = svyby(~mam_2, by = ~domain+eth_cat, svymean, na.rm = TRUE, design = des, vartype = c("se", "ci"))
 eth_pct %>% filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 ```
 
-| eth\_cat           |     mam\_2|         se|
-|:-------------------|----------:|----------:|
-| Hispanic           |  0.7434129|  0.0152008|
-| Non-Hispanic AN/AI |  0.6787829|  0.0660549|
-| Non-Hispanic Asian |  0.7005102|  0.0280754|
-| Non-Hispanic Black |  0.7684556|  0.0156438|
-| Non-Hispanic White |  0.7165402|  0.0071231|
+| eth\_cat           |     mam\_2|         se|      ci\_l|      ci\_u|
+|:-------------------|----------:|----------:|----------:|----------:|
+| Hispanic           |  0.7434129|  0.0152008|  0.7136199|  0.7732058|
+| Non-Hispanic AN/AI |  0.6787829|  0.0660549|  0.5493178|  0.8082481|
+| Non-Hispanic Asian |  0.7005102|  0.0280754|  0.6454834|  0.7555370|
+| Non-Hispanic Black |  0.7684556|  0.0156438|  0.7377942|  0.7991169|
+| Non-Hispanic White |  0.7165402|  0.0071231|  0.7025792|  0.7305012|
 
 ``` r
 eth_tot = svyby(~mam_2, by = ~domain+eth_cat, svytotal, na.rm = TRUE, design = des)
