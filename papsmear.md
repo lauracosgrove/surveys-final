@@ -632,3 +632,108 @@ pap_by %>%
 ```
 
 ![](papsmear_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+# models
+
+``` r
+pap_formod <- pap_dat %>% 
+  select(psu_p, strat_p, wtfa_sa, ends_with("cat"), hpvhrd, paphad1, mdrecp1)
+pap_formod <- pap_formod %>% 
+  filter(!is.na(paprec_3bcat)) %>% 
+  mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
+  mutate(ausualpl_cat = factor(ausualpl_cat, levels = c("Yes", "No")))
+
+vars = pap_dat %>% select(ends_with("cat")) %>% select(-paprec_3bcat, -eth_cat) %>% names()
+.form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
+
+
+des2 <- svydesign(ids = ~psu_p, strata = ~strat_p, 
+                 weights = ~wtfa_sa, nest = TRUE, data = pap_formod)
+
+mod <- svyglm(.form, design = des2, 
+       family = binomial) 
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+``` r
+modint <- svyglm(paprec_3bcat ~
+                  ausualpl_cat + age_cat*cover_cat +
+                   age_cat*lcond_chronic_cat +
+                   finc_cat + 
+                   race_cat + educ_cat
+                 , 
+                 design = des2, 
+       family = binomial) 
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+``` r
+broom::tidy(modint , exponentiate = TRUE, conf.int = TRUE) %>% 
+  arrange(abs(p.value)) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  knitr::kable()
+```
+
+| term                                     |     estimate |    conf.low |    conf.high |   p.value |
+| :--------------------------------------- | -----------: | ----------: | -----------: | --------: |
+| age\_cat65+:cover\_catPrivate/Military   |    0.0000017 |   0.0000001 | 1.970000e-05 | 0.0000000 |
+| age\_cat65+:cover\_catPublic             |    0.0000028 |   0.0000003 | 2.970000e-05 | 0.0000000 |
+| age\_cat65+                              | 5500.2994799 | 272.5697754 | 1.109928e+05 | 0.0000001 |
+| educ\_catLess than high school           |    0.4726063 |   0.3161260 | 7.065432e-01 | 0.0003164 |
+| ausualpl\_catNo                          |    0.3887024 |   0.2202052 | 6.861307e-01 | 0.0012743 |
+| educ\_catHigh school                     |    0.6352110 |   0.4461291 | 9.044310e-01 | 0.0124653 |
+| cover\_catPrivate/Military               |    4.3891793 |   1.0507686 | 1.833410e+01 | 0.0436484 |
+| cover\_catPublic                         |    3.0503082 |   0.9630946 | 9.660921e+00 | 0.0591227 |
+| (Intercept)                              |    6.8699917 |   0.8684070 | 5.434869e+01 | 0.0690187 |
+| age\_cat65+:lcond\_chronic\_catYes       |    4.7436218 |   0.6381797 | 3.525958e+01 | 0.1295083 |
+| educ\_catSome college                    |    0.7656402 |   0.5390066 | 1.087565e+00 | 0.1371804 |
+| finc\_cat\>=500%                         |    1.3113045 |   0.8752319 | 1.964644e+00 | 0.1900995 |
+| age\_cat50–64:cover\_catPrivate/Military |    0.3870757 |   0.0807490 | 1.855472e+00 | 0.2363891 |
+| finc\_cat300–399%                        |    1.2574776 |   0.8024114 | 1.970623e+00 | 0.3185027 |
+| age\_cat50–64:cover\_catPublic           |    0.5450448 |   0.1502338 | 1.977411e+00 | 0.3568960 |
+| finc\_cat400–499%                        |    0.8554782 |   0.5632781 | 1.299257e+00 | 0.4647946 |
+| race\_catAsian                           |    1.4361460 |   0.5301998 | 3.890071e+00 | 0.4771665 |
+| race\_catBlack                           |    1.3166534 |   0.5546996 | 3.125253e+00 | 0.5333752 |
+| lcond\_chronic\_catYes                   |    0.5804629 |   0.1047580 | 3.216339e+00 | 0.5340900 |
+| age\_cat40–49                            |    0.4161804 |   0.0236908 | 7.311116e+00 | 0.5493915 |
+| finc\_cat\>=200%, no further detail      |    1.1682031 |   0.6427106 | 2.123348e+00 | 0.6105417 |
+| finc\_cat200–299%                        |    1.0785675 |   0.7822269 | 1.487174e+00 | 0.6448791 |
+| age\_cat50–64:lcond\_chronic\_catYes     |    0.6878989 |   0.0636732 | 7.431776e+00 | 0.7582633 |
+| age\_cat50–64                            |    0.6794467 |   0.0516358 | 8.940463e+00 | 0.7690572 |
+| race\_catWhite                           |    0.9432821 |   0.3984572 | 2.233066e+00 | 0.8944600 |
+| age\_cat40–49:lcond\_chronic\_catYes     |    0.8638164 |   0.0686037 | 1.087665e+01 | 0.9099040 |
+| age\_cat40–49:cover\_catPublic           |    0.9202925 |   0.1753853 | 4.829016e+00 | 0.9218459 |
+| age\_cat40–49:cover\_catPrivate/Military |    0.9623911 |   0.1473047 | 6.287624e+00 | 0.9681011 |
+
+``` r
+broom::tidy(mod, exponentiate = TRUE, conf.int = TRUE) %>% 
+  arrange(abs(p.value)) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  knitr::kable(digits = 2)
+```
+
+| term                                | estimate | conf.low | conf.high | p.value |
+| :---------------------------------- | -------: | -------: | --------: | ------: |
+| age\_cat65+                         |     0.06 |     0.04 |      0.11 |    0.00 |
+| age\_cat50–64                       |     0.24 |     0.15 |      0.41 |    0.00 |
+| educ\_catLess than high school      |     0.46 |     0.31 |      0.69 |    0.00 |
+| ausualpl\_catNo                     |     0.37 |     0.21 |      0.65 |    0.00 |
+| age\_cat40–49                       |     0.35 |     0.19 |      0.66 |    0.00 |
+| (Intercept)                         |     5.22 |     1.55 |     17.58 |    0.01 |
+| cover\_catPublic                    |     2.19 |     1.22 |      3.93 |    0.01 |
+| educ\_catHigh school                |     0.64 |     0.45 |      0.90 |    0.01 |
+| cover\_catPrivate/Military          |     2.14 |     1.18 |      3.89 |    0.01 |
+| educ\_catSome college               |     0.76 |     0.54 |      1.07 |    0.12 |
+| finc\_cat\>=500%                    |     1.33 |     0.90 |      1.98 |    0.16 |
+| finc\_cat300–399%                   |     1.25 |     0.80 |      1.95 |    0.32 |
+| race\_catAsian                      |     1.45 |     0.54 |      3.93 |    0.46 |
+| race\_catBlack                      |     1.36 |     0.57 |      3.23 |    0.48 |
+| finc\_cat400–499%                   |     0.88 |     0.58 |      1.32 |    0.52 |
+| finc\_cat200–299%                   |     1.11 |     0.81 |      1.52 |    0.53 |
+| lcond\_chronic\_catYes              |     1.13 |     0.64 |      2.01 |    0.67 |
+| finc\_cat\>=200%, no further detail |     1.12 |     0.61 |      2.05 |    0.71 |
+| race\_catWhite                      |     0.98 |     0.41 |      2.31 |    0.96 |

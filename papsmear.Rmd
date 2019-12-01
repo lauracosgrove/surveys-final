@@ -369,4 +369,46 @@ pap_by %>%
   labs(y = "Percent Had Pap Smear, Last 3 years", x = "Insurance Coverage")
 ```
 
+# models
+
+```{r}
+pap_formod <- pap_dat %>% 
+  select(psu_p, strat_p, wtfa_sa, ends_with("cat"), hpvhrd, paphad1, mdrecp1)
+pap_formod <- pap_formod %>% 
+  filter(!is.na(paprec_3bcat)) %>% 
+  mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
+  mutate(ausualpl_cat = factor(ausualpl_cat, levels = c("Yes", "No")))
+
+vars = pap_dat %>% select(ends_with("cat")) %>% select(-paprec_3bcat, -eth_cat) %>% names()
+.form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
+
+
+des2 <- svydesign(ids = ~psu_p, strata = ~strat_p, 
+                 weights = ~wtfa_sa, nest = TRUE, data = pap_formod)
+
+mod <- svyglm(.form, design = des2, 
+       family = binomial) 
+
+modint <- svyglm(paprec_3bcat ~
+                  ausualpl_cat + age_cat*cover_cat +
+                   age_cat*lcond_chronic_cat +
+                   finc_cat + 
+                   race_cat + educ_cat
+                 , 
+                 design = des2, 
+       family = binomial) 
+
+
+broom::tidy(modint , exponentiate = TRUE, conf.int = TRUE) %>% 
+  arrange(abs(p.value)) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  knitr::kable()
+
+broom::tidy(mod, exponentiate = TRUE, conf.int = TRUE) %>% 
+  arrange(abs(p.value)) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  knitr::kable(digits = 2)
+
+```
+
 
