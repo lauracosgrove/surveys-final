@@ -145,7 +145,9 @@ pap_dat <- pap_dat %>%
                               rat_cat5 >= 18 & educ1 <= 21 ~ "400–499%",
                               rat_cat5 == 14  ~">=500%",
                               rat_cat5 == 17  ~">=200%, no further detail",
-                              rat_cat5 %in% c(96, 99) ~ "Unknown"))
+                              rat_cat5 %in% c(96, 99) ~ "Unknown")) %>% 
+  mutate(finc_cat = factor(finc_cat, levels = c("<200%", "200–299%", "300–399%", "400–499%", ">=500%", 
+                                                ">=200%, no further detail", "Unknown")))
 
 #usually go when sick
 # 1 Yes 28445 84.48
@@ -256,95 +258,78 @@ des <- svydesign(ids = ~psu_p, strata = ~strat_p,
 pap_dat %>% select(ends_with("cat"))  %>% names()
 pap_dat %>% count(paprec_3bcat) #unwt
 
-
 ```
 
-# unstratified descriptive stats
+# descriptive stats
 
 ```{r}
-##nonstratified by age
-#pap smear by age
-age_pct <- svyby(~paprec_3bcat , by = ~inc+age_cat, svymean, na.rm = TRUE, design = des)
-age_pct %>% filter(inc ==1) %>% knitr::kable()
-age_tot <- svyby(~paprec_3bcat, by = ~inc+age_cat, svytotal, na.rm = TRUE, design = des)
-age_tot %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by education
-edu_pct <- svyby(~paprec_3bcat, by = ~inc+educ_cat, svymean, na.rm = TRUE, design = des)
-edu_pct %>% filter(inc ==1) %>% knitr::kable()
-edu_tot <- svyby(~paprec_3bcat, by = ~inc+educ_cat, svytotal, na.rm = TRUE, design = des)
-edu_tot %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by finc
-finc_pct <- svyby(~paprec_3bcat, by = ~inc+finc_cat, svymean, na.rm = TRUE, design = des)
-finc_pct  %>% filter(inc ==1) %>% knitr::kable()
-finc_tot <- svyby(~paprec_3bcat, by = ~inc+finc_cat, svytotal, na.rm = TRUE, design = des)
-finc_tot %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by usual care
-ausualp_pct <- svyby(~paprec_3bcat, by = ~inc+ausualpl_cat, svymean, na.rm = TRUE, design = des)
-ausualp_pct %>% filter(inc ==1) %>% knitr::kable()
-ausualp_tot <- svyby(~paprec_3bcat, by = ~inc+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
-ausualp_tot %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by health coverage
-cover_pct <- svyby(~paprec_3bcat, by = ~inc+cover_cat, svymean, na.rm = TRUE, design = des)
-cover_pct %>% filter(inc ==1) %>% knitr::kable()
-cover_tot <- svyby(~paprec_3bcat, by = ~inc+cover_cat, svytotal, na.rm = TRUE, design = des)
-cover_tot %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by chronic conditions
-lcond_chronic_pct <- svyby(~paprec_3bcat, by = ~inc+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
-lcond_chronic_pct %>% filter(inc ==1) %>% knitr::kable()
-lcond_chronic_tot <- svyby(~paprec_3bcat, by = ~inc+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
-lcond_chronic_tot %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by race
-race_pct <- svyby(~paprec_3bcat, by = ~inc+race_cat, svymean, na.rm = TRUE, design = des)
-race_pct %>% filter(inc ==1) %>% knitr::kable()
-race_tot <- svyby(~paprec_3bcat, by = ~inc+race_cat, svytotal, na.rm = TRUE, design = des)
-race_tot %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by ethnicity
-eth_pct <- svyby(~paprec_3bcat, by = ~inc+eth_cat, svymean, na.rm = TRUE, design = des)
-eth_pct %>% filter(inc ==1) %>% knitr::kable()
-eth_tot <- svyby(~paprec_3bcat, by = ~inc+eth_cat, svytotal, na.rm = TRUE, design = des)
-eth_tot %>% filter(inc ==1) %>% knitr::kable()
+pct_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_cat", var2 = NULL) {
+  .outcome = reformulate(outcome)
+  .by = reformulate(c(inclusion, var1, var2))
+   svyby(.outcome , by = .by, svymean, na.rm = TRUE, design = des, vartype = "ci") 
+  
+}
 
+tot_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_cat", var2 = NULL) {
+  .outcome = reformulate(outcome)
+  .by = reformulate(c(inclusion, var1, var2))
+   svyby(.outcome , by = .by, svytotal, na.rm = TRUE, design = des, vartype = "ci") 
+  
+}
+
+pap_by <- pap_dat %>% 
+  select(ends_with("cat")) %>% 
+  names() %>% 
+  tibble(var = .) %>% 
+  mutate(pct = map(var, ~pct_func(var1 = .x))) %>% 
+  mutate(tot = map(var, ~tot_func(var1 = .x))) %>% 
+  mutate(pct_byage = map(var, ~pct_func(var1 = "age_cat", var2 = .x)))
 ```
-
-# stratified descriptive stats by age
 
 ```{r}
-#pap smear by education
-edu_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+educ_cat, svymean, na.rm = TRUE, design = des)
-edu_pct_strat %>% filter(inc ==1) %>% knitr::kable()
-edu_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+educ_cat, svytotal, na.rm = TRUE, design = des)
-edu_tot_strat %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by finc
-finc_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+finc_cat, svymean, na.rm = TRUE, design = des)
-finc_pct_strat  %>% filter(inc ==1) %>% knitr::kable()
-finc_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+finc_cat, svytotal, na.rm = TRUE, design = des)
-finc_tot_strat %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by usual care
-ausualp_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+ausualpl_cat, svymean, na.rm = TRUE, design = des)
-ausualp_pct_strat %>% filter(inc ==1) %>% knitr::kable()
-ausualp_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
-ausualp_tot_strat %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by health coverage
-cover_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+cover_cat, svymean, na.rm = TRUE, design = des)
-cover_pct_strat %>% filter(inc ==1) %>% knitr::kable()
-cover_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+cover_cat, svytotal, na.rm = TRUE, design = des)
-cover_tot_strat %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by chronic conditions
-lcond_chronic_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
-lcond_chronic_pct_strat %>% filter(inc ==1) %>% knitr::kable()
-lcond_chronic_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
-lcond_chronic_tot_strat %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by race
-race_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+race_cat, svymean, na.rm = TRUE, design = des)
-race_pct_strat %>% filter(inc ==1) %>% knitr::kable()
-race_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+race_cat, svytotal, na.rm = TRUE, design = des)
-race_tot_strat %>% filter(inc ==1) %>% knitr::kable()
-#pap smear by ethnicity
-eth_pct_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+eth_cat, svymean, na.rm = TRUE, design = des)
-eth_pct_strat %>% filter(inc ==1) %>% knitr::kable()
-eth_tot_strat <- svyby(~paprec_3bcat, by = ~inc+age_cat+eth_cat, svytotal, na.rm = TRUE, design = des)
-eth_tot_strat %>% filter(inc ==1) %>% knitr::kable()
+get_comp_tables <- function(tablepct, tabletot, var) {
+  tabletot <- tabletot %>% filter(inc == 1) %>% rename_all(~paste0("t_", .x)) 
+  tablepct %>% 
+  filter(inc == 1) %>% 
+  bind_cols(tabletot) %>% 
+  mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
+  mutate(pct = paste0(paprec_3bcat, " (", ci_l, ", ", ci_u, ")")) %>% 
+  mutate_at(vars(t_paprec_3bcat, t_ci_l, t_ci_u), ~round(.x/1e6, 1)) %>% 
+  mutate(tot = paste0(t_paprec_3bcat, "M (", t_ci_l, "M, ", t_ci_u, "M)")) %>% 
+  select(var, pct, tot) %>% 
+  rename(levels = var) %>% 
+  as_tibble()
+}
 
+pap_by <- pap_by %>% 
+  filter(var != "paprec_3bcat") %>% 
+  rename(variable = var) %>% 
+  mutate(comp_tbl = pmap(list(x = pct, y = tot, z = variable), function(x, y, z) 
+    {get_comp_tables(tablepct = x, tabletot = y, var =  z)} ))
+
+pap_sel <- pap_by %>% 
+  select(variable, comp_tbl) %>% 
+  unnest_wider(comp_tbl) %>% 
+  unnest(-variable)
+  
+pap_sel %>% 
+  knitr::kable(names = c("Variable", "Levels", "Percent", "Total"))
+
+pap_strat <- pap_by %>% 
+  select(variable, pct_byage) %>% 
+  filter(variable != "age_cat") %>% 
+  mutate(pct_byage = map2(.x = pct_byage, .y = variable, ~.x %>% rename(levels = .y))) %>% 
+  unnest(pct_byage) %>% 
+  filter(inc == 1) %>%
+  mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
+  mutate(pct = paste0(paprec_3bcat, " (", ci_l, ", ", ci_u, ")")) %>% 
+  select(-paprec_3bcat, -ci_l, -ci_u, -inc) %>% 
+  pivot_wider(names_from = "age_cat", values_from = pct) 
+
+pap_strat %>% 
+  filter(!levels %in% c("Unknown", "Other")) %>% 
+  knitr::kable()
 ```
+
 
 
