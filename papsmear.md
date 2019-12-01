@@ -511,43 +511,42 @@ pap_sel <- pap_by %>%
   unnest(-variable)
   
 pap_sel %>% 
+  filter(!levels %in% c("Unknown", "Other")) %>% 
   knitr::kable(names = c("Variable", "Levels", "Percent", "Total"))
 ```
 
-| variable            | levels                     | pct                | tot                  |
-| :------------------ | :------------------------- | :----------------- | :------------------- |
-| age\_cat            | 25–39                      | 91.2 (90.1, 92.3)  | 24.8M (23.7M, 26M)   |
-| age\_cat            | 40–49                      | 83.6 (81.7, 85.5)  | 15.4M (14.4M, 16.4M) |
-| age\_cat            | 50–64                      | 75.7 (74.1, 77.4)  | 22.1M (21.1M, 23.2M) |
-| age\_cat            | 65+                        | 45.1 (43, 47.3)    | 10.4M (9.7M, 11.1M)  |
-| educ\_cat           | College graduate           | 83.9 (82.7, 85.1)  | 28.1M (26.8M, 29.4M) |
-| educ\_cat           | High school                | 65.4 (63.3, 67.6)  | 14.7M (13.8M, 15.5M) |
-| educ\_cat           | Less than high school      | 62.4 (59.5, 65.4)  | 7.1M (6.5M, 7.6M)    |
-| educ\_cat           | Some college               | 74.8 (73.2, 76.3)  | 22.6M (21.5M, 23.6M) |
-| finc\_cat           | \<200%                     | 68.1 (66.4, 69.9)  | 19.4M (18.5M, 20.4M) |
-| finc\_cat           | 200–299%                   | 72.1 (69.5, 74.6)  | 9.4M (8.8M, 10.1M)   |
-| finc\_cat           | 300–399%                   | 76.4 (73.6, 79.3)  | 7.8M (7.1M, 8.4M)    |
-| finc\_cat           | 400–499%                   | 70 (66.9, 73)      | 7.5M (6.8M, 8.1M)    |
-| finc\_cat           | \>=500%                    | 83 (81.2, 84.7)    | 20.5M (19.3M, 21.7M) |
-| finc\_cat           | \>=200%, no further detail | 66.1 (59.5, 72.6)  | 1.8M (1.5M, 2.1M)    |
-| finc\_cat           | Unknown                    | 58.1 (35.8, 80.5)  | 0.1M (0M, 0.1M)      |
-| ausualpl\_cat       | No                         | 68.6 (65.3, 71.8)  | 5.5M (5M, 6M)        |
-| ausualpl\_cat       | Other                      | 16.8 (-17.2, 50.9) | 0M (0M, 0M)          |
-| ausualpl\_cat       | Yes                        | 74.8 (73.9, 75.8)  | 67.3M (65.3M, 69.2M) |
-| cover\_cat          | None                       | 69.6 (66.4, 72.8)  | 5.3M (4.9M, 5.8M)    |
-| cover\_cat          | Private/Military           | 79.3 (78.3, 80.3)  | 54M (52.2M, 55.9M)   |
-| cover\_cat          | Public                     | 60.2 (57.9, 62.5)  | 13.1M (12.3M, 13.9M) |
-| lcond\_chronic\_cat | No                         | 58.5 (44.1, 72.9)  | 0.2M (0.1M, 0.3M)    |
-| lcond\_chronic\_cat | Yes                        | 56.6 (54.1, 59.2)  | 9.7M (9.1M, 10.4M)   |
-| race\_cat           | AN/AI                      | 70.5 (63.2, 77.8)  | 0.9M (0.7M, 1.1M)    |
-| race\_cat           | Asian                      | 80.3 (76.7, 83.9)  | 4.6M (4.1M, 5M)      |
-| race\_cat           | Black                      | 79.2 (77.1, 81.2)  | 9.9M (9.3M, 10.6M)   |
-| race\_cat           | White                      | 73.2 (72.2, 74.1)  | 57.4M (55.5M, 59.3M) |
-| eth\_cat            | Hispanic                   | 80.1 (78, 82.3)    | 10.7M (10.1M, 11.4M) |
-| eth\_cat            | Non-Hispanic AN/AI         | 71.6 (62.3, 81)    | 0.6M (0.4M, 0.8M)    |
-| eth\_cat            | Non-Hispanic Asian         | 80.1 (76.4, 83.8)  | 4.4M (3.9M, 4.8M)    |
-| eth\_cat            | Non-Hispanic Black         | 78.9 (76.8, 81)    | 9.3M (8.7M, 9.9M)    |
-| eth\_cat            | Non-Hispanic White         | 71.9 (70.8, 73)    | 47.8M (46M, 49.5M)   |
+| variable            | levels                     | pct               | tot                  |
+| :------------------ | :------------------------- | :---------------- | :------------------- |
+| age\_cat            | 25–39                      | 91.2 (90.1, 92.3) | 24.8M (23.7M, 26M)   |
+| age\_cat            | 40–49                      | 83.6 (81.7, 85.5) | 15.4M (14.4M, 16.4M) |
+| age\_cat            | 50–64                      | 75.7 (74.1, 77.4) | 22.1M (21.1M, 23.2M) |
+| age\_cat            | 65+                        | 45.1 (43, 47.3)   | 10.4M (9.7M, 11.1M)  |
+| educ\_cat           | College graduate           | 83.9 (82.7, 85.1) | 28.1M (26.8M, 29.4M) |
+| educ\_cat           | High school                | 65.4 (63.3, 67.6) | 14.7M (13.8M, 15.5M) |
+| educ\_cat           | Less than high school      | 62.4 (59.5, 65.4) | 7.1M (6.5M, 7.6M)    |
+| educ\_cat           | Some college               | 74.8 (73.2, 76.3) | 22.6M (21.5M, 23.6M) |
+| finc\_cat           | \<200%                     | 68.1 (66.4, 69.9) | 19.4M (18.5M, 20.4M) |
+| finc\_cat           | 200–299%                   | 72.1 (69.5, 74.6) | 9.4M (8.8M, 10.1M)   |
+| finc\_cat           | 300–399%                   | 76.4 (73.6, 79.3) | 7.8M (7.1M, 8.4M)    |
+| finc\_cat           | 400–499%                   | 70 (66.9, 73)     | 7.5M (6.8M, 8.1M)    |
+| finc\_cat           | \>=500%                    | 83 (81.2, 84.7)   | 20.5M (19.3M, 21.7M) |
+| finc\_cat           | \>=200%, no further detail | 66.1 (59.5, 72.6) | 1.8M (1.5M, 2.1M)    |
+| ausualpl\_cat       | No                         | 68.6 (65.3, 71.8) | 5.5M (5M, 6M)        |
+| ausualpl\_cat       | Yes                        | 74.8 (73.9, 75.8) | 67.3M (65.3M, 69.2M) |
+| cover\_cat          | None                       | 69.6 (66.4, 72.8) | 5.3M (4.9M, 5.8M)    |
+| cover\_cat          | Private/Military           | 79.3 (78.3, 80.3) | 54M (52.2M, 55.9M)   |
+| cover\_cat          | Public                     | 60.2 (57.9, 62.5) | 13.1M (12.3M, 13.9M) |
+| lcond\_chronic\_cat | No                         | 58.5 (44.1, 72.9) | 0.2M (0.1M, 0.3M)    |
+| lcond\_chronic\_cat | Yes                        | 56.6 (54.1, 59.2) | 9.7M (9.1M, 10.4M)   |
+| race\_cat           | AN/AI                      | 70.5 (63.2, 77.8) | 0.9M (0.7M, 1.1M)    |
+| race\_cat           | Asian                      | 80.3 (76.7, 83.9) | 4.6M (4.1M, 5M)      |
+| race\_cat           | Black                      | 79.2 (77.1, 81.2) | 9.9M (9.3M, 10.6M)   |
+| race\_cat           | White                      | 73.2 (72.2, 74.1) | 57.4M (55.5M, 59.3M) |
+| eth\_cat            | Hispanic                   | 80.1 (78, 82.3)   | 10.7M (10.1M, 11.4M) |
+| eth\_cat            | Non-Hispanic AN/AI         | 71.6 (62.3, 81)   | 0.6M (0.4M, 0.8M)    |
+| eth\_cat            | Non-Hispanic Asian         | 80.1 (76.4, 83.8) | 4.4M (3.9M, 4.8M)    |
+| eth\_cat            | Non-Hispanic Black         | 78.9 (76.8, 81)   | 9.3M (8.7M, 9.9M)    |
+| eth\_cat            | Non-Hispanic White         | 71.9 (70.8, 73)   | 47.8M (46M, 49.5M)   |
 
 ``` r
 pap_strat <- pap_by %>% 
@@ -594,3 +593,37 @@ pap_strat %>%
 | eth\_cat            | Non-Hispanic Asian         | 89 (84.4, 93.5)    | 88.7 (82.5, 94.9)  | 79 (71.8, 86.2)   | 47.8 (38.9, 56.8) |
 | eth\_cat            | Non-Hispanic Black         | 92.8 (90.3, 95.2)  | 87.9 (84.1, 91.8)  | 78.7 (74.5, 82.9) | 45.5 (40.1, 51)   |
 | eth\_cat            | Non-Hispanic White         | 91.8 (90.3, 93.3)  | 81.9 (79.3, 84.5)  | 74.7 (72.7, 76.6) | 44.6 (42.1, 47)   |
+
+# plot
+
+``` r
+pap_by %>% 
+  filter(variable == "ausualpl_cat") %>% 
+  select(variable, pct_byage) %>% 
+  unnest(pct_byage) %>% 
+  filter(inc == 1) %>% 
+  filter(!ausualpl_cat %in% c("Unknown", "Other")) %>% 
+  ggplot(aes(x = ausualpl_cat, y = paprec_3bcat, fill = ausualpl_cat)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") + 
+  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Usual Source of Care (Have/Have Not)")
+```
+
+![](papsmear_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+``` r
+pap_by %>% 
+  filter(variable == "cover_cat") %>% 
+  select(variable, pct_byage) %>% 
+  unnest(pct_byage) %>% 
+  filter(inc == 1) %>% 
+  filter(!cover_cat %in% c("Unknown", "Other")) %>% 
+  ggplot(aes(x = cover_cat, y = paprec_3bcat, fill = cover_cat)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
+  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Insurance Coverage")
+```
+
+![](papsmear_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
