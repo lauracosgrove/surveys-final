@@ -253,7 +253,9 @@ pap_dat <- pap_dat %>%
                               rat_cat5 >= 18 & educ1 <= 21 ~ "400–499%",
                               rat_cat5 == 14  ~">=500%",
                               rat_cat5 == 17  ~">=200%, no further detail",
-                              rat_cat5 %in% c(96, 99) ~ "Unknown"))
+                              rat_cat5 %in% c(96, 99) ~ "Unknown")) %>% 
+  mutate(finc_cat = factor(finc_cat, levels = c("<200%", "200–299%", "300–399%", "400–499%", ">=500%", 
+                                                ">=200%, no further detail", "Unknown")))
 
 #usually go when sick
 # 1 Yes 28445 84.48
@@ -415,7 +417,7 @@ pap_dat <- pap_dat %>%
                              hiscodi3 == 4 ~ "Non-Hispanic Asian",
                              hiscodi3 == 5 ~ "Non-Hispanic AN/AI"))
 
-#filters
+#create indicator inclusion criteria variable
 ##filter age less than 25 per cancer paper
 ##filter to only women
 pap_dat %>% count(sex)
@@ -429,14 +431,15 @@ pap_dat %>% count(sex)
 
 ``` r
 pap_dat <- pap_dat %>% 
-  filter(age_p >= 25) %>% 
-  filter(sex == 2)
+  mutate(inc = if_else(age_p >= 25 & sex == 2, 1, 0))
+#create indicator variable and include it in domain analysis 
 ```
 
 # survey design
 
 ``` r
-des <- svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE, data = pap_dat)
+des <- svydesign(ids = ~psu_p, strata = ~strat_p, 
+                 weights = ~wtfa_sa, nest = TRUE, data = pap_dat)
 pap_dat %>% select(ends_with("cat"))  %>% names()
 ```
 
@@ -451,554 +454,286 @@ pap_dat %>% count(paprec_3bcat) #unwt
     ## # A tibble: 3 x 2
     ##   paprec_3bcat     n
     ##          <dbl> <int>
-    ## 1            0  4454
-    ## 2            1 10717
-    ## 3           NA  1914
+    ## 1            0  4498
+    ## 2            1 11559
+    ## 3           NA 17615
 
-# unstratified descriptive stats
-
-``` r
-##nonstratified by age
-#pap smear by age
-age_pct <- svyby(~paprec_3bcat, by = ~age_cat, svymean, na.rm = TRUE, design = des)
-age_pct %>% knitr::kable()
-```
-
-|       | age\_cat | paprec\_3bcat |        se |
-| ----- | :------- | ------------: | --------: |
-| 25–39 | 25–39    |     0.9118483 | 0.0056491 |
-| 40–49 | 40–49    |     0.8360096 | 0.0097709 |
-| 50–64 | 50–64    |     0.7572308 | 0.0084005 |
-| 65+   | 65+      |     0.4513425 | 0.0109663 |
+# descriptive stats
 
 ``` r
-age_tot <- svyby(~paprec_3bcat, by = ~age_cat, svytotal, na.rm = TRUE, design = des)
-age_tot  %>% knitr::kable()
-```
+pct_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_cat", var2 = NULL) {
+  .outcome = reformulate(outcome)
+  .by = reformulate(c(inclusion, var1, var2))
+   svyby(.outcome , by = .by, svymean, na.rm = TRUE, design = des, vartype = "ci") 
+  
+}
 
-|       | age\_cat | paprec\_3bcat |       se |
-| ----- | :------- | ------------: | -------: |
-| 25–39 | 25–39    |      24848829 | 603168.3 |
-| 40–49 | 40–49    |      15402712 | 497181.9 |
-| 50–64 | 50–64    |      22122078 | 542617.9 |
-| 65+   | 65+      |      10411780 | 369833.2 |
+tot_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_cat", var2 = NULL) {
+  .outcome = reformulate(outcome)
+  .by = reformulate(c(inclusion, var1, var2))
+   svyby(.outcome , by = .by, svytotal, na.rm = TRUE, design = des, vartype = "ci") 
+  
+}
+
+pap_by <- pap_dat %>% 
+  select(ends_with("cat")) %>% 
+  names() %>% 
+  tibble(var = .) %>% 
+  mutate(pct = map(var, ~pct_func(var1 = .x))) %>% 
+  mutate(tot = map(var, ~tot_func(var1 = .x))) %>% 
+  mutate(pct_byage = map(var, ~pct_func(var1 = "age_cat", var2 = .x))) %>% 
+  mutate(tot_byage = map(var, ~tot_func(var1 = "age_cat", var2 = .x)))
+```
 
 ``` r
-#pap smear by education
-edu_pct <- svyby(~paprec_3bcat, by = ~educ_cat, svymean, na.rm = TRUE, design = des)
-edu_pct %>% knitr::kable()
+get_comp_tables <- function(tablepct, tabletot, var) {
+  tabletot <- tabletot %>% filter(inc == 1) %>% rename_all(~paste0("t_", .x)) 
+  tablepct %>% 
+  filter(inc == 1) %>% 
+  bind_cols(tabletot) %>% 
+  mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
+  mutate(pct = paste0(paprec_3bcat, " (", ci_l, ", ", ci_u, ")")) %>% 
+  mutate_at(vars(t_paprec_3bcat, t_ci_l, t_ci_u), ~round(.x/1e6, 1)) %>% 
+  mutate(tot = paste0(t_paprec_3bcat, "M (", t_ci_l, "M, ", t_ci_u, "M)")) %>% 
+  select(var, pct, tot) %>% 
+  rename(levels = var) %>% 
+  as_tibble()
+}
+
+pap_by <- pap_by %>% 
+  filter(var != "paprec_3bcat") %>% 
+  rename(variable = var) %>% 
+  mutate(comp_tbl = pmap(list(x = pct, y = tot, z = variable), function(x, y, z) 
+    {get_comp_tables(tablepct = x, tabletot = y, var =  z)} ))
+
+pap_sel <- pap_by %>% 
+  select(variable, comp_tbl) %>% 
+  unnest_wider(comp_tbl) %>% 
+  unnest(-variable)
+  
+pap_sel %>% 
+  filter(!levels %in% c("Unknown", "Other")) %>% 
+  knitr::kable(names = c("Variable", "Levels", "Percent", "Total"))
 ```
 
-|                       | educ\_cat             | paprec\_3bcat |        se |
-| --------------------- | :-------------------- | ------------: | --------: |
-| College graduate      | College graduate      |     0.8389502 | 0.0061301 |
-| High school           | High school           |     0.6540881 | 0.0109846 |
-| Less than high school | Less than high school |     0.6242459 | 0.0151225 |
-| Some college          | Some college          |     0.7477613 | 0.0078717 |
+| variable            | levels                     | pct               | tot                  |
+| :------------------ | :------------------------- | :---------------- | :------------------- |
+| age\_cat            | 25–39                      | 91.2 (90.1, 92.3) | 24.8M (23.7M, 26M)   |
+| age\_cat            | 40–49                      | 83.6 (81.7, 85.5) | 15.4M (14.4M, 16.4M) |
+| age\_cat            | 50–64                      | 75.7 (74.1, 77.4) | 22.1M (21.1M, 23.2M) |
+| age\_cat            | 65+                        | 45.1 (43, 47.3)   | 10.4M (9.7M, 11.1M)  |
+| educ\_cat           | College graduate           | 83.9 (82.7, 85.1) | 28.1M (26.8M, 29.4M) |
+| educ\_cat           | High school                | 65.4 (63.3, 67.6) | 14.7M (13.8M, 15.5M) |
+| educ\_cat           | Less than high school      | 62.4 (59.5, 65.4) | 7.1M (6.5M, 7.6M)    |
+| educ\_cat           | Some college               | 74.8 (73.2, 76.3) | 22.6M (21.5M, 23.6M) |
+| finc\_cat           | \<200%                     | 68.1 (66.4, 69.9) | 19.4M (18.5M, 20.4M) |
+| finc\_cat           | 200–299%                   | 72.1 (69.5, 74.6) | 9.4M (8.8M, 10.1M)   |
+| finc\_cat           | 300–399%                   | 76.4 (73.6, 79.3) | 7.8M (7.1M, 8.4M)    |
+| finc\_cat           | 400–499%                   | 70 (66.9, 73)     | 7.5M (6.8M, 8.1M)    |
+| finc\_cat           | \>=500%                    | 83 (81.2, 84.7)   | 20.5M (19.3M, 21.7M) |
+| finc\_cat           | \>=200%, no further detail | 66.1 (59.5, 72.6) | 1.8M (1.5M, 2.1M)    |
+| ausualpl\_cat       | No                         | 68.6 (65.3, 71.8) | 5.5M (5M, 6M)        |
+| ausualpl\_cat       | Yes                        | 74.8 (73.9, 75.8) | 67.3M (65.3M, 69.2M) |
+| cover\_cat          | None                       | 69.6 (66.4, 72.8) | 5.3M (4.9M, 5.8M)    |
+| cover\_cat          | Private/Military           | 79.3 (78.3, 80.3) | 54M (52.2M, 55.9M)   |
+| cover\_cat          | Public                     | 60.2 (57.9, 62.5) | 13.1M (12.3M, 13.9M) |
+| lcond\_chronic\_cat | No                         | 58.5 (44.1, 72.9) | 0.2M (0.1M, 0.3M)    |
+| lcond\_chronic\_cat | Yes                        | 56.6 (54.1, 59.2) | 9.7M (9.1M, 10.4M)   |
+| race\_cat           | AN/AI                      | 70.5 (63.2, 77.8) | 0.9M (0.7M, 1.1M)    |
+| race\_cat           | Asian                      | 80.3 (76.7, 83.9) | 4.6M (4.1M, 5M)      |
+| race\_cat           | Black                      | 79.2 (77.1, 81.2) | 9.9M (9.3M, 10.6M)   |
+| race\_cat           | White                      | 73.2 (72.2, 74.1) | 57.4M (55.5M, 59.3M) |
+| eth\_cat            | Hispanic                   | 80.1 (78, 82.3)   | 10.7M (10.1M, 11.4M) |
+| eth\_cat            | Non-Hispanic AN/AI         | 71.6 (62.3, 81)   | 0.6M (0.4M, 0.8M)    |
+| eth\_cat            | Non-Hispanic Asian         | 80.1 (76.4, 83.8) | 4.4M (3.9M, 4.8M)    |
+| eth\_cat            | Non-Hispanic Black         | 78.9 (76.8, 81)   | 9.3M (8.7M, 9.9M)    |
+| eth\_cat            | Non-Hispanic White         | 71.9 (70.8, 73)   | 47.8M (46M, 49.5M)   |
 
 ``` r
-edu_tot <- svyby(~paprec_3bcat, by = ~educ_cat, svytotal, na.rm = TRUE, design = des)
-edu_tot %>% knitr::kable()
+pap_strat <- pap_by %>% 
+  select(variable, pct_byage, tot_byage) %>% 
+  filter(variable != "age_cat") %>% 
+  mutate(pct_byage = map2(.x = pct_byage, .y = variable, ~.x %>% rename(levels = .y))) %>% 
+  mutate(tot_byage = map(.x = tot_byage, ~.x %>% rename(tot = paprec_3bcat) %>% select(tot)) ) %>% 
+  unnest(c(pct_byage, tot_byage)) %>% 
+  filter(inc == 1) %>%
+  mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
+  mutate(CI = paste0(" (", ci_l, ", ", ci_u, ")")) %>% 
+  rename(pct = paprec_3bcat) %>% 
+  mutate(tot = paste0(round(tot/1e6, 1), "M")) %>% 
+  select(-ci_l, -ci_u, -inc) %>% 
+  pivot_wider(names_from = "age_cat", values_from = c(tot, pct, CI)) %>% 
+  select(variable, levels, ends_with("39"), ends_with("49"), ends_with("64"))
+
+pap_strat %>% 
+  filter(!levels %in% c("Unknown", "Other")) %>% 
+  knitr::kable()
 ```
 
-|                       | educ\_cat             | paprec\_3bcat |       se |
-| --------------------- | :-------------------- | ------------: | -------: |
-| College graduate      | College graduate      |      28126961 | 665994.8 |
-| High school           | High school           |      14654401 | 433286.2 |
-| Less than high school | Less than high school |       7077365 | 290122.6 |
-| Some college          | Some college          |      22579798 | 542206.9 |
+| variable            | levels                     | tot\_25–39 | pct\_25–39 | CI\_25–39     | tot\_40–49 | pct\_40–49 | CI\_40–49     | tot\_50–64 | pct\_50–64 | CI\_50–64    |
+| :------------------ | :------------------------- | :--------- | ---------: | :------------ | :--------- | ---------: | :------------ | :--------- | ---------: | :----------- |
+| educ\_cat           | College graduate           | 10.6M      |       94.7 | (93.2, 96.3)  | 6.4M       |       91.4 | (89.1, 93.7)  | 8.1M       |       82.6 | (80.1, 85.1) |
+| educ\_cat           | High school                | 4M         |       85.4 | (82.1, 88.7)  | 2.8M       |       75.3 | (70.5, 80.1)  | 4.9M       |       71.5 | (67.7, 75.3) |
+| educ\_cat           | Less than high school      | 2.3M       |       86.5 | (82.7, 90.4)  | 1.4M       |       71.2 | (63.6, 78.7)  | 2M         |       66.1 | (60, 72.1)   |
+| educ\_cat           | Some college               | 7.8M       |       91.0 | (88.9, 93.2)  | 4.7M       |       83.1 | (79.3, 86.9)  | 7.1M       |       74.8 | (71.7, 77.8) |
+| finc\_cat           | \<200%                     | 8.3M       |       87.7 | (85.8, 89.6)  | 3.9M       |       77.5 | (73.3, 81.8)  | 4.7M       |       65.4 | (61.6, 69.1) |
+| finc\_cat           | 200–299%                   | 3.5M       |       88.1 | (84.9, 91.3)  | 2.1M       |       81.1 | (75.1, 87.2)  | 2.5M       |       75.0 | (69.8, 80.2) |
+| finc\_cat           | 300–399%                   | 3M         |       92.4 | (89.5, 95.3)  | 1.6M       |       81.9 | (75.8, 88)    | 2M         |       74.8 | (68.7, 80.9) |
+| finc\_cat           | 400–499%                   | 1.6M       |       93.4 | (89.7, 97.2)  | 1.4M       |       84.7 | (78.2, 91.3)  | 3M         |       77.2 | (72.2, 82.3) |
+| finc\_cat           | \>=500%                    | 5.9M       |       95.5 | (93.6, 97.4)  | 4.8M       |       91.7 | (88.9, 94.5)  | 7.4M       |       82.1 | (79.3, 84.9) |
+| finc\_cat           | \>=200%, no further detail | 0.5M       |       90.9 | (80.6, 101.2) | 0.3M       |       75.6 | (59.8, 91.4)  | 0.5M       |       73.7 | (60.9, 86.6) |
+| ausualpl\_cat       | No                         | 3.5M       |       85.2 | (81.7, 88.6)  | 1.1M       |       64.4 | (55.9, 72.9)  | 0.8M       |       47.1 | (39, 55.3)   |
+| ausualpl\_cat       | Yes                        | 21.4M      |       92.3 | (91, 93.5)    | 14.3M      |       85.5 | (83.6, 87.4)  | 21.3M      |       77.5 | (75.8, 79.1) |
+| cover\_cat          | None                       | 3M         |       82.8 | (79.1, 86.6)  | 1.2M       |       59.2 | (51.8, 66.6)  | 1.1M       |       57.6 | (50.4, 64.8) |
+| cover\_cat          | Private/Military           | 17.5M      |       93.2 | (92, 94.4)    | 12.3M      |       87.9 | (86, 89.9)    | 18.8M      |       78.7 | (77, 80.3)   |
+| cover\_cat          | Public                     | 4.2M       |       89.7 | (87.2, 92.2)  | 1.8M       |       78.4 | (72.7, 84.1)  | 2.1M       |       65.1 | (59.3, 70.8) |
+| lcond\_chronic\_cat | No                         | 0.1M       |       90.6 | (76.2, 105)   | 0M         |       87.3 | (67.2, 107.4) | 0.1M       |       84.9 | (64.8, 105)  |
+| lcond\_chronic\_cat | Yes                        | 1.5M       |       88.2 | (83, 93.4)    | 1.3M       |       73.7 | (66.6, 80.7)  | 4.1M       |       68.7 | (64.7, 72.8) |
+| race\_cat           | AN/AI                      | 0.4M       |       84.1 | (74.3, 94)    | 0.3M       |       82.9 | (70.3, 95.4)  | 0.2M       |       63.4 | (47.5, 79.4) |
+| race\_cat           | Asian                      | 1.8M       |       89.2 | (84.9, 93.6)  | 1.2M       |       87.9 | (81.7, 94.1)  | 1.2M       |       79.5 | (72.4, 86.6) |
+| race\_cat           | Black                      | 3.9M       |       92.8 | (90.4, 95.1)  | 2.1M       |       87.6 | (83.6, 91.5)  | 3M         |       78.4 | (74, 82.7)   |
+| race\_cat           | White                      | 18.9M      |       91.2 | (89.9, 92.5)  | 11.8M      |       82.5 | (80.4, 84.7)  | 17.7M      |       75.3 | (73.4, 77.1) |
+| eth\_cat            | Hispanic                   | 4.7M       |       89.2 | (87, 91.4)    | 2.6M       |       84.7 | (80.6, 88.8)  | 2.5M       |       78.3 | (73.2, 83.5) |
+| eth\_cat            | Non-Hispanic AN/AI         | 0.2M       |       85.5 | (74, 97)      | 0.2M       |       83.0 | (66.9, 99)    | 0.2M       |       68.9 | (49.3, 88.5) |
+| eth\_cat            | Non-Hispanic Asian         | 1.7M       |       89.0 | (84.4, 93.5)  | 1.2M       |       88.7 | (82.5, 94.9)  | 1.1M       |       79.0 | (71.8, 86.2) |
+| eth\_cat            | Non-Hispanic Black         | 3.5M       |       92.8 | (90.3, 95.2)  | 2M         |       87.9 | (84.1, 91.8)  | 2.8M       |       78.7 | (74.5, 82.9) |
+| eth\_cat            | Non-Hispanic White         | 14.7M      |       91.8 | (90.3, 93.3)  | 9.5M       |       81.9 | (79.3, 84.5)  | 15.5M      |       74.7 | (72.7, 76.6) |
+
+# plot
 
 ``` r
-#pap smear by finc
-finc_pct <- svyby(~paprec_3bcat, by = ~finc_cat, svymean, na.rm = TRUE, design = des)
-finc_pct  %>% knitr::kable()
+pap_by %>% 
+  filter(variable == "ausualpl_cat") %>% 
+  select(variable, pct_byage) %>% 
+  unnest(pct_byage) %>% 
+  filter(inc == 1) %>% 
+  filter(!ausualpl_cat %in% c("Unknown", "Other")) %>% 
+  ggplot(aes(x = ausualpl_cat, y = paprec_3bcat, fill = ausualpl_cat)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") + 
+  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Usual Source of Care (Have/Have Not)")
 ```
 
-|                            | finc\_cat                  | paprec\_3bcat |        se |
-| -------------------------- | :------------------------- | ------------: | --------: |
-| \<200%                     | \<200%                     |     0.6813715 | 0.0087923 |
-| \>=200%, no further detail | \>=200%, no further detail |     0.6605067 | 0.0333328 |
-| \>=500%                    | \>=500%                    |     0.8295802 | 0.0089082 |
-| 200–299%                   | 200–299%                   |     0.7206086 | 0.0128300 |
-| 300–399%                   | 300–399%                   |     0.7642451 | 0.0144710 |
-| 400–499%                   | 400–499%                   |     0.6996050 | 0.0157193 |
-| Unknown                    | Unknown                    |     0.5812789 | 0.1140846 |
+![](papsmear_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
-finc_tot <- svyby(~paprec_3bcat, by = ~finc_cat, svytotal, na.rm = TRUE, design = des)
-finc_tot %>% knitr::kable()
+pap_by %>% 
+  filter(variable == "cover_cat") %>% 
+  select(variable, pct_byage) %>% 
+  unnest(pct_byage) %>% 
+  filter(inc == 1) %>% 
+  filter(!cover_cat %in% c("Unknown", "Other")) %>% 
+  ggplot(aes(x = cover_cat, y = paprec_3bcat, fill = cover_cat)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
+  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Insurance Coverage")
 ```
 
-|                            | finc\_cat                  | paprec\_3bcat |        se |
-| -------------------------- | :------------------------- | ------------: | --------: |
-| \<200%                     | \<200%                     |      19449221 | 460568.27 |
-| \>=200%, no further detail | \>=200%, no further detail |       1788806 | 143051.07 |
-| \>=500%                    | \>=500%                    |      20505140 | 608634.23 |
-| 200–299%                   | 200–299%                   |       9447411 | 347393.60 |
-| 300–399%                   | 300–399%                   |       7750416 | 321799.06 |
-| 400–499%                   | 400–499%                   |       7488371 | 326456.48 |
-| Unknown                    | Unknown                    |         67222 |  17657.63 |
+![](papsmear_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+# models
 
 ``` r
-#pap smear by usual care
-ausualp_pct <- svyby(~paprec_3bcat, by = ~ausualpl_cat, svymean, na.rm = TRUE, design = des)
-ausualp_pct %>% knitr::kable()
+pap_formod <- pap_dat %>% 
+  select(psu_p, strat_p, wtfa_sa, ends_with("cat"), hpvhrd, paphad1, mdrecp1)
+pap_formod <- pap_formod %>% 
+  filter(!is.na(paprec_3bcat)) %>% 
+  mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
+  mutate(ausualpl_cat = factor(ausualpl_cat, levels = c("Yes", "No")))
+
+vars = pap_dat %>% select(ends_with("cat")) %>% select(-paprec_3bcat, -eth_cat) %>% names()
+.form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
+
+
+des2 <- svydesign(ids = ~psu_p, strata = ~strat_p, 
+                 weights = ~wtfa_sa, nest = TRUE, data = pap_formod)
+
+mod <- svyglm(.form, design = des2, 
+       family = binomial) 
 ```
 
-|       | ausualpl\_cat | paprec\_3bcat |        se |
-| ----- | :------------ | ------------: | --------: |
-| No    | No            |     0.6855347 | 0.0165861 |
-| Other | Other         |     0.1684978 | 0.1736668 |
-| Yes   | Yes           |     0.7482931 | 0.0047148 |
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
 
 ``` r
-ausualp_tot <- svyby(~paprec_3bcat, by = ~ausualpl_cat, svytotal, na.rm = TRUE, design = des)
-ausualp_tot %>% knitr::kable()
+modint <- svyglm(paprec_3bcat ~
+                  ausualpl_cat + age_cat*cover_cat +
+                   age_cat*lcond_chronic_cat +
+                   finc_cat + 
+                   race_cat + educ_cat
+                 , 
+                 design = des2, 
+       family = binomial) 
 ```
 
-|       | ausualpl\_cat | paprec\_3bcat |        se |
-| ----- | :------------ | ------------: | --------: |
-| No    | No            |       5505522 |  256455.5 |
-| Other | Other         |          3466 |    3466.0 |
-| Yes   | Yes           |      67276411 | 1000055.1 |
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
 
 ``` r
-#pap smear by health coverage
-cover_pct <- svyby(~paprec_3bcat, by = ~cover_cat, svymean, na.rm = TRUE, design = des)
-cover_pct %>% knitr::kable()
+broom::tidy(modint , exponentiate = TRUE, conf.int = TRUE) %>% 
+  arrange(abs(p.value)) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  knitr::kable()
 ```
 
-|                  | cover\_cat       | paprec\_3bcat |        se |
-| ---------------- | :--------------- | ------------: | --------: |
-| None             | None             |     0.6960178 | 0.0163527 |
-| Private/Military | Private/Military |     0.7930466 | 0.0051312 |
-| Public           | Public           |     0.6023640 | 0.0117842 |
+| term                                     |     estimate |    conf.low |    conf.high |   p.value |
+| :--------------------------------------- | -----------: | ----------: | -----------: | --------: |
+| age\_cat65+:cover\_catPrivate/Military   |    0.0000017 |   0.0000001 | 1.970000e-05 | 0.0000000 |
+| age\_cat65+:cover\_catPublic             |    0.0000028 |   0.0000003 | 2.970000e-05 | 0.0000000 |
+| age\_cat65+                              | 5500.2994799 | 272.5697754 | 1.109928e+05 | 0.0000001 |
+| educ\_catLess than high school           |    0.4726063 |   0.3161260 | 7.065432e-01 | 0.0003164 |
+| ausualpl\_catNo                          |    0.3887024 |   0.2202052 | 6.861307e-01 | 0.0012743 |
+| educ\_catHigh school                     |    0.6352110 |   0.4461291 | 9.044310e-01 | 0.0124653 |
+| cover\_catPrivate/Military               |    4.3891793 |   1.0507686 | 1.833410e+01 | 0.0436484 |
+| cover\_catPublic                         |    3.0503082 |   0.9630946 | 9.660921e+00 | 0.0591227 |
+| (Intercept)                              |    6.8699917 |   0.8684070 | 5.434869e+01 | 0.0690187 |
+| age\_cat65+:lcond\_chronic\_catYes       |    4.7436218 |   0.6381797 | 3.525958e+01 | 0.1295083 |
+| educ\_catSome college                    |    0.7656402 |   0.5390066 | 1.087565e+00 | 0.1371804 |
+| finc\_cat\>=500%                         |    1.3113045 |   0.8752319 | 1.964644e+00 | 0.1900995 |
+| age\_cat50–64:cover\_catPrivate/Military |    0.3870757 |   0.0807490 | 1.855472e+00 | 0.2363891 |
+| finc\_cat300–399%                        |    1.2574776 |   0.8024114 | 1.970623e+00 | 0.3185027 |
+| age\_cat50–64:cover\_catPublic           |    0.5450448 |   0.1502338 | 1.977411e+00 | 0.3568960 |
+| finc\_cat400–499%                        |    0.8554782 |   0.5632781 | 1.299257e+00 | 0.4647946 |
+| race\_catAsian                           |    1.4361460 |   0.5301998 | 3.890071e+00 | 0.4771665 |
+| race\_catBlack                           |    1.3166534 |   0.5546996 | 3.125253e+00 | 0.5333752 |
+| lcond\_chronic\_catYes                   |    0.5804629 |   0.1047580 | 3.216339e+00 | 0.5340900 |
+| age\_cat40–49                            |    0.4161804 |   0.0236908 | 7.311116e+00 | 0.5493915 |
+| finc\_cat\>=200%, no further detail      |    1.1682031 |   0.6427106 | 2.123348e+00 | 0.6105417 |
+| finc\_cat200–299%                        |    1.0785675 |   0.7822269 | 1.487174e+00 | 0.6448791 |
+| age\_cat50–64:lcond\_chronic\_catYes     |    0.6878989 |   0.0636732 | 7.431776e+00 | 0.7582633 |
+| age\_cat50–64                            |    0.6794467 |   0.0516358 | 8.940463e+00 | 0.7690572 |
+| race\_catWhite                           |    0.9432821 |   0.3984572 | 2.233066e+00 | 0.8944600 |
+| age\_cat40–49:lcond\_chronic\_catYes     |    0.8638164 |   0.0686037 | 1.087665e+01 | 0.9099040 |
+| age\_cat40–49:cover\_catPublic           |    0.9202925 |   0.1753853 | 4.829016e+00 | 0.9218459 |
+| age\_cat40–49:cover\_catPrivate/Military |    0.9623911 |   0.1473047 | 6.287624e+00 | 0.9681011 |
 
 ``` r
-cover_tot <- svyby(~paprec_3bcat, by = ~cover_cat, svytotal, na.rm = TRUE, design = des)
-cover_tot %>% knitr::kable()
+broom::tidy(mod, exponentiate = TRUE, conf.int = TRUE) %>% 
+  arrange(abs(p.value)) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  knitr::kable(digits = 2)
 ```
 
-|                  | cover\_cat       | paprec\_3bcat |       se |
-| ---------------- | :--------------- | ------------: | -------: |
-| None             | None             |       5319273 | 220282.7 |
-| Private/Military | Private/Military |      54048236 | 961840.4 |
-| Public           | Public           |      13122914 | 410612.3 |
-
-``` r
-#pap smear by chronic conditions
-lcond_chronic_pct <- svyby(~paprec_3bcat, by = ~lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
-lcond_chronic_pct %>% knitr::kable()
-```
-
-|     | lcond\_chronic\_cat | paprec\_3bcat |        se |
-| --- | :------------------ | ------------: | --------: |
-| No  | No                  |     0.5851722 | 0.0735809 |
-| Yes | Yes                 |     0.5664789 | 0.0128104 |
-
-``` r
-lcond_chronic_tot <- svyby(~paprec_3bcat, by = ~lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
-lcond_chronic_tot %>% knitr::kable()
-```
-
-|     | lcond\_chronic\_cat | paprec\_3bcat |        se |
-| --- | :------------------ | ------------: | --------: |
-| No  | No                  |        228350 |  46155.76 |
-| Yes | Yes                 |       9743073 | 327007.88 |
-
-``` r
-#pap smear by race
-race_pct <- svyby(~paprec_3bcat, by = ~race_cat, svymean, na.rm = TRUE, design = des)
-race_pct %>% knitr::kable()
-```
-
-|       | race\_cat | paprec\_3bcat |        se |
-| ----- | :-------- | ------------: | --------: |
-| AN/AI | AN/AI     |     0.7049639 | 0.0372061 |
-| Asian | Asian     |     0.8026416 | 0.0184303 |
-| Black | Black     |     0.7915125 | 0.0105988 |
-| White | White     |     0.7315896 | 0.0049630 |
-
-``` r
-race_tot <- svyby(~paprec_3bcat, by = ~race_cat, svytotal, na.rm = TRUE, design = des)
-race_tot %>% knitr::kable()
-```
-
-|       | race\_cat | paprec\_3bcat |       se |
-| ----- | :-------- | ------------: | -------: |
-| AN/AI | AN/AI     |        921961 | 110006.7 |
-| Asian | Asian     |       4577200 | 239675.6 |
-| Black | Black     |       9905861 | 331426.1 |
-| White | White     |      57380377 | 961510.5 |
-
-``` r
-#pap smear by ethnicity
-eth_pct <- svyby(~paprec_3bcat, by = ~eth_cat, svymean, na.rm = TRUE, design = des)
-eth_pct %>% knitr::kable()
-```
-
-|                    | eth\_cat           | paprec\_3bcat |        se |
-| ------------------ | :----------------- | ------------: | --------: |
-| Hispanic           | Hispanic           |     0.8012985 | 0.0110508 |
-| Non-Hispanic AN/AI | Non-Hispanic AN/AI |     0.7163454 | 0.0475685 |
-| Non-Hispanic Asian | Non-Hispanic Asian |     0.8007410 | 0.0187717 |
-| Non-Hispanic Black | Non-Hispanic Black |     0.7890760 | 0.0106335 |
-| Non-Hispanic White | Non-Hispanic White |     0.7187315 | 0.0055232 |
-
-``` r
-eth_tot <- svyby(~paprec_3bcat, by = ~eth_cat, svytotal, na.rm = TRUE, design = des)
-eth_tot %>% knitr::kable()
-```
-
-|                    | eth\_cat           | paprec\_3bcat |        se |
-| ------------------ | :----------------- | ------------: | --------: |
-| Hispanic           | Hispanic           |      10717749 | 331516.09 |
-| Non-Hispanic AN/AI | Non-Hispanic AN/AI |        632927 |  97175.69 |
-| Non-Hispanic Asian | Non-Hispanic Asian |       4386154 | 232879.76 |
-| Non-Hispanic Black | Non-Hispanic Black |       9292190 | 322545.77 |
-| Non-Hispanic White | Non-Hispanic White |      47756379 | 898964.78 |
-
-# stratified descriptive stats by age
-
-``` r
-#pap smear by education
-edu_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+educ_cat, svymean, na.rm = TRUE, design = des)
-edu_pct_strat %>% knitr::kable()
-```
-
-|                             | age\_cat | educ\_cat             | paprec\_3bcat |        se |
-| --------------------------- | :------- | :-------------------- | ------------: | --------: |
-| 25–39.College graduate      | 25–39    | College graduate      |     0.9471838 | 0.0078325 |
-| 40–49.College graduate      | 40–49    | College graduate      |     0.9137014 | 0.0117034 |
-| 50–64.College graduate      | 50–64    | College graduate      |     0.8260366 | 0.0125492 |
-| 65+.College graduate        | 65+      | College graduate      |     0.5429112 | 0.0205418 |
-| 25–39.High school           | 25–39    | High school           |     0.8543179 | 0.0169174 |
-| 40–49.High school           | 40–49    | High school           |     0.7534464 | 0.0244711 |
-| 50–64.High school           | 50–64    | High school           |     0.7150563 | 0.0194172 |
-| 65+.High school             | 65+      | High school           |     0.4152511 | 0.0198915 |
-| 25–39.Less than high school | 25–39    | Less than high school |     0.8654930 | 0.0197246 |
-| 40–49.Less than high school | 40–49    | Less than high school |     0.7118792 | 0.0385087 |
-| 50–64.Less than high school | 50–64    | Less than high school |     0.6607830 | 0.0308250 |
-| 65+.Less than high school   | 65+      | Less than high school |     0.3728320 | 0.0271387 |
-| 25–39.Some college          | 25–39    | Some college          |     0.9104437 | 0.0111332 |
-| 40–49.Some college          | 40–49    | Some college          |     0.8311824 | 0.0194021 |
-| 50–64.Some college          | 50–64    | Some college          |     0.7477419 | 0.0155282 |
-| 65+.Some college            | 65+      | Some college          |     0.4621783 | 0.0214259 |
-
-``` r
-edu_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+educ_cat, svytotal, na.rm = TRUE, design = des)
-edu_tot_strat %>% knitr::kable()
-```
-
-|                             | age\_cat | educ\_cat             | paprec\_3bcat |       se |
-| --------------------------- | :------- | :-------------------- | ------------: | -------: |
-| 25–39.College graduate      | 25–39    | College graduate      |      10642150 | 398179.8 |
-| 40–49.College graduate      | 40–49    | College graduate      |       6446124 | 309152.5 |
-| 50–64.College graduate      | 50–64    | College graduate      |       8072821 | 367073.5 |
-| 65+.College graduate        | 65+      | College graduate      |       2965866 | 174213.0 |
-| 25–39.High school           | 25–39    | High school           |       3961003 | 233945.6 |
-| 40–49.High school           | 40–49    | High school           |       2765357 | 185682.2 |
-| 50–64.High school           | 50–64    | High school           |       4946632 | 233956.8 |
-| 65+.High school             | 65+      | High school           |       2981409 | 193978.8 |
-| 25–39.Less than high school | 25–39    | Less than high school |       2327141 | 170246.6 |
-| 40–49.Less than high school | 40–49    | Less than high school |       1388272 | 119700.1 |
-| 50–64.Less than high school | 50–64    | Less than high school |       1983911 | 151751.2 |
-| 65+.Less than high school   | 65+      | Less than high school |       1378041 | 132380.6 |
-| 25–39.Some college          | 25–39    | Some college          |       7845177 | 314373.7 |
-| 40–49.Some college          | 40–49    | Some college          |       4656410 | 251549.0 |
-| 50–64.Some college          | 50–64    | Some college          |       7053534 | 298796.0 |
-| 65+.Some college            | 65+      | Some college          |       3024677 | 193841.5 |
-
-``` r
-#pap smear by finc
-finc_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+finc_cat, svymean, na.rm = TRUE, design = des)
-finc_pct_strat  %>% knitr::kable()
-```
-
-|                                  | age\_cat | finc\_cat                  | paprec\_3bcat |        se |
-| -------------------------------- | :------- | :------------------------- | ------------: | --------: |
-| 25–39.\<200%                     | 25–39    | \<200%                     |     0.8771484 | 0.0098442 |
-| 40–49.\<200%                     | 40–49    | \<200%                     |     0.7751960 | 0.0217382 |
-| 50–64.\<200%                     | 50–64    | \<200%                     |     0.6536725 | 0.0192185 |
-| 65+.\<200%                       | 65+      | \<200%                     |     0.3756896 | 0.0179107 |
-| 25–39.\>=200%, no further detail | 25–39    | \>=200%, no further detail |     0.9091719 | 0.0524672 |
-| 40–49.\>=200%, no further detail | 40–49    | \>=200%, no further detail |     0.7558410 | 0.0806729 |
-| 50–64.\>=200%, no further detail | 50–64    | \>=200%, no further detail |     0.7372555 | 0.0655803 |
-| 65+.\>=200%, no further detail   | 65+      | \>=200%, no further detail |     0.4557447 | 0.0502746 |
-| 25–39.\>=500%                    | 25–39    | \>=500%                    |     0.9551460 | 0.0095834 |
-| 40–49.\>=500%                    | 40–49    | \>=500%                    |     0.9168959 | 0.0142156 |
-| 50–64.\>=500%                    | 50–64    | \>=500%                    |     0.8208860 | 0.0142663 |
-| 65+.\>=500%                      | 65+      | \>=500%                    |     0.5600515 | 0.0247398 |
-| 25–39.200–299%                   | 25–39    | 200–299%                   |     0.8808275 | 0.0162143 |
-| 40–49.200–299%                   | 40–49    | 200–299%                   |     0.8113526 | 0.0308821 |
-| 50–64.200–299%                   | 50–64    | 200–299%                   |     0.7498960 | 0.0265852 |
-| 65+.200–299%                     | 65+      | 200–299%                   |     0.4287577 | 0.0265594 |
-| 25–39.300–399%                   | 25–39    | 300–399%                   |     0.9237410 | 0.0146946 |
-| 40–49.300–399%                   | 40–49    | 300–399%                   |     0.8192055 | 0.0311688 |
-| 50–64.300–399%                   | 50–64    | 300–399%                   |     0.7482020 | 0.0311689 |
-| 65+.300–399%                     | 65+      | 300–399%                   |     0.5125942 | 0.0356718 |
-| 25–39.400–499%                   | 25–39    | 400–499%                   |     0.9342555 | 0.0191213 |
-| 40–49.400–499%                   | 40–49    | 400–499%                   |     0.8472023 | 0.0334769 |
-| 50–64.400–499%                   | 50–64    | 400–499%                   |     0.7724836 | 0.0257746 |
-| 65+.400–499%                     | 65+      | 400–499%                   |     0.4458375 | 0.0247029 |
-| 25–39.Unknown                    | 25–39    | Unknown                    |     1.0000000 | 0.0000000 |
-| 40–49.Unknown                    | 40–49    | Unknown                    |     1.0000000 | 0.0000000 |
-| 50–64.Unknown                    | 50–64    | Unknown                    |     1.0000000 | 0.0000000 |
-| 65+.Unknown                      | 65+      | Unknown                    |     0.1100513 | 0.0984146 |
-
-``` r
-finc_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+finc_cat, svytotal, na.rm = TRUE, design = des)
-finc_tot_strat %>% knitr::kable()
-```
-
-|                                  | age\_cat | finc\_cat                  | paprec\_3bcat |         se |
-| -------------------------------- | :------- | :------------------------- | ------------: | ---------: |
-| 25–39.\<200%                     | 25–39    | \<200%                     |       8260529 | 306216.076 |
-| 40–49.\<200%                     | 40–49    | \<200%                     |       3928185 | 210278.364 |
-| 50–64.\<200%                     | 50–64    | \<200%                     |       4652498 | 227517.921 |
-| 65+.\<200%                       | 65+      | \<200%                     |       2608009 | 155437.564 |
-| 25–39.\>=200%, no further detail | 25–39    | \>=200%, no further detail |        457448 |  74076.431 |
-| 40–49.\>=200%, no further detail | 40–49    | \>=200%, no further detail |        319429 |  61441.032 |
-| 50–64.\>=200%, no further detail | 50–64    | \>=200%, no further detail |        522678 |  75305.810 |
-| 65+.\>=200%, no further detail   | 65+      | \>=200%, no further detail |        489251 |  69967.479 |
-| 25–39.\>=500%                    | 25–39    | \>=500%                    |       5877894 | 305115.972 |
-| 40–49.\>=500%                    | 40–49    | \>=500%                    |       4791995 | 276216.324 |
-| 50–64.\>=500%                    | 50–64    | \>=500%                    |       7445240 | 329673.711 |
-| 65+.\>=500%                      | 65+      | \>=500%                    |       2390011 | 174760.846 |
-| 25–39.200–299%                   | 25–39    | 200–299%                   |       3501919 | 201082.795 |
-| 40–49.200–299%                   | 40–49    | 200–299%                   |       2060524 | 169456.935 |
-| 50–64.200–299%                   | 50–64    | 200–299%                   |       2468954 | 172107.532 |
-| 65+.200–299%                     | 65+      | 200–299%                   |       1416014 | 122966.046 |
-| 25–39.300–399%                   | 25–39    | 300–399%                   |       2984876 | 196534.720 |
-| 40–49.300–399%                   | 40–49    | 300–399%                   |       1588867 | 141926.634 |
-| 50–64.300–399%                   | 50–64    | 300–399%                   |       1996978 | 168466.918 |
-| 65+.300–399%                     | 65+      | 300–399%                   |       1179695 | 104908.107 |
-| 25–39.400–499%                   | 25–39    | 400–499%                   |       1554519 | 159203.224 |
-| 40–49.400–499%                   | 40–49    | 400–499%                   |       1357562 | 142194.697 |
-| 50–64.400–499%                   | 50–64    | 400–499%                   |       2980761 | 198805.337 |
-| 65+.400–499%                     | 65+      | 400–499%                   |       1595529 | 122704.563 |
-| 25–39.Unknown                    | 25–39    | Unknown                    |         33259 |   5546.581 |
-| 40–49.Unknown                    | 40–49    | Unknown                    |          5549 |   5549.000 |
-| 50–64.Unknown                    | 50–64    | Unknown                    |         22426 |  12554.212 |
-| 65+.Unknown                      | 65+      | Unknown                    |          5988 |   5549.848 |
-
-``` r
-#pap smear by usual care
-ausualp_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+ausualpl_cat, svymean, na.rm = TRUE, design = des)
-ausualp_pct_strat %>% knitr::kable()
-```
-
-|             | age\_cat | ausualpl\_cat | paprec\_3bcat |        se |
-| ----------- | :------- | :------------ | ------------: | --------: |
-| 25–39.No    | 25–39    | No            |     0.8515891 | 0.0175078 |
-| 40–49.No    | 40–49    | No            |     0.6443043 | 0.0433071 |
-| 50–64.No    | 50–64    | No            |     0.4712996 | 0.0417092 |
-| 65+.No      | 65+      | No            |     0.2589401 | 0.0531604 |
-| 25–39.Other | 25–39    | Other         |     1.0000000 | 0.0000000 |
-| 40–49.Other | 40–49    | Other         |     0.0000000 | 0.0000000 |
-| 50–64.Other | 50–64    | Other         |     0.0000000 | 0.0000000 |
-| 65+.Other   | 65+      | Other         |     0.0000000 | 0.0000000 |
-| 25–39.Yes   | 25–39    | Yes           |     0.9225212 | 0.0061817 |
-| 40–49.Yes   | 40–49    | Yes           |     0.8553270 | 0.0096282 |
-| 50–64.Yes   | 50–64    | Yes           |     0.7748111 | 0.0084745 |
-| 65+.Yes     | 65+      | Yes           |     0.4564902 | 0.0111519 |
-
-``` r
-ausualp_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+ausualpl_cat, svytotal, na.rm = TRUE, design = des)
-ausualp_tot_strat %>% knitr::kable()
-```
-
-|             | age\_cat | ausualpl\_cat | paprec\_3bcat |        se |
-| ----------- | :------- | :------------ | ------------: | --------: |
-| 25–39.No    | 25–39    | No            |       3495046 | 220043.13 |
-| 40–49.No    | 40–49    | No            |       1070366 | 116134.74 |
-| 50–64.No    | 50–64    | No            |        784458 |  95240.67 |
-| 65+.No      | 65+      | No            |        155652 |  36751.91 |
-| 25–39.Other | 25–39    | Other         |          3466 |   3466.00 |
-| 40–49.Other | 40–49    | Other         |             0 |      0.00 |
-| 50–64.Other | 50–64    | Other         |             0 |      0.00 |
-| 65+.Other   | 65+      | Other         |             0 |      0.00 |
-| 25–39.Yes   | 25–39    | Yes           |      21350317 | 555456.07 |
-| 40–49.Yes   | 40–49    | Yes           |      14332346 | 482145.07 |
-| 50–64.Yes   | 50–64    | Yes           |      21337620 | 534450.05 |
-| 65+.Yes     | 65+      | Yes           |      10256128 | 368317.31 |
-
-``` r
-#pap smear by health coverage
-cover_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+cover_cat, svymean, na.rm = TRUE, design = des)
-cover_pct_strat %>% knitr::kable()
-```
-
-|                        | age\_cat | cover\_cat       | paprec\_3bcat |        se |
-| ---------------------- | :------- | :--------------- | ------------: | --------: |
-| 25–39.None             | 25–39    | None             |     0.8283526 | 0.0190853 |
-| 40–49.None             | 40–49    | None             |     0.5916928 | 0.0376586 |
-| 50–64.None             | 50–64    | None             |     0.5761341 | 0.0367198 |
-| 65+.None               | 65+      | None             |     0.3855791 | 0.1452166 |
-| 25–39.Private/Military | 25–39    | Private/Military |     0.9322334 | 0.0062056 |
-| 40–49.Private/Military | 40–49    | Private/Military |     0.8794993 | 0.0098123 |
-| 50–64.Private/Military | 50–64    | Private/Military |     0.7866563 | 0.0084727 |
-| 65+.Private/Military   | 65+      | Private/Military |     0.4728668 | 0.0145351 |
-| 25–39.Public           | 25–39    | Public           |     0.8968009 | 0.0127223 |
-| 40–49.Public           | 40–49    | Public           |     0.7839200 | 0.0289562 |
-| 50–64.Public           | 50–64    | Public           |     0.6506406 | 0.0293174 |
-| 65+.Public             | 65+      | Public           |     0.4307551 | 0.0160159 |
-
-``` r
-cover_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+cover_cat, svytotal, na.rm = TRUE, design = des)
-cover_tot_strat %>% knitr::kable()
-```
-
-|                        | age\_cat | cover\_cat       | paprec\_3bcat |        se |
-| ---------------------- | :------- | :--------------- | ------------: | --------: |
-| 25–39.None             | 25–39    | None             |       2961517 | 166753.72 |
-| 40–49.None             | 40–49    | None             |       1201244 | 113432.20 |
-| 50–64.None             | 50–64    | None             |       1121887 | 107622.08 |
-| 65+.None               | 65+      | None             |         34625 |  15439.93 |
-| 25–39.Private/Military | 25–39    | Private/Military |      17518508 | 536954.72 |
-| 40–49.Private/Military | 40–49    | Private/Military |      12284028 | 452995.52 |
-| 50–64.Private/Military | 50–64    | Private/Military |      18825324 | 510167.66 |
-| 65+.Private/Military   | 65+      | Private/Military |       5420376 | 252459.22 |
-| 25–39.Public           | 25–39    | Public           |       4223847 | 224735.92 |
-| 40–49.Public           | 40–49    | Public           |       1848038 | 137028.82 |
-| 50–64.Public           | 50–64    | Public           |       2103920 | 143849.44 |
-| 65+.Public             | 65+      | Public           |       4947109 | 253013.72 |
-
-``` r
-#pap smear by chronic conditions
-lcond_chronic_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+lcond_chronic_cat, svymean, na.rm = TRUE, design = des)
-lcond_chronic_pct_strat %>% knitr::kable()
-```
-
-|           | age\_cat | lcond\_chronic\_cat | paprec\_3bcat |        se |
-| --------- | :------- | :------------------ | ------------: | --------: |
-| 25–39.No  | 25–39    | No                  |     0.9059142 | 0.0734692 |
-| 40–49.No  | 40–49    | No                  |     0.8732465 | 0.1025453 |
-| 50–64.No  | 50–64    | No                  |     0.8492254 | 0.1026274 |
-| 65+.No    | 65+      | No                  |     0.1835597 | 0.0753486 |
-| 25–39.Yes | 25–39    | Yes                 |     0.8821307 | 0.0263871 |
-| 40–49.Yes | 40–49    | Yes                 |     0.7366569 | 0.0358244 |
-| 50–64.Yes | 50–64    | Yes                 |     0.6873337 | 0.0206148 |
-| 65+.Yes   | 65+      | Yes                 |     0.3640214 | 0.0161840 |
-
-``` r
-lcond_chronic_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+lcond_chronic_cat, svytotal, na.rm = TRUE, design = des)
-lcond_chronic_tot_strat %>% knitr::kable()
-```
-
-|           | age\_cat | lcond\_chronic\_cat | paprec\_3bcat |        se |
-| --------- | :------- | :------------------ | ------------: | --------: |
-| 25–39.No  | 25–39    | No                  |         77385 |  31009.41 |
-| 40–49.No  | 40–49    | No                  |         48494 |  20074.89 |
-| 50–64.No  | 50–64    | No                  |         72354 |  26631.97 |
-| 65+.No    | 65+      | No                  |         30117 |  12476.65 |
-| 25–39.Yes | 25–39    | Yes                 |       1487133 | 132194.87 |
-| 40–49.Yes | 40–49    | Yes                 |       1317810 | 111047.26 |
-| 50–64.Yes | 50–64    | Yes                 |       4128689 | 223085.96 |
-| 65+.Yes   | 65+      | Yes                 |       2809441 | 165615.32 |
-
-``` r
-#pap smear by race
-race_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+race_cat, svymean, na.rm = TRUE, design = des)
-race_pct_strat %>% knitr::kable()
-```
-
-|             | age\_cat | race\_cat | paprec\_3bcat |        se |
-| ----------- | :------- | :-------- | ------------: | --------: |
-| 25–39.AN/AI | 25–39    | AN/AI     |     0.8412853 | 0.0501269 |
-| 40–49.AN/AI | 40–49    | AN/AI     |     0.8286915 | 0.0640800 |
-| 50–64.AN/AI | 50–64    | AN/AI     |     0.6342469 | 0.0814119 |
-| 65+.AN/AI   | 65+      | AN/AI     |     0.3505602 | 0.1152580 |
-| 25–39.Asian | 25–39    | Asian     |     0.8921702 | 0.0222786 |
-| 40–49.Asian | 40–49    | Asian     |     0.8788452 | 0.0317331 |
-| 50–64.Asian | 50–64    | Asian     |     0.7952636 | 0.0362177 |
-| 65+.Asian   | 65+      | Asian     |     0.4752252 | 0.0453682 |
-| 25–39.Black | 25–39    | Black     |     0.9277282 | 0.0119667 |
-| 40–49.Black | 40–49    | Black     |     0.8755324 | 0.0201607 |
-| 50–64.Black | 50–64    | Black     |     0.7836555 | 0.0220272 |
-| 65+.Black   | 65+      | Black     |     0.4593838 | 0.0279215 |
-| 25–39.White | 25–39    | White     |     0.9120055 | 0.0064214 |
-| 40–49.White | 40–49    | White     |     0.8254604 | 0.0111748 |
-| 50–64.White | 50–64    | White     |     0.7525809 | 0.0092745 |
-| 65+.White   | 65+      | White     |     0.4504337 | 0.0119170 |
-
-``` r
-race_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+race_cat, svytotal, na.rm = TRUE, design = des)
-race_tot_strat %>% knitr::kable()
-```
-
-|             | age\_cat | race\_cat | paprec\_3bcat |        se |
-| ----------- | :------- | :-------- | ------------: | --------: |
-| 25–39.AN/AI | 25–39    | AN/AI     |        358120 |  62229.15 |
-| 40–49.AN/AI | 40–49    | AN/AI     |        255087 |  64501.05 |
-| 50–64.AN/AI | 50–64    | AN/AI     |        240169 |  46323.65 |
-| 65+.AN/AI   | 65+      | AN/AI     |         68585 |  26487.87 |
-| 25–39.Asian | 25–39    | Asian     |       1774713 | 143803.86 |
-| 40–49.Asian | 40–49    | Asian     |       1222196 | 140017.63 |
-| 50–64.Asian | 50–64    | Asian     |       1183928 | 107730.70 |
-| 65+.Asian   | 65+      | Asian     |        396363 |  61128.83 |
-| 25–39.Black | 25–39    | Black     |       3851803 | 194799.75 |
-| 40–49.Black | 40–49    | Black     |       2082924 | 152347.77 |
-| 50–64.Black | 50–64    | Black     |       2953378 | 177909.32 |
-| 65+.Black   | 65+      | Black     |       1017756 |  91413.73 |
-| 25–39.White | 25–39    | White     |      18864193 | 541115.69 |
-| 40–49.White | 40–49    | White     |      11842505 | 443981.95 |
-| 50–64.White | 50–64    | White     |      17744603 | 494147.22 |
-| 65+.White   | 65+      | White     |       8929076 | 353462.07 |
-
-``` r
-#pap smear by ethnicity
-eth_pct_strat <- svyby(~paprec_3bcat, by = ~age_cat+eth_cat, svymean, na.rm = TRUE, design = des)
-eth_pct_strat %>% knitr::kable()
-```
-
-|                          | age\_cat | eth\_cat           | paprec\_3bcat |        se |
-| ------------------------ | :------- | :----------------- | ------------: | --------: |
-| 25–39.Hispanic           | 25–39    | Hispanic           |     0.8919156 | 0.0112860 |
-| 40–49.Hispanic           | 40–49    | Hispanic           |     0.8469995 | 0.0211484 |
-| 50–64.Hispanic           | 50–64    | Hispanic           |     0.7834117 | 0.0262670 |
-| 65+.Hispanic             | 65+      | Hispanic           |     0.4970869 | 0.0369224 |
-| 25–39.Non-Hispanic AN/AI | 25–39    | Non-Hispanic AN/AI |     0.8552614 | 0.0587696 |
-| 40–49.Non-Hispanic AN/AI | 40–49    | Non-Hispanic AN/AI |     0.8296240 | 0.0818666 |
-| 50–64.Non-Hispanic AN/AI | 50–64    | Non-Hispanic AN/AI |     0.6889181 | 0.0998406 |
-| 65+.Non-Hispanic AN/AI   | 65+      | Non-Hispanic AN/AI |     0.3563445 | 0.1369989 |
-| 25–39.Non-Hispanic Asian | 25–39    | Non-Hispanic Asian |     0.8897936 | 0.0232639 |
-| 40–49.Non-Hispanic Asian | 40–49    | Non-Hispanic Asian |     0.8869015 | 0.0318117 |
-| 50–64.Non-Hispanic Asian | 50–64    | Non-Hispanic Asian |     0.7901748 | 0.0368663 |
-| 65+.Non-Hispanic Asian   | 65+      | Non-Hispanic Asian |     0.4784734 | 0.0458715 |
-| 25–39.Non-Hispanic Black | 25–39    | Non-Hispanic Black |     0.9275256 | 0.0126295 |
-| 40–49.Non-Hispanic Black | 40–49    | Non-Hispanic Black |     0.8791014 | 0.0196815 |
-| 50–64.Non-Hispanic Black | 50–64    | Non-Hispanic Black |     0.7869242 | 0.0215570 |
-| 65+.Non-Hispanic Black   | 65+      | Non-Hispanic Black |     0.4552759 | 0.0278532 |
-| 25–39.Non-Hispanic White | 25–39    | Non-Hispanic White |     0.9181738 | 0.0077202 |
-| 40–49.Non-Hispanic White | 40–49    | Non-Hispanic White |     0.8190159 | 0.0130813 |
-| 50–64.Non-Hispanic White | 50–64    | Non-Hispanic White |     0.7466970 | 0.0099942 |
-| 65+.Non-Hispanic White   | 65+      | Non-Hispanic White |     0.4457339 | 0.0124970 |
-
-``` r
-eth_tot_strat <- svyby(~paprec_3bcat, by = ~age_cat+eth_cat, svytotal, na.rm = TRUE, design = des)
-eth_tot_strat %>% knitr::kable()
-```
-
-|                          | age\_cat | eth\_cat           | paprec\_3bcat |        se |
-| ------------------------ | :------- | :----------------- | ------------: | --------: |
-| 25–39.Hispanic           | 25–39    | Hispanic           |       4693646 | 196105.67 |
-| 40–49.Hispanic           | 40–49    | Hispanic           |       2633822 | 165859.86 |
-| 50–64.Hispanic           | 50–64    | Hispanic           |       2471049 | 158508.55 |
-| 65+.Hispanic             | 65+      | Hispanic           |        919232 |  87782.84 |
-| 25–39.Non-Hispanic AN/AI | 25–39    | Non-Hispanic AN/AI |        217995 |  53115.51 |
-| 40–49.Non-Hispanic AN/AI | 40–49    | Non-Hispanic AN/AI |        181832 |  57696.65 |
-| 50–64.Non-Hispanic AN/AI | 50–64    | Non-Hispanic AN/AI |        180593 |  40989.18 |
-| 65+.Non-Hispanic AN/AI   | 65+      | Non-Hispanic AN/AI |         52507 |  24309.36 |
-| 25–39.Non-Hispanic Asian | 25–39    | Non-Hispanic Asian |       1682476 | 143539.76 |
-| 40–49.Non-Hispanic Asian | 40–49    | Non-Hispanic Asian |       1161158 | 134924.81 |
-| 50–64.Non-Hispanic Asian | 50–64    | Non-Hispanic Asian |       1147823 | 106510.51 |
-| 65+.Non-Hispanic Asian   | 65+      | Non-Hispanic Asian |        394697 |  61528.78 |
-| 25–39.Non-Hispanic Black | 25–39    | Non-Hispanic Black |       3521439 | 186171.62 |
-| 40–49.Non-Hispanic Black | 40–49    | Non-Hispanic Black |       1973290 | 150025.14 |
-| 50–64.Non-Hispanic Black | 50–64    | Non-Hispanic Black |       2815419 | 172509.86 |
-| 65+.Non-Hispanic Black   | 65+      | Non-Hispanic Black |        982042 |  89606.05 |
-| 25–39.Non-Hispanic White | 25–39    | Non-Hispanic White |      14733273 | 500118.23 |
-| 40–49.Non-Hispanic White | 40–49    | Non-Hispanic White |       9452610 | 398967.96 |
-| 50–64.Non-Hispanic White | 50–64    | Non-Hispanic White |      15507194 | 478730.90 |
-| 65+.Non-Hispanic White   | 65+      | Non-Hispanic White |       8063302 | 346315.30 |
+| term                                | estimate | conf.low | conf.high | p.value |
+| :---------------------------------- | -------: | -------: | --------: | ------: |
+| age\_cat65+                         |     0.06 |     0.04 |      0.11 |    0.00 |
+| age\_cat50–64                       |     0.24 |     0.15 |      0.41 |    0.00 |
+| educ\_catLess than high school      |     0.46 |     0.31 |      0.69 |    0.00 |
+| ausualpl\_catNo                     |     0.37 |     0.21 |      0.65 |    0.00 |
+| age\_cat40–49                       |     0.35 |     0.19 |      0.66 |    0.00 |
+| (Intercept)                         |     5.22 |     1.55 |     17.58 |    0.01 |
+| cover\_catPublic                    |     2.19 |     1.22 |      3.93 |    0.01 |
+| educ\_catHigh school                |     0.64 |     0.45 |      0.90 |    0.01 |
+| cover\_catPrivate/Military          |     2.14 |     1.18 |      3.89 |    0.01 |
+| educ\_catSome college               |     0.76 |     0.54 |      1.07 |    0.12 |
+| finc\_cat\>=500%                    |     1.33 |     0.90 |      1.98 |    0.16 |
+| finc\_cat300–399%                   |     1.25 |     0.80 |      1.95 |    0.32 |
+| race\_catAsian                      |     1.45 |     0.54 |      3.93 |    0.46 |
+| race\_catBlack                      |     1.36 |     0.57 |      3.23 |    0.48 |
+| finc\_cat400–499%                   |     0.88 |     0.58 |      1.32 |    0.52 |
+| finc\_cat200–299%                   |     1.11 |     0.81 |      1.52 |    0.53 |
+| lcond\_chronic\_catYes              |     1.13 |     0.64 |      2.01 |    0.67 |
+| finc\_cat\>=200%, no further detail |     1.12 |     0.61 |      2.05 |    0.71 |
+| race\_catWhite                      |     0.98 |     0.41 |      2.31 |    0.96 |
