@@ -818,7 +818,61 @@ barplot(b2f$col_2, beside = FALSE,
         col = rainbow(2))
 ```
 
+Barplots Insurance Men
 
+```{r}
+bi = svyby(~col_2, by = ~domain + age_cat + cover_cat,
+                          svymean, na.rm = TRUE, design = des) %>%
+  filter(domain == 1) %>%
+  select(-domain)
+
+b1i = bi %>%
+  filter(trimws(age_cat) == "50–64")
+
+b2i = bi %>%
+  filter(age_cat == "65+")
+
+
+barplot(b1i$col_2, beside = FALSE,
+        names.arg = c("None", "Private/Military", "Public"),
+        main = "Recent FOBT or Endoscopy for Men 50-64 by Insurance",
+        ylim = c(0, 1),
+        col = rainbow(2))
+
+barplot(b2i$col_2, beside = FALSE,
+        names.arg = c("None", "Private/Military", "Public"),
+        main = "Recent FOBT or Endoscopy for Men 65+ by Insurance",
+        ylim = c(0, 1),
+        col = rainbow(2))
+```
+
+Barplots Insurance Women
+
+```{r}
+bfi = svyby(~col_2, by = ~domain + age_cat + cover_cat,
+                          svymean, na.rm = TRUE, design = desf) %>%
+  filter(domain == 1) %>%
+  select(-domain)
+
+b1fi = bfi %>%
+  filter(trimws(age_cat) == "50–64")
+
+b2fi = bfi %>%
+  filter(age_cat == "65+")
+
+
+barplot(b1fi$col_2, beside = FALSE,
+        names.arg = c("None", "Private/Military", "Public"),
+        main = "Recent FOBT or Endoscopy for Women 50-64 by Insurance",
+        ylim = c(0, 1),
+        col = rainbow(2))
+
+barplot(b2fi$col_2, beside = FALSE,
+        names.arg = c("None", "Private/Military", "Public"),
+        main = "Recent FOBT or Endoscopy for Women 65+ by Insurance",
+        ylim = c(0, 1),
+        col = rainbow(2))
+```
 
 
 
