@@ -1140,3 +1140,22 @@ The OR for having a recent mammogram when comparing Non-Hispanic Black women to 
 The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.5621. 
 
 The groups least likely to have had a recent mammogram are women aged 65+, women who have less than a high school degree, women who have a poverty ratio &lt;200%, women who do not have a usual source of care, women who have no insurance, and Non-Hispanic women.
+
+``` r
+# get sample sizes
+# 12483
+mam_temp = mam_dat %>%
+  filter(domain == 1)
+
+# 2863
+mam_temp40 = mam_temp %>%
+  filter(age_cat == "40–49")
+
+# 4716
+mam_temp50 = mam_temp %>%
+  filter(age_cat == "50–64")
+
+# 4904
+mam_temp65 = mam_temp %>%
+  filter(age_cat == "65+")
+```
