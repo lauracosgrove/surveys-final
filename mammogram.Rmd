@@ -547,7 +547,8 @@ coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
 names(coef) <- coef_new
 coef = coef[-1]
 
-jtools::plot_summs(mam2_fit3, coefs = coef, exp = TRUE)
+jtools::plot_summs(mam2_fit3, coefs = coef, exp = TRUE) +
+  labs(title = "Mammogram Significant Predictors")
 
 ```
 
