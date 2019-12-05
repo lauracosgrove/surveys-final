@@ -1159,3 +1159,387 @@ mam_temp50 = mam_temp %>%
 mam_temp65 = mam_temp %>%
   filter(age_cat == "65+")
 ```
+
+*collapsing some categories*
+
+``` r
+mam_dat2 = mam_dat %>%
+  mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
+                             if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
+         eth_cat2 = if_else(eth_cat == "Hispanic", eth_cat, "Non-Hispanic"))
+
+des2 = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat2)
+
+mam2_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+       design = des2, subset = domain == 1, family = binomial(link = "logit"))
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+``` r
+summary(mam2_fit)
+```
+
+    ## 
+    ## Call:
+    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## 
+    ## Survey design:
+    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
+    ##     nest = TRUE, data = mam_dat2)
+    ## 
+    ## Coefficients:
+    ##                                           Estimate Std. Error t value
+    ## (Intercept)                                0.54793    0.92890   0.590
+    ## as.factor(age_cat)50–64                    0.01181    0.22483   0.053
+    ## as.factor(age_cat)65+                     -0.62217    0.22392  -2.778
+    ## as.factor(educ_cat)High school            -0.49785    0.16646  -2.991
+    ## as.factor(educ_cat)Less than high school  -0.62878    0.20467  -3.072
+    ## as.factor(educ_cat)Some college           -0.22711    0.17594  -1.291
+    ## as.factor(finc_cat2)>=200%                 0.04698    0.13703   0.343
+    ## as.factor(ausualpl_cat)Other             -13.35945    1.12207 -11.906
+    ## as.factor(ausualpl_cat)Yes                 0.89840    0.34510   2.603
+    ## as.factor(cover_cat)Private/Military       1.15845    0.34510   3.357
+    ## as.factor(cover_cat)Public                 1.15046    0.36553   3.147
+    ## as.factor(lcond_chronic_cat)Yes           -0.06553    0.35072  -0.187
+    ## as.factor(race_cat)Asian                  -0.73656    0.74814  -0.985
+    ## as.factor(race_cat)Black                  -0.32110    0.60985  -0.527
+    ## as.factor(race_cat)White                  -0.70976    0.59751  -1.188
+    ## as.factor(eth_cat2)Non-Hispanic           -0.74697    0.26887  -2.778
+    ## as.factor(imm_stat)In U.S. < 10 yrs       13.92456    0.39044  35.663
+    ## as.factor(imm_stat)In U.S. >= 10 yrs      -0.11904    0.23054  -0.516
+    ##                                          Pr(>|t|)    
+    ## (Intercept)                              0.555825    
+    ## as.factor(age_cat)50–64                  0.958138    
+    ## as.factor(age_cat)65+                    0.005886 ** 
+    ## as.factor(educ_cat)High school           0.003068 ** 
+    ## as.factor(educ_cat)Less than high school 0.002366 ** 
+    ## as.factor(educ_cat)Some college          0.197989    
+    ## as.factor(finc_cat2)>=200%               0.732030    
+    ## as.factor(ausualpl_cat)Other              < 2e-16 ***
+    ## as.factor(ausualpl_cat)Yes               0.009799 ** 
+    ## as.factor(cover_cat)Private/Military     0.000914 ***
+    ## as.factor(cover_cat)Public               0.001853 ** 
+    ## as.factor(lcond_chronic_cat)Yes          0.851938    
+    ## as.factor(race_cat)Asian                 0.325835    
+    ## as.factor(race_cat)Black                 0.599002    
+    ## as.factor(race_cat)White                 0.236039    
+    ## as.factor(eth_cat2)Non-Hispanic          0.005892 ** 
+    ## as.factor(imm_stat)In U.S. < 10 yrs       < 2e-16 ***
+    ## as.factor(imm_stat)In U.S. >= 10 yrs     0.606073    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 0.8289432)
+    ## 
+    ## Number of Fisher Scoring iterations: 13
+
+``` r
+summ(mam2_fit)
+```
+
+    ## MODEL INFO:
+    ## Observations: 2669
+    ## Dependent Variable: mam_2
+    ## Type: Analysis of complex survey design 
+    ##  Family: binomial 
+    ##  Link function: logit 
+    ## 
+    ## MODEL FIT:
+    ## Pseudo-R² (Cragg-Uhler) = 0.05
+    ## Pseudo-R² (McFadden) = 0.21
+    ## AIC = 2746.25 
+    ## 
+    ## --------------------------------------------------------------------------
+    ##                                                Est.   S.E.   t val.      p
+    ## ------------------------------------------ -------- ------ -------- ------
+    ## (Intercept)                                    0.55   0.93     0.59   0.56
+    ## as.factor(age_cat)50â€“64                      0.01   0.22     0.05   0.96
+    ## as.factor(age_cat)65+                         -0.62   0.22    -2.78   0.01
+    ## as.factor(educ_cat)High                       -0.50   0.17    -2.99   0.00
+    ## school                                                                    
+    ## as.factor(educ_cat)Less than                  -0.63   0.20    -3.07   0.00
+    ## high school                                                               
+    ## as.factor(educ_cat)Some                       -0.23   0.18    -1.29   0.20
+    ## college                                                                   
+    ## as.factor(finc_cat2)>=200%                     0.05   0.14     0.34   0.73
+    ## as.factor(ausualpl_cat)Other                 -13.36   1.12   -11.91   0.00
+    ## as.factor(ausualpl_cat)Yes                     0.90   0.35     2.60   0.01
+    ## as.factor(cover_cat)Private/Military           1.16   0.35     3.36   0.00
+    ## as.factor(cover_cat)Public                     1.15   0.37     3.15   0.00
+    ## as.factor(lcond_chronic_cat)Yes               -0.07   0.35    -0.19   0.85
+    ## as.factor(race_cat)Asian                      -0.74   0.75    -0.98   0.33
+    ## as.factor(race_cat)Black                      -0.32   0.61    -0.53   0.60
+    ## as.factor(race_cat)White                      -0.71   0.60    -1.19   0.24
+    ## as.factor(eth_cat2)Non-Hispanic               -0.75   0.27    -2.78   0.01
+    ## as.factor(imm_stat)In U.S. <                  13.92   0.39    35.66   0.00
+    ## 10 yrs                                                                    
+    ## as.factor(imm_stat)In U.S.                    -0.12   0.23    -0.52   0.61
+    ## >= 10 yrs                                                                 
+    ## --------------------------------------------------------------------------
+    ## 
+    ## Estimated dispersion parameter = 0.83
+
+``` r
+Anova(mam2_fit, type = 3)
+```
+
+    ## Analysis of Deviance Table (Type III tests)
+    ## 
+    ## Response: mam_2
+    ##                              Df     Chisq Pr(>Chisq)    
+    ## (Intercept)                   1    0.3479   0.555279    
+    ## as.factor(age_cat)            2   25.9316  2.339e-06 ***
+    ## as.factor(educ_cat)           3   12.8987   0.004861 ** 
+    ## as.factor(finc_cat2)          1    0.1175   0.731735    
+    ## as.factor(ausualpl_cat)       2  163.4565  < 2.2e-16 ***
+    ## as.factor(cover_cat)          2   11.2703   0.003570 ** 
+    ## as.factor(lcond_chronic_cat)  1    0.0349   0.851783    
+    ## as.factor(race_cat)           3    6.9470   0.073607 .  
+    ## as.factor(eth_cat2)           1    7.7183   0.005467 ** 
+    ## as.factor(imm_stat)           2 1350.5628  < 2.2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+mam2_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+                   design = des2, subset = domain == 1, 
+                   family = binomial(link = "logit"))
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+``` r
+summary(mam2_fit2)
+```
+
+    ## 
+    ## Call:
+    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## 
+    ## Survey design:
+    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
+    ##     nest = TRUE, data = mam_dat2)
+    ## 
+    ## Coefficients:
+    ##                                          Estimate Std. Error t value
+    ## (Intercept)                              -0.04941    0.21929  -0.225
+    ## as.factor(age_cat)50–64                  -0.04503    0.09277  -0.485
+    ## as.factor(age_cat)65+                    -0.40882    0.09335  -4.379
+    ## as.factor(educ_cat)High school           -0.52279    0.08115  -6.442
+    ## as.factor(educ_cat)Less than high school -0.73472    0.11143  -6.594
+    ## as.factor(educ_cat)Some college          -0.32815    0.08662  -3.788
+    ## as.factor(ausualpl_cat)Other              0.80179    1.16217   0.690
+    ## as.factor(ausualpl_cat)Yes                1.09634    0.12808   8.560
+    ## as.factor(cover_cat)Private/Military      1.01612    0.16500   6.158
+    ## as.factor(cover_cat)Public                0.85220    0.17027   5.005
+    ## as.factor(eth_cat2)Non-Hispanic          -0.47723    0.12309  -3.877
+    ## as.factor(imm_stat)In U.S. < 10 yrs       0.07032    0.31373   0.224
+    ## as.factor(imm_stat)In U.S. >= 10 yrs     -0.04325    0.10982  -0.394
+    ##                                          Pr(>|t|)    
+    ## (Intercept)                              0.821897    
+    ## as.factor(age_cat)50–64                  0.627761    
+    ## as.factor(age_cat)65+                    1.67e-05 ***
+    ## as.factor(educ_cat)High school           4.95e-10 ***
+    ## as.factor(educ_cat)Less than high school 2.06e-10 ***
+    ## as.factor(educ_cat)Some college          0.000185 ***
+    ## as.factor(ausualpl_cat)Other             0.490808    
+    ## as.factor(ausualpl_cat)Yes               6.95e-16 ***
+    ## as.factor(cover_cat)Private/Military     2.47e-09 ***
+    ## as.factor(cover_cat)Public               9.76e-07 ***
+    ## as.factor(eth_cat2)Non-Hispanic          0.000131 ***
+    ## as.factor(imm_stat)In U.S. < 10 yrs      0.822807    
+    ## as.factor(imm_stat)In U.S. >= 10 yrs     0.693981    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 1.000119)
+    ## 
+    ## Number of Fisher Scoring iterations: 4
+
+``` r
+summ(mam2_fit2)
+```
+
+    ## MODEL INFO:
+    ## Observations: 10147
+    ## Dependent Variable: mam_2
+    ## Type: Analysis of complex survey design 
+    ##  Family: binomial 
+    ##  Link function: logit 
+    ## 
+    ## MODEL FIT:
+    ## Pseudo-R² (Cragg-Uhler) = 0.01
+    ## Pseudo-R² (McFadden) = 0.04
+    ## AIC = 11066.22 
+    ## 
+    ## -------------------------------------------------------------------------
+    ##                                               Est.   S.E.   t val.      p
+    ## ------------------------------------------ ------- ------ -------- ------
+    ## (Intercept)                                  -0.05   0.22    -0.23   0.82
+    ## as.factor(age_cat)50â€“64                    -0.05   0.09    -0.49   0.63
+    ## as.factor(age_cat)65+                        -0.41   0.09    -4.38   0.00
+    ## as.factor(educ_cat)High                      -0.52   0.08    -6.44   0.00
+    ## school                                                                   
+    ## as.factor(educ_cat)Less than                 -0.73   0.11    -6.59   0.00
+    ## high school                                                              
+    ## as.factor(educ_cat)Some                      -0.33   0.09    -3.79   0.00
+    ## college                                                                  
+    ## as.factor(ausualpl_cat)Other                  0.80   1.16     0.69   0.49
+    ## as.factor(ausualpl_cat)Yes                    1.10   0.13     8.56   0.00
+    ## as.factor(cover_cat)Private/Military          1.02   0.16     6.16   0.00
+    ## as.factor(cover_cat)Public                    0.85   0.17     5.00   0.00
+    ## as.factor(eth_cat2)Non-Hispanic              -0.48   0.12    -3.88   0.00
+    ## as.factor(imm_stat)In U.S. <                  0.07   0.31     0.22   0.82
+    ## 10 yrs                                                                   
+    ## as.factor(imm_stat)In U.S.                   -0.04   0.11    -0.39   0.69
+    ## >= 10 yrs                                                                
+    ## -------------------------------------------------------------------------
+    ## 
+    ## Estimated dispersion parameter = 1
+
+``` r
+Anova(mam2_fit2, type = 3)
+```
+
+    ## Analysis of Deviance Table (Type III tests)
+    ## 
+    ## Response: mam_2
+    ##                         Df   Chisq Pr(>Chisq)    
+    ## (Intercept)              1  0.0508  0.8217371    
+    ## as.factor(age_cat)       2 34.7906  2.788e-08 ***
+    ## as.factor(educ_cat)      3 57.4587  2.051e-12 ***
+    ## as.factor(ausualpl_cat)  2 73.5663  < 2.2e-16 ***
+    ## as.factor(cover_cat)     2 39.0810  3.263e-09 ***
+    ## as.factor(eth_cat2)      1 15.0329  0.0001057 ***
+    ## as.factor(imm_stat)      2  0.2327  0.8901841    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+mam2_fit3 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2),
+                   design = des2, subset = (domain == 1 & ausualpl_cat != "Other"),
+                   family = binomial(link = "logit")) 
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+``` r
+summary(mam2_fit3)
+```
+
+    ## 
+    ## Call:
+    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2), 
+    ##     design = des2, subset = (domain == 1 & ausualpl_cat != "Other"), 
+    ##     family = binomial(link = "logit"))
+    ## 
+    ## Survey design:
+    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
+    ##     nest = TRUE, data = mam_dat2)
+    ## 
+    ## Coefficients:
+    ##                                          Estimate Std. Error t value
+    ## (Intercept)                              -0.05937    0.19861  -0.299
+    ## as.factor(age_cat)50–64                  -0.05054    0.09224  -0.548
+    ## as.factor(age_cat)65+                    -0.41238    0.09206  -4.480
+    ## as.factor(educ_cat)High school           -0.52121    0.08127  -6.414
+    ## as.factor(educ_cat)Less than high school -0.73917    0.11037  -6.697
+    ## as.factor(educ_cat)Some college          -0.32540    0.08724  -3.730
+    ## as.factor(ausualpl_cat)Yes                1.09991    0.12802   8.592
+    ## as.factor(cover_cat)Private/Military      1.00284    0.16372   6.125
+    ## as.factor(cover_cat)Public                0.83859    0.16944   4.949
+    ## as.factor(eth_cat2)Non-Hispanic          -0.45805    0.10736  -4.266
+    ##                                          Pr(>|t|)    
+    ## (Intercept)                               0.76521    
+    ## as.factor(age_cat)50–64                   0.58416    
+    ## as.factor(age_cat)65+                    1.08e-05 ***
+    ## as.factor(educ_cat)High school           5.76e-10 ***
+    ## as.factor(educ_cat)Less than high school 1.10e-10 ***
+    ## as.factor(educ_cat)Some college           0.00023 ***
+    ## as.factor(ausualpl_cat)Yes               5.38e-16 ***
+    ## as.factor(cover_cat)Private/Military     2.94e-09 ***
+    ## as.factor(cover_cat)Public               1.27e-06 ***
+    ## as.factor(eth_cat2)Non-Hispanic          2.69e-05 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 0.9998118)
+    ## 
+    ## Number of Fisher Scoring iterations: 4
+
+``` r
+summ(mam2_fit3)
+```
+
+    ## MODEL INFO:
+    ## Observations: 10158
+    ## Dependent Variable: mam_2
+    ## Type: Analysis of complex survey design 
+    ##  Family: binomial 
+    ##  Link function: logit 
+    ## 
+    ## MODEL FIT:
+    ## Pseudo-R² (Cragg-Uhler) = 0.01
+    ## Pseudo-R² (McFadden) = 0.04
+    ## AIC = 11066.70 
+    ## 
+    ## -------------------------------------------------------------------------
+    ##                                               Est.   S.E.   t val.      p
+    ## ------------------------------------------ ------- ------ -------- ------
+    ## (Intercept)                                  -0.06   0.20    -0.30   0.77
+    ## as.factor(age_cat)50â€“64                    -0.05   0.09    -0.55   0.58
+    ## as.factor(age_cat)65+                        -0.41   0.09    -4.48   0.00
+    ## as.factor(educ_cat)High                      -0.52   0.08    -6.41   0.00
+    ## school                                                                   
+    ## as.factor(educ_cat)Less than                 -0.74   0.11    -6.70   0.00
+    ## high school                                                              
+    ## as.factor(educ_cat)Some                      -0.33   0.09    -3.73   0.00
+    ## college                                                                  
+    ## as.factor(ausualpl_cat)Yes                    1.10   0.13     8.59   0.00
+    ## as.factor(cover_cat)Private/Military          1.00   0.16     6.13   0.00
+    ## as.factor(cover_cat)Public                    0.84   0.17     4.95   0.00
+    ## as.factor(eth_cat2)Non-Hispanic              -0.46   0.11    -4.27   0.00
+    ## -------------------------------------------------------------------------
+    ## 
+    ## Estimated dispersion parameter = 1
+
+``` r
+Anova(mam2_fit3, type = 3)
+```
+
+    ## Analysis of Deviance Table (Type III tests)
+    ## 
+    ## Response: mam_2
+    ##                         Df   Chisq Pr(>Chisq)    
+    ## (Intercept)              1  0.0894      0.765    
+    ## as.factor(age_cat)       2 35.5016  1.954e-08 ***
+    ## as.factor(educ_cat)      3 57.7555  1.773e-12 ***
+    ## as.factor(ausualpl_cat)  1 73.8161  < 2.2e-16 ***
+    ## as.factor(cover_cat)     2 38.7375  3.875e-09 ***
+    ## as.factor(eth_cat2)      1 18.2021  1.987e-05 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+coef <- names(coef(mam2_fit3))
+coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
+names(coef) <- coef_new
+coef = coef[-1]
+
+jtools::plot_summs(mam2_fit3, coefs = coef, exp = TRUE)
+```
+
+![](mammogram_files/figure-markdown_github/unnamed-chunk-7-1.png)

@@ -10,6 +10,7 @@ library(survey)
 library(car)
 library(jtools)
 library(ggthemes)
+library(ggstance)
 ```
 
 Read in the data.
@@ -502,5 +503,51 @@ mam_temp50 = mam_temp %>%
 # 4904
 mam_temp65 = mam_temp %>%
   filter(age_cat == "65+")
+```
+
+
+*collapsing some categories*
+
+```{r}
+mam_dat2 = mam_dat %>%
+  mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
+                             if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
+         eth_cat2 = if_else(eth_cat == "Hispanic", eth_cat, "Non-Hispanic"))
+
+des2 = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat2)
+
+mam2_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+       design = des2, subset = domain == 1, family = binomial(link = "logit"))
+
+summary(mam2_fit)
+summ(mam2_fit)
+
+Anova(mam2_fit, type = 3)
+
+mam2_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+                   design = des2, subset = domain == 1, 
+                   family = binomial(link = "logit"))
+
+summary(mam2_fit2)
+summ(mam2_fit2)
+
+Anova(mam2_fit2, type = 3)
+
+mam2_fit3 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2),
+                   design = des2, subset = (domain == 1 & ausualpl_cat != "Other"),
+                   family = binomial(link = "logit")) 
+
+summary(mam2_fit3)
+summ(mam2_fit3)
+
+Anova(mam2_fit3, type = 3)
+coef <- names(coef(mam2_fit3))
+coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
+names(coef) <- coef_new
+coef = coef[-1]
+
+jtools::plot_summs(mam2_fit3, coefs = coef, exp = TRUE)
+
 ```
 
