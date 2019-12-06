@@ -363,6 +363,7 @@ pap_dat %>% count(lcondrt)
 pap_dat <- pap_dat %>% 
   mutate(lcond_chronic_cat = if_else(lcondrt == 1, "Yes", "No"))
 
+
 # Race/ethnicity
 # hispanic, nonhispanic white, nonhispanic black, nonhispanic asian, nonhispanic alaska native/american indian
 pap_dat %>% count(racreci3)
@@ -616,53 +617,55 @@ pap_strat %>%
 # plot
 
 ``` r
-pap_by %>% 
+p1 <- pap_by %>% 
   filter(variable == "ausualpl_cat") %>% 
   select(variable, pct_byage) %>% 
   unnest(pct_byage) %>% 
   filter(inc == 1) %>% 
   filter(!ausualpl_cat %in% c("Unknown", "Other")) %>% 
-  ggplot(aes(x = ausualpl_cat, y = paprec_3bcat, fill = ausualpl_cat)) +
+  ggplot(aes(x = ausualpl_cat, y = 100*paprec_3bcat, fill = ausualpl_cat)) +
   geom_col() +
-  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  geom_errorbar(aes(ymin = 100*ci_l, ymax = 100*ci_u)) +  ylim(0, 100) + coord_flip() +
   facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") + 
-  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Usual Source of Care (Have/Have Not)")
+  labs(y = "", x = "Usual Source of Care")
 ```
 
-![](papsmear_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
-
 ``` r
-pap_by %>% 
+p2 <- pap_by %>% 
   filter(variable == "cover_cat") %>% 
   select(variable, pct_byage) %>% 
   unnest(pct_byage) %>% 
   filter(inc == 1) %>% 
   filter(!cover_cat %in% c("Unknown", "Other")) %>% 
-  ggplot(aes(x = cover_cat, y = paprec_3bcat, fill = cover_cat)) +
+  ggplot(aes(x = cover_cat, y = 100*paprec_3bcat, fill = cover_cat)) +
   geom_col() +
-  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  geom_errorbar(aes(ymin = 100*ci_l, ymax = 100*ci_u)) +
   facet_grid(~age_cat) + 
-  ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
-  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Insurance Coverage")
+  ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") + ylim(0, 100) + coord_flip() +
+  labs(y = "", x = "Insurance Coverage")
 ```
 
-![](papsmear_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
-
 ``` r
-pap_by %>% 
-  filter(variable == "imm_stat") %>% 
+p3 <- pap_by %>% 
+  filter(variable == "educ_cat") %>% 
   select(variable, pct_byage) %>% 
   unnest(pct_byage) %>% 
   filter(inc == 1) %>% 
-  ggplot(aes(x = imm_stat, y = paprec_3bcat, fill = imm_stat)) +
+  ggplot(aes(x = educ_cat, y = 100*paprec_3bcat, fill = educ_cat)) +
   geom_col() +
-  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  geom_errorbar(aes(ymin = 100*ci_l, ymax = 100*ci_u)) +
   facet_grid(~age_cat) + 
-  ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
-  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Immigration status")
+  ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") + ylim(0, 100) +
+  coord_flip() + 
+  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Education")
 ```
 
-![](papsmear_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+``` r
+library(patchwork)
+p1 / p2 / p3 
+```
+
+![](papsmear_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 # models
 
@@ -682,7 +685,7 @@ pap_formod %>% ggplot(aes(x = paprec_3bcat)) + geom_histogram() + facet_grid(~in
 
     ## Warning: Removed 17615 rows containing non-finite values (stat_bin).
 
-![](papsmear_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](papsmear_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 ``` r
 vars = pap_dat %>% select(ends_with("cat"), imm_stat, inc) %>% select(-paprec_3bcat) %>% names()
@@ -4155,7 +4158,14 @@ broom::tidy(mod_step2 , exponentiate = TRUE, conf.int = TRUE) %>%
 | race\_catWhite                      |     1.25 |     0.81 |      1.93 |    0.32 |
 
 ``` r
-jtools::plot_summs(mod_step2, ci_level = 0.95, exp = TRUE, robust = TRUE)
+new_coef <- stringr::str_remove(names(coef(mod_step2)), "^[^_]*_cat")  #make pretty names
+coef <- names(coef(mod_step2)) #assign pretty names
+names(coef) <- new_coef #names original coef vector with pretty names
+coef <- coef[-1] #remove intercept
+
+jtools::plot_summs(mod_step2, ci_level = 0.95, 
+                   coefs = coef,
+                   exp = TRUE, robust = TRUE) + labs(title = "Pap Smear Significant Predictors")
 ```
 
-![](papsmear_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
+![](papsmear_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
