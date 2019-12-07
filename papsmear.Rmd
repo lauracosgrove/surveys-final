@@ -56,7 +56,7 @@ pers_dat <- read_csv("./data/personsx/personsx.csv") %>%
          lcondrt, #limitation is chronic
          lachronr, #chronic limitation
          hiscodi3, #ethnicity recode,
-         racreci3)#race recode
+         racreci3, yrsinus, plborn)#race recode
 
 adult_dat <- read_csv("./data/samadult/samadult.csv") %>%
    janitor::clean_names() %>% 
@@ -209,6 +209,7 @@ pap_dat %>% count(lcondrt)
 pap_dat <- pap_dat %>% 
   mutate(lcond_chronic_cat = if_else(lcondrt == 1, "Yes", "No"))
 
+
 # Race/ethnicity
 # hispanic, nonhispanic white, nonhispanic black, nonhispanic asian, nonhispanic alaska native/american indian
 pap_dat %>% count(racreci3)
@@ -240,6 +241,13 @@ pap_dat <- pap_dat %>%
                              hiscodi3 == 4 ~ "Non-Hispanic Asian",
                              hiscodi3 == 5 ~ "Non-Hispanic AN/AI"))
 
+
+pap_dat <- pap_dat %>%
+  mutate(imm_stat = case_when(yrsinus < 4 ~ "In U.S. < 10 yrs",
+                              yrsinus == 4 | yrsinus == 5 ~ "In U.S. >= 10 yrs",
+                              plborn == 1 ~ "Born in U.S."))
+
+
 #create indicator inclusion criteria variable
 ##filter age less than 25 per cancer paper
 ##filter to only women
@@ -270,6 +278,7 @@ pct_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_ca
   
 }
 
+##replace this function with an unweighted total 
 tot_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_cat", var2 = NULL) {
   .outcome = reformulate(outcome)
   .by = reformulate(c(inclusion, var1, var2))
@@ -278,7 +287,7 @@ tot_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_ca
 }
 
 pap_by <- pap_dat %>% 
-  select(ends_with("cat")) %>% 
+  select(ends_with("cat"), imm_stat) %>% 
   names() %>% 
   tibble(var = .) %>% 
   mutate(pct = map(var, ~pct_func(var1 = .x))) %>% 
@@ -330,7 +339,7 @@ pap_strat <- pap_by %>%
   mutate(tot = paste0(round(tot/1e6, 1), "M")) %>% 
   select(-ci_l, -ci_u, -inc) %>% 
   pivot_wider(names_from = "age_cat", values_from = c(tot, pct, CI)) %>% 
-  select(variable, levels, ends_with("39"), ends_with("49"), ends_with("64"))
+  select(variable, levels, ends_with("39"), ends_with("49"), ends_with("64"), ends_with("+"))
 
 pap_strat %>% 
   filter(!levels %in% c("Unknown", "Other")) %>% 
@@ -365,50 +374,107 @@ pap_by %>%
   ggplot(aes(x = cover_cat, y = paprec_3bcat, fill = cover_cat)) +
   geom_col() +
   geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
-  facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
+  facet_grid(~age_cat) + 
+  ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
   labs(y = "Percent Had Pap Smear, Last 3 years", x = "Insurance Coverage")
 ```
+
+```{r}
+pap_by %>% 
+  filter(variable == "imm_stat") %>% 
+  select(variable, pct_byage) %>% 
+  unnest(pct_byage) %>% 
+  filter(inc == 1) %>% 
+  ggplot(aes(x = imm_stat, y = paprec_3bcat, fill = imm_stat)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat) + 
+  ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
+  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Immigration status")
+
+```
+
 
 # models
 
 ```{r}
 pap_formod <- pap_dat %>% 
-  select(psu_p, strat_p, wtfa_sa, ends_with("cat"), hpvhrd, paphad1, mdrecp1)
-pap_formod <- pap_formod %>% 
-  filter(!is.na(paprec_3bcat)) %>% 
-  mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
-  mutate(ausualpl_cat = factor(ausualpl_cat, levels = c("Yes", "No")))
+  select(psu_p, strat_p, wtfa_sa, ends_with("cat"), imm_stat, hpvhrd, paphad1, mdrecp1, inc)
 
-vars = pap_dat %>% select(ends_with("cat")) %>% select(-paprec_3bcat, -eth_cat) %>% names()
+pap_formod <- pap_formod %>% 
+  mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
+  mutate(ausualpl_cat = factor(ausualpl_cat, levels = c("Yes", "No"))) %>% 
+  mutate(eth_cat = if_else(eth_cat == "Hispanic", "Hispanic", "Not Hispanic"))
+
+pap_formod %>% ggplot(aes(x = paprec_3bcat)) + geom_histogram() + facet_grid(~inc)
+
+vars = pap_dat %>% select(ends_with("cat"), imm_stat, inc) %>% select(-paprec_3bcat) %>% names()
 .form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
 
 
 des2 <- svydesign(ids = ~psu_p, strata = ~strat_p, 
                  weights = ~wtfa_sa, nest = TRUE, data = pap_formod)
 
-mod <- svyglm(.form, design = des2, 
-       family = binomial) 
+mod <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
+                     ausualpl_cat + finc_cat + cover_cat + lcond_chronic_cat + 
+                     eth_cat + race_cat + imm_stat, design = des2, 
+       family = binomial,
+       subset = inc == 1) 
 
-modint <- svyglm(paprec_3bcat ~
-                  ausualpl_cat + age_cat*cover_cat +
-                   age_cat*lcond_chronic_cat +
-                   finc_cat + 
-                   race_cat + educ_cat
-                 , 
-                 design = des2, 
-       family = binomial) 
+jtools::summ(mod)
+
+car::Anova(mod, type = "3")
 
 
-broom::tidy(modint , exponentiate = TRUE, conf.int = TRUE) %>% 
-  arrange(abs(p.value)) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  knitr::kable()
+#remove lcondchronic
+mod_step1 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
+                     ausualpl_cat + finc_cat + cover_cat + 
+                     eth_cat + race_cat + imm_stat, design = des2, 
+       family = binomial,
+       subset = inc == 1) 
 
-broom::tidy(mod, exponentiate = TRUE, conf.int = TRUE) %>% 
-  arrange(abs(p.value)) %>% 
+jtools::summ(mod_step1)
+
+car::Anova(mod_step1, type = "3")
+
+
+#remove imm_stat
+mod_step2 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
+                     ausualpl_cat + finc_cat + cover_cat + 
+                     eth_cat + race_cat, design = des2, 
+       family = binomial,
+       subset = inc == 1) 
+
+jtools::summ(mod_step2)
+
+car::Anova(mod_step2, type = "3")
+
+
+mod_small <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
+                     ausualpl_cat + cover_cat + 
+                     eth_cat, design = des2, 
+       family = binomial,
+       subset = inc == 1) 
+
+jtools::summ(mod_small)
+
+
+anova(mod_step2, mod_small) #go with step2
+
+
+
+broom::tidy(mod_step2 , exponentiate = TRUE, conf.int = TRUE) %>% 
   select(term, estimate, conf.low, conf.high, p.value) %>% 
   knitr::kable(digits = 2)
 
+new_coef <- stringr::str_remove(names(coef(mod_step2)), "^[^_]*_cat")  #make pretty names
+coef <- names(coef(mod_step2)) #assign pretty names
+names(coef) <- new_coef #names original coef vector with pretty names
+coef <- coef[-1] #remove intercept
+
+jtools::plot_summs(mod_step2, ci_level = 0.95, 
+                   coefs = coef,
+                   exp = TRUE, robust = TRUE) + labs(title = "Pap Smear Significant Predictors")
 ```
 
 
