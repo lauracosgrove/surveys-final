@@ -409,8 +409,15 @@ tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, e
   select(-ci_l, -ci_u) %>%
   pivot_wider(names_from = c(sex, age_cat), values_from = c(Percent, CI)) %>%
   janitor::clean_names() %>%
-  select(type, level, percent_1_50_64, ci_1_50_64, percent_1_65, ci_1_65,
-         percent_2_50_64, ci_2_50_64, percent_2_65, ci_2_65)
+  select(Type = type, Level = level, 
+         "Percent Men Age 50-64" = percent_1_50_64, 
+         "CI Men Age 50-64" = ci_1_50_64, 
+         "Percent Men Age 65+" = percent_1_65, 
+         "CI Men Age 65+" = ci_1_65,
+         "Percent Women Age 50-64" = percent_2_50_64, 
+         "CI Women Age 50-64" = ci_2_50_64, 
+         "Percent Women Age 65+" = percent_2_65, 
+         "CI Women Age 65+" = ci_2_65)
 
 # print percentages
 tab_one %>% knitr::kable()
