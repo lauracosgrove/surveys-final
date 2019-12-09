@@ -22,8 +22,6 @@ cancer = read_csv("./data/cancerxx.csv") %>%
          rhfo2_mt, rhfo2yr, rhfo2n, rhfo2t, rhfo2, rhfob3a,
          rhfob3b, hfobrea2, fobhad1, rfob2_mt, rfob2yr,
          rfob2n, rfob2t, rofob3a, rofob3b, rfobres1)
- #colhad, col_mt, colyr, coln, colt, col2, col3a, col3b, colreas, 
-        # colpay, sighad, sig_mt, sigyr, sign, sigt, sig2, sig3a, sig3b, sigreas)
 
 adult = read_csv("./data/samadult.csv") %>%
   janitor::clean_names() %>% 
@@ -49,7 +47,6 @@ Data Manipulation
 ```{r}
 #home stool test within last year
 col_dat = col_dat %>%
-  #rhfob3a <= 1 | col3a < 5 | sig3a < 5
   mutate(col_2 = if_else(rhfob3a <= 1, 1, 0),
          imm_stat = case_when(yrsinus < 4 ~ "In U.S. < 10 yrs",
                               yrsinus == 4 | yrsinus == 5 ~ "In U.S. >= 10 yrs",
@@ -122,7 +119,7 @@ Tables
 ```{r}
 #age percentage
 age_pct = svyby(~col_2, by = ~domain + age_cat + sex, svymean, na.rm = TRUE, 
-                design = des)
+                design = des, vartype = c("ci", "se"))
 age_pct %>% 
   filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
@@ -447,24 +444,90 @@ ins_tab %>%
 Models
 
 ```{r warning = F}
-col_fit = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat) + as.factor(imm_stat), 
-       design = des, subset = domain == 1, family = binomial(link = "logit"))
+
+col_fit = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 1,
+                  family = binomial(link = "logit"))
 summary(col_fit)
 summ(col_fit)
 Anova(col_fit, type = 3)
 
 
-col_fit2 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 1,
+col_fit2 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat), design = des, subset = domain == 1, 
                   family = binomial(link = "logit"))
 summary(col_fit2)
 summ(col_fit2)
 Anova(col_fit2, type = 3)
+```
+
+```{r}
+# get sample sizes
+# 17056
+col_temp = col_dat %>%
+  filter(domain == 1)
+
+#7436
+col_tempm = col_temp %>% 
+  filter(sex == 1)
+
+#9620
+col_tempf = col_temp %>% 
+  filter(sex == 2)
+
+# 8678
+col_temp50 = col_temp %>%
+  filter(age_cat == "50–64")
+
+# 8378
+col_temp65 = col_temp %>%
+  filter(age_cat == "65+")
+```
+
+```{r}
+col_dat2 = col_dat %>%
+  mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
+                             if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
+         eth_cat2 = if_else(eth_cat == "Hispanic", eth_cat, "Non-Hispanic"),
+         sex = if_else(sex == 1, "M", "F"))
+
+des2 = svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE,
+                 data = col_dat2)
+
+col2_fit = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+       design = des2, subset = domain == 1, 
+       family = binomial(link = "logit"))
+
+summary(col2_fit)
+summ(col2_fit)
+Anova(col2_fit, type = 3)
 
 
-col_fit3 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat), design = des, subset = domain == 1, 
-                  family = binomial(link = "logit"))
-summary(col_fit3)
-summ(col_fit3)
-Anova(col_fit3, type = 3)
+col2_fit2 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(race_cat) + as.factor(eth_cat2),
+                   design = des2, subset = domain == 1 & ausualpl_cat != "Other", 
+                   family = binomial(link = "logit"))
+
+summary(col2_fit2)
+summ(col2_fit2)
+Anova(col2_fit2, type = 3)
+
+
+col2_fit3 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2),
+                   design = des2, subset = (domain == 1 & ausualpl_cat != "Other"),
+                   family = binomial(link = "logit")) 
+
+summary(col2_fit3)
+summ(col2_fit3)
+Anova(col2_fit3, type = 3)
+
+#use fit 2
+
+coef <- names(coef(col2_fit2))
+coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*sex[)]")
+names(coef) <- coef_new
+coef = coef[-1]
+
+jtools::plot_summs(col2_fit, coefs = coef, exp = TRUE) +
+  labs(title = "Colorectal Screen Significant Predictors")
 ```
 
