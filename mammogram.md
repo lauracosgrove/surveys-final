@@ -4,22 +4,27 @@ Mammogram
 Read in the data.
 
 ``` r
+# read in cancer module data
 cancer = read_csv("./data/cancerxx.csv") %>%
   select(HHX, FMX, FPX, WTFA_SA, STRAT_P, PSU_P, REGION, MAMHAD, MAM6YR, 
          RMAM1_MT, RMAM1YR, RMAM1N, RMAM1T, RMAM2, RMAM3A, RMAM3B, MAMPAY, 
          MAMREAS, MDRECMAM, MAMDNBR, MAMABN1, MFOLLOW0, MFOLLO01, MFOLLO02, 
          MFOLLO03, MFOLLO04, MFOLLO05, MNOTFOL1, MAMMODE, MAMCAN1)
 
+# read in adult data
 adult = read_csv("./data/samadult.csv") %>%
   select(HHX, FMX, FPX, AUSUALPL, AHCPLROU, AHCPLKND, FLA1AR)
 
+# read in family data
 family = read_csv("./data/familyxx.csv") %>%
   select(HHX, FMX, RAT_CAT4, RAT_CAT5)
 
+# read in person data
 person = read_csv("./data/personsx.csv") %>%
   select(HHX, FMX, FPX, AGE_P, EDUC1, SEX, NOTCOV, COVER65, COVER65O, LA1AR,
          LCONDRT, LACHRONR, HISCODI3, RACRECI3, COVER, YRSINUS, PLBORN)
 
+# join these data files into one for analysis
 mam_dat = cancer %>%
   left_join(adult, by = c("HHX", "FMX", "FPX")) %>%
   left_join(person, by = c("HHX", "FMX", "FPX")) %>%
@@ -29,7 +34,10 @@ mam_dat = cancer %>%
 Data Manipulation
 
 ``` r
+# CREATE VARIABLES FOR ANALYSIS: OUTCOME AND DEMOGRAPHIC
+
 # outcome is having a mammogram in the last 2 years:RMAM3A = 1,2
+# create immigration status variable based on PLBORN and YRSINUS
 mam_dat = mam_dat %>%
   mutate(mam_2 = if_else(RMAM3A <= 2, 1, 0),
          imm_stat = case_when(YRSINUS < 4 ~ "In U.S. < 10 yrs",
@@ -59,22 +67,22 @@ mam_dat = mam_dat %>%
                               RAT_CAT5 == 17  ~">=200%, no further detail",
                               RAT_CAT5 %in% c(96, 99) ~ "Unknown"))
 
-# create as usual category
+# create usual care category
 mam_dat = mam_dat %>% 
   mutate(ausualpl_cat  = case_when(AUSUALPL == 2 ~ "No",
                                    AUSUALPL %in% c(1, 3) ~ "Yes",
                                    AUSUALPL %in% c(7, 8, 9) ~ "Other"))
-# coverage status
+# create coverage status
 mam_dat = mam_dat %>% 
   mutate(cover_cat  = case_when(NOTCOV == 1 | COVER == 4 | COVER65 == 6 ~ "None",
                                 COVER == 2 | COVER65 %in% 2:4 ~ "Public",
                                 COVER %in% c(1, 3) | COVER65 %in% c(1, 5) ~ "Private/Military"))
 
-# disability
+# create disability variable
 mam_dat = mam_dat %>% 
   mutate(lcond_chronic_cat = if_else(LCONDRT == 1, "Yes", "No"))
 
-# race
+# create race & ethnic categories
 mam_dat = mam_dat %>% 
   mutate(race_cat = case_when(RACRECI3 == 1 ~ "White",
                               RACRECI3 == 2 ~ "Black",
@@ -90,17 +98,18 @@ mam_dat = mam_dat %>%
 Survey Design
 
 ``` r
+# create domain variable for inclusion criteria
 mam_dat = mam_dat %>%
   mutate(domain = if_else(SEX == 2 & AGE_P >= 40, 1, 0))
 
-
+# create survey design object
 des = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat)
 ```
 
 Tables
 
 ``` r
-# percent of women who have had mammogram in the last two years
+# percent of women who have had mammogram in the last two years by age
 
 age_pct = svyby(~mam_2, by = ~domain+age_cat, svymean, na.rm = TRUE, 
                 design = des, vartype = c("ci", "se"))
@@ -114,7 +123,7 @@ age_pct %>% filter(domain == 1) %>% select(-domain, -se) %>% knitr::kable()
 | 65+      |  0.6669962|  0.6481919|  0.6858006|
 
 ``` r
-# mammogram by education
+# percent of women who have had mammogram by education
 edu_pct = svyby(~mam_2, by = ~domain+educ_cat, svymean, na.rm = TRUE, 
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -132,7 +141,7 @@ edu_pct %>%
 | Some college          |  0.7298794|  0.7085698|  0.7511891|
 
 ``` r
-# mammogram by finc
+# percent of women who have had mammogram by financial category
 finc_pct = svyby(~mam_2, by = ~domain+finc_cat, svymean, na.rm = TRUE, 
                  design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -152,7 +161,7 @@ finc_pct %>% knitr::kable()
 | Unknown                      |  0.4531864|  0.1993634|  0.7070094|
 
 ``` r
-# mammogram by usual care
+# percent of women who have had mammogram by usual care category
 ausualp_pct = svyby(~mam_2, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE, 
                     design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -168,7 +177,7 @@ ausualp_pct %>% knitr::kable()
 | Yes           |  0.7374589|   0.7258591|  0.7490586|
 
 ``` r
-# mammogram by health coverage
+# percent of women who have had mammogram by health coverage
 cover_pct = svyby(~mam_2, by = ~domain+cover_cat, svymean, na.rm = TRUE, 
                   design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -184,7 +193,7 @@ cover_pct %>% knitr::kable()
 | Public           |  0.6643714|  0.6409525|  0.6877904|
 
 ``` r
-# mammogram by chronic conditions
+# percent of women who have had mammogram by chronic conditions
 lcond_chronic_pct = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svymean, 
                           na.rm = TRUE, design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -199,7 +208,7 @@ lcond_chronic_pct %>% knitr::kable()
 | Yes                 |  0.6105575|  0.5844282|  0.6366868|
 
 ``` r
-#mammogram by race
+# percent of women who have had mammogram by race
 race_pct = svyby(~mam_2, by = ~domain+race_cat, svymean, na.rm = TRUE, 
                  design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -216,7 +225,7 @@ race_pct %>% knitr::kable()
 | White     |  0.7203100|  0.7071951|  0.7334248|
 
 ``` r
-# mammogram by ethnicity
+# percent of women who have had mammogram by ethnicity
 eth_pct = svyby(~mam_2, by = ~domain+eth_cat, svymean, na.rm = TRUE, 
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -234,6 +243,7 @@ eth_pct %>% knitr::kable()
 | Non-Hispanic White |  0.7165402|  0.7025792|  0.7305012|
 
 ``` r
+# percent of women who have had mammogram by immigration status
 imm_pct = svyby(~mam_2, by = ~domain+imm_stat, svymean, na.rm = TRUE,
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -251,7 +261,7 @@ imm_pct %>% knitr::kable()
 Tables By Age Group
 
 ``` r
-# mammogram by education
+# percent of women who have had mammogram by education and age 
 edu_pct_strat = svyby(~mam_2, by = ~domain + age_cat + educ_cat, svymean, 
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 edu_tab = edu_pct_strat %>% 
@@ -277,7 +287,7 @@ edu_tab %>% knitr::kable()
 | 65+      | Some college          |  0.6909571|  0.6565986|  0.7253157|
 
 ``` r
-# mammogram by finc
+# percent of women who have had mammogram by financial category and age
 finc_pct_strat = svyby(~mam_2, by = ~domain + age_cat + finc_cat, svymean, 
                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -313,7 +323,7 @@ finc_tab %>% knitr::kable()
 | 65+      | Unknown                      |  0.2035140|  -0.0544638|  0.4614919|
 
 ``` r
-# mammogram by usual care
+# percent of women who have had mammogram by usual care and age
 ausualp_pct_strat = svyby(~mam_2, by = ~domain + age_cat + ausualpl_cat,
                           svymean, na.rm = TRUE, design = des, 
                           vartype = c("se", "ci"))
@@ -338,7 +348,7 @@ usual_tab %>% knitr::kable()
 | 65+      | Yes           |  0.6714421|  0.6525374|  0.6903469|
 
 ``` r
-# mammogram by health coverage
+# percent of women who have had mammogram by health coverage and age
 cover_pct_strat = svyby(~mam_2, by = ~domain + age_cat + cover_cat, svymean,
                         na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -362,7 +372,7 @@ ins_tab %>% knitr::kable()
 | 65+      | Public           |  0.6486552|  0.6199508|  0.6773596|
 
 ``` r
-# mammogram by chronic conditions
+# percent of women who have had mammogram by chronic conditions and age
 lcond_chronic_pct_strat = svyby(~mam_2, 
                                 by = ~domain + age_cat + lcond_chronic_cat,
                                 svymean, na.rm = TRUE, design = des,
@@ -385,7 +395,7 @@ dis_tab %>% knitr::kable()
 | 65+      | Yes                 |  0.5381731|  0.5032309|  0.5731153|
 
 ``` r
-# mammogram by race
+# percent of women who have had mammogram by race and age
 race_pct_strat = svyby(~mam_2, by = ~domain + age_cat + race_cat, svymean, 
                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -412,7 +422,7 @@ race_tab %>% knitr::kable()
 | 65+      | White     |  0.6680536|  0.6481251|  0.6879822|
 
 ``` r
-# mammogram by ethnicity
+# percent of women who have had mammogram by ethnicity and age
 eth_pct_strat = svyby(~mam_2, by = ~domain + age_cat + eth_cat, svymean, 
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -442,6 +452,7 @@ eth_tab %>% knitr::kable()
 | 65+      | Non-Hispanic White |  0.6676896|  0.6471933|  0.6881859|
 
 ``` r
+# percent of women who have had mammogram by immigration and age
 imm_pct_strat = svyby(~mam_2, by = ~domain + age_cat + imm_stat, svymean,
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -465,7 +476,7 @@ imm_tab %>% knitr::kable()
 | 65+      | In U.S. &gt;= 10 yrs |  0.6163448|  0.5632557|  0.6694340|
 
 ``` r
-# total gotten mammogram
+# overall percent of women who have had mammogram
 total = svyby(~mam_2, by = ~domain + age_cat, svymean, na.rm = TRUE, 
               design = des, vartype = c("se", "ci"))
 
@@ -493,95 +504,114 @@ tot_pct = svyby(~mam_2, by = ~domain, svymean, na.rm = TRUE, design = des,
 Combine into paper table
 
 ``` r
+# COMBINE TABLES BY AGE WITH TABLES OVERALL
+
+# overall
 tot_tab = rbind(tot_pct, tot_tab)
 
 tot_tab2 = tot_tab %>%
   mutate(type = "Total",
          level = "-")
 
+# education
 edu_pct2 = edu_pct %>%
   mutate(age_cat = "40+")
 
 edu_tab = rbind(edu_pct2, edu_tab)
 
+# factor levels for presentation
 edu_tab2 = edu_tab %>%
   mutate(type = "Education") %>%
   rename(level = educ_cat) %>%
   mutate(level = factor(level, levels = c("Less than high school", "High school", "Some college", "College graduate"))) %>%
   arrange(level)
 
+# financial category
 finc_pct2 = finc_pct %>%
   mutate(age_cat = "40+")
 
 finc_tab = rbind(finc_pct2, finc_tab)
 
-# 
+# factor levels for presentation
 finc_tab2 = finc_tab %>%
   mutate(type = "Family Income Poverty Ratio") %>%
   rename(level = finc_cat) %>%
   mutate(level = factor(level, levels = c("<200%", ">=200%, no further detail", "200–299%", "300–399%", "400–499%", ">=500%", "Unknown"))) %>%
   arrange(level)
 
+# usual care category
 ausualp_pct2 = ausualp_pct %>%
   mutate(age_cat = "40+")
 
 usual_tab = rbind(ausualp_pct2, usual_tab)
 
+
+# factor levels for presentation
 usual_tab2 = usual_tab %>%
   mutate(type = "Usual Source of Care") %>%
   rename(level = ausualpl_cat) %>%
   mutate(level = factor(level, levels = c("No", "Yes", "Other"))) %>%
   arrange(level)
 
+# insurance coverage category
 cover_pct2 = cover_pct %>%
   mutate(age_cat = "40+")
 
 ins_tab = rbind(cover_pct2, ins_tab)
 
+# factor levels for presentation
 ins_tab2 = ins_tab %>%
   mutate(type = "Insurance Type") %>%
   rename(level = cover_cat) %>%
   mutate(level = factor(level, levels = c("None", "Public", "Private/Military"))) %>%
   arrange(level)
 
+# chronic condition category
 lcond_chronic_pct2 = lcond_chronic_pct %>%
   mutate(age_cat = "40+")
 
 dis_tab = rbind(lcond_chronic_pct2, dis_tab)
 
+# factor levels for presentation
 dis_tab2 = dis_tab %>%
   mutate(type = "Chronic Disability") %>%
   rename(level = lcond_chronic_cat) %>%
   mutate(level = factor(level, levels = c("Yes", "No"))) %>%
   arrange(level)
 
+# ethnic category
 eth_pct2 = eth_pct %>%
   mutate(age_cat = "40+")
 
 eth_tab = rbind(eth_pct2, eth_tab)
 
+# factor levels for presentation
 eth_tab2 = eth_tab %>%
   mutate(type = "Ethnicity") %>%
   rename(level = eth_cat) %>%
   mutate(level = factor(level, levels = c("Hispanic", "Non-Hispanic White", "Non-Hispanic Black", "Non-Hispanic AN/AI", "Non-Hispanic Asian"))) %>%
   arrange(level)
 
+# race category
 race_pct2 = race_pct %>%
   mutate(age_cat = "40+")
 
 race_tab = rbind(race_pct2, race_tab)
 
+# factor levels for presentation
 race_tab2 = race_tab %>%
   mutate(type = "Race") %>%
   rename(level = race_cat) %>%
   mutate(level = factor(level, levels = c("White", "Black", "AN/AI", "Asian"))) %>%
   arrange(level)
 
+# immigration category
 imm_pct2 = imm_pct %>%
   mutate(age_cat = "40+")
 
 imm_tab = rbind(imm_pct2, imm_tab)
 
+# factor levels for presentation
 imm_tab2 = imm_tab %>%
   mutate(type = "Immigration") %>%
   rename(level = imm_stat) %>%
@@ -671,455 +701,6 @@ ins_tab %>%
 
 Models
 
-``` r
-mam_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat) + as.factor(imm_stat), 
-       design = des, subset = domain == 1, family = binomial(link = "logit"))
-```
-
-    ## Warning in eval(family$initialize): non-integer #successes in a binomial
-    ## glm!
-
-``` r
-summary(mam_fit)
-```
-
-    ## 
-    ## Call:
-    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
-    ##     as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
-    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat) + 
-    ##     as.factor(imm_stat), design = des, subset = domain == 1, 
-    ##     family = binomial(link = "logit"))
-    ## 
-    ## Survey design:
-    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
-    ##     nest = TRUE, data = mam_dat)
-    ## 
-    ## Coefficients:
-    ##                                               Estimate Std. Error t value
-    ## (Intercept)                                    1.06128    1.29031   0.823
-    ## as.factor(age_cat)50–64                       -0.02853    0.22139  -0.129
-    ## as.factor(age_cat)65+                         -0.65368    0.21940  -2.979
-    ## as.factor(educ_cat)High school                -0.41077    0.17025  -2.413
-    ## as.factor(educ_cat)Less than high school      -0.54541    0.20845  -2.617
-    ## as.factor(educ_cat)Some college               -0.17589    0.18016  -0.976
-    ## as.factor(finc_cat)>=200%, no further detail  -0.51678    0.28376  -1.821
-    ## as.factor(finc_cat)>=500%                      0.45089    0.23188   1.944
-    ## as.factor(finc_cat)200–299%                   -0.12623    0.17883  -0.706
-    ## as.factor(finc_cat)300–399%                    0.22968    0.26097   0.880
-    ## as.factor(finc_cat)400–499%                    0.12509    0.18916   0.661
-    ## as.factor(ausualpl_cat)Other                 -13.40861    1.11589 -12.016
-    ## as.factor(ausualpl_cat)Yes                     0.86445    0.33946   2.547
-    ## as.factor(cover_cat)Private/Military           1.11095    0.33806   3.286
-    ## as.factor(cover_cat)Public                     1.15390    0.35869   3.217
-    ## as.factor(lcond_chronic_cat)Yes               -0.09762    0.34406  -0.284
-    ## as.factor(race_cat)Asian                      -1.84454    1.67361  -1.102
-    ## as.factor(race_cat)Black                      -2.11258    1.41194  -1.496
-    ## as.factor(race_cat)White                      -1.09481    1.12904  -0.970
-    ## as.factor(eth_cat)Non-Hispanic AN/AI          -1.26040    1.29111  -0.976
-    ## as.factor(eth_cat)Non-Hispanic Asian          -0.12125    1.27925  -0.095
-    ## as.factor(eth_cat)Non-Hispanic Black           0.61690    0.93852   0.657
-    ## as.factor(eth_cat)Non-Hispanic White          -0.84526    0.28088  -3.009
-    ## as.factor(imm_stat)In U.S. < 10 yrs           14.48681    0.76703  18.887
-    ## as.factor(imm_stat)In U.S. >= 10 yrs          -0.10945    0.23629  -0.463
-    ##                                              Pr(>|t|)    
-    ## (Intercept)                                   0.41162    
-    ## as.factor(age_cat)50–64                       0.89756    
-    ## as.factor(age_cat)65+                         0.00319 ** 
-    ## as.factor(educ_cat)High school                0.01659 *  
-    ## as.factor(educ_cat)Less than high school      0.00945 ** 
-    ## as.factor(educ_cat)Some college               0.32992    
-    ## as.factor(finc_cat)>=200%, no further detail  0.06983 .  
-    ## as.factor(finc_cat)>=500%                     0.05302 .  
-    ## as.factor(finc_cat)200–299%                   0.48095    
-    ## as.factor(finc_cat)300–399%                   0.37971    
-    ## as.factor(finc_cat)400–499%                   0.50909    
-    ## as.factor(ausualpl_cat)Other                  < 2e-16 ***
-    ## as.factor(ausualpl_cat)Yes                    0.01151 *  
-    ## as.factor(cover_cat)Private/Military          0.00117 ** 
-    ## as.factor(cover_cat)Public                    0.00148 ** 
-    ## as.factor(lcond_chronic_cat)Yes               0.77688    
-    ## as.factor(race_cat)Asian                      0.27152    
-    ## as.factor(race_cat)Black                      0.13592    
-    ## as.factor(race_cat)White                      0.33319    
-    ## as.factor(eth_cat)Non-Hispanic AN/AI          0.32995    
-    ## as.factor(eth_cat)Non-Hispanic Asian          0.92457    
-    ## as.factor(eth_cat)Non-Hispanic Black          0.51162    
-    ## as.factor(eth_cat)Non-Hispanic White          0.00290 ** 
-    ## as.factor(imm_stat)In U.S. < 10 yrs           < 2e-16 ***
-    ## as.factor(imm_stat)In U.S. >= 10 yrs          0.64364    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 0.8271949)
-    ## 
-    ## Number of Fisher Scoring iterations: 13
-
-``` r
-summ(mam_fit)
-```
-
-    ## MODEL INFO:
-    ## Observations: 2669
-    ## Dependent Variable: mam_2
-    ## Type: Analysis of complex survey design 
-    ##  Family: binomial 
-    ##  Link function: logit 
-    ## 
-    ## MODEL FIT:
-    ## Pseudo-R² (Cragg-Uhler) = 0.06
-    ## Pseudo-R² (McFadden) = 0.21
-    ## AIC = 2736.15 
-    ## 
-    ## --------------------------------------------------------------------------
-    ##                                                Est.   S.E.   t val.      p
-    ## ------------------------------------------ -------- ------ -------- ------
-    ## (Intercept)                                    1.06   1.29     0.82   0.41
-    ## as.factor(age_cat)50â€“64                     -0.03   0.22    -0.13   0.90
-    ## as.factor(age_cat)65+                         -0.65   0.22    -2.98   0.00
-    ## as.factor(educ_cat)High                       -0.41   0.17    -2.41   0.02
-    ## school                                                                    
-    ## as.factor(educ_cat)Less than                  -0.55   0.21    -2.62   0.01
-    ## high school                                                               
-    ## as.factor(educ_cat)Some                       -0.18   0.18    -0.98   0.33
-    ## college                                                                   
-    ## as.factor(finc_cat)>=200%,                    -0.52   0.28    -1.82   0.07
-    ## no further detail                                                         
-    ## as.factor(finc_cat)>=500%                      0.45   0.23     1.94   0.05
-    ## as.factor(finc_cat)200â€“299%                 -0.13   0.18    -0.71   0.48
-    ## as.factor(finc_cat)300â€“399%                  0.23   0.26     0.88   0.38
-    ## as.factor(finc_cat)400â€“499%                  0.13   0.19     0.66   0.51
-    ## as.factor(ausualpl_cat)Other                 -13.41   1.12   -12.02   0.00
-    ## as.factor(ausualpl_cat)Yes                     0.86   0.34     2.55   0.01
-    ## as.factor(cover_cat)Private/Military           1.11   0.34     3.29   0.00
-    ## as.factor(cover_cat)Public                     1.15   0.36     3.22   0.00
-    ## as.factor(lcond_chronic_cat)Yes               -0.10   0.34    -0.28   0.78
-    ## as.factor(race_cat)Asian                      -1.84   1.67    -1.10   0.27
-    ## as.factor(race_cat)Black                      -2.11   1.41    -1.50   0.14
-    ## as.factor(race_cat)White                      -1.09   1.13    -0.97   0.33
-    ## as.factor(eth_cat)Non-Hispanic                -1.26   1.29    -0.98   0.33
-    ## AN/AI                                                                     
-    ## as.factor(eth_cat)Non-Hispanic                -0.12   1.28    -0.09   0.92
-    ## Asian                                                                     
-    ## as.factor(eth_cat)Non-Hispanic                 0.62   0.94     0.66   0.51
-    ## Black                                                                     
-    ## as.factor(eth_cat)Non-Hispanic                -0.85   0.28    -3.01   0.00
-    ## White                                                                     
-    ## as.factor(imm_stat)In U.S. <                  14.49   0.77    18.89   0.00
-    ## 10 yrs                                                                    
-    ## as.factor(imm_stat)In U.S.                    -0.11   0.24    -0.46   0.64
-    ## >= 10 yrs                                                                 
-    ## --------------------------------------------------------------------------
-    ## 
-    ## Estimated dispersion parameter = 0.83
-
-``` r
-Anova(mam_fit, type = 3)
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: mam_2
-    ##                              Df    Chisq Pr(>Chisq)    
-    ## (Intercept)                   1   0.6765   0.410791    
-    ## as.factor(age_cat)            2  26.0464  2.208e-06 ***
-    ## as.factor(educ_cat)           3   9.3179   0.025350 *  
-    ## as.factor(finc_cat)           5  11.1146   0.049154 *  
-    ## as.factor(ausualpl_cat)       2 164.1865  < 2.2e-16 ***
-    ## as.factor(cover_cat)          2  10.9756   0.004137 ** 
-    ## as.factor(lcond_chronic_cat)  1   0.0805   0.776628    
-    ## as.factor(race_cat)           3   2.6100   0.455747    
-    ## as.factor(eth_cat)            4  10.6850   0.030341 *  
-    ## as.factor(imm_stat)           2 363.6698  < 2.2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-mam_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 1,
-                  family = binomial(link = "logit"))
-```
-
-    ## Warning in eval(family$initialize): non-integer #successes in a binomial
-    ## glm!
-
-``` r
-summary(mam_fit2)
-```
-
-    ## 
-    ## Call:
-    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
-    ##     as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
-    ##     as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 
-    ##     1, family = binomial(link = "logit"))
-    ## 
-    ## Survey design:
-    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
-    ##     nest = TRUE, data = mam_dat)
-    ## 
-    ## Coefficients:
-    ##                                              Estimate Std. Error t value
-    ## (Intercept)                                  -0.37810    0.22993  -1.644
-    ## as.factor(age_cat)50–64                      -0.04664    0.09714  -0.480
-    ## as.factor(age_cat)65+                        -0.37719    0.09907  -3.807
-    ## as.factor(educ_cat)High school               -0.35722    0.09196  -3.884
-    ## as.factor(educ_cat)Less than high school     -0.54301    0.12542  -4.330
-    ## as.factor(educ_cat)Some college              -0.22914    0.09696  -2.363
-    ## as.factor(finc_cat)>=200%, no further detail  0.13296    0.16676   0.797
-    ## as.factor(finc_cat)>=500%                     0.59420    0.11003   5.401
-    ## as.factor(finc_cat)200–299%                   0.14677    0.10467   1.402
-    ## as.factor(finc_cat)300–399%                   0.36390    0.11726   3.103
-    ## as.factor(finc_cat)400–499%                   0.43712    0.11734   3.725
-    ## as.factor(ausualpl_cat)Other                  0.92168    1.11576   0.826
-    ## as.factor(ausualpl_cat)Yes                    1.06742    0.13528   7.891
-    ## as.factor(cover_cat)Private/Military          0.94365    0.16772   5.626
-    ## as.factor(cover_cat)Public                    0.89174    0.17377   5.132
-    ## as.factor(eth_cat)Non-Hispanic AN/AI         -0.42856    0.45310  -0.946
-    ## as.factor(eth_cat)Non-Hispanic Asian         -0.80992    0.18199  -4.450
-    ## as.factor(eth_cat)Non-Hispanic Black         -0.12517    0.15603  -0.802
-    ## as.factor(eth_cat)Non-Hispanic White         -0.53576    0.13941  -3.843
-    ## as.factor(imm_stat)In U.S. < 10 yrs           0.46164    0.32599   1.416
-    ## as.factor(imm_stat)In U.S. >= 10 yrs          0.03776    0.12698   0.297
-    ##                                              Pr(>|t|)    
-    ## (Intercept)                                  0.101212    
-    ## as.factor(age_cat)50–64                      0.631496    
-    ## as.factor(age_cat)65+                        0.000173 ***
-    ## as.factor(educ_cat)High school               0.000128 ***
-    ## as.factor(educ_cat)Less than high school     2.09e-05 ***
-    ## as.factor(educ_cat)Some college              0.018802 *  
-    ## as.factor(finc_cat)>=200%, no further detail 0.425934    
-    ## as.factor(finc_cat)>=500%                    1.42e-07 ***
-    ## as.factor(finc_cat)200–299%                  0.161972    
-    ## as.factor(finc_cat)300–399%                  0.002110 ** 
-    ## as.factor(finc_cat)400–499%                  0.000236 ***
-    ## as.factor(ausualpl_cat)Other                 0.409480    
-    ## as.factor(ausualpl_cat)Yes                   6.88e-14 ***
-    ## as.factor(cover_cat)Private/Military         4.48e-08 ***
-    ## as.factor(cover_cat)Public                   5.39e-07 ***
-    ## as.factor(eth_cat)Non-Hispanic AN/AI         0.345049    
-    ## as.factor(eth_cat)Non-Hispanic Asian         1.24e-05 ***
-    ## as.factor(eth_cat)Non-Hispanic Black         0.423099    
-    ## as.factor(eth_cat)Non-Hispanic White         0.000150 ***
-    ## as.factor(imm_stat)In U.S. < 10 yrs          0.157858    
-    ## as.factor(imm_stat)In U.S. >= 10 yrs         0.766421    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 0.9955403)
-    ## 
-    ## Number of Fisher Scoring iterations: 4
-
-``` r
-summ(mam_fit2)
-```
-
-    ## MODEL INFO:
-    ## Observations: 9410
-    ## Dependent Variable: mam_2
-    ## Type: Analysis of complex survey design 
-    ##  Family: binomial 
-    ##  Link function: logit 
-    ## 
-    ## MODEL FIT:
-    ## Pseudo-R² (Cragg-Uhler) = 0.02
-    ## Pseudo-R² (McFadden) = 0.06
-    ## AIC = 10142.15 
-    ## 
-    ## -------------------------------------------------------------------------
-    ##                                               Est.   S.E.   t val.      p
-    ## ------------------------------------------ ------- ------ -------- ------
-    ## (Intercept)                                  -0.38   0.23    -1.64   0.10
-    ## as.factor(age_cat)50â€“64                    -0.05   0.10    -0.48   0.63
-    ## as.factor(age_cat)65+                        -0.38   0.10    -3.81   0.00
-    ## as.factor(educ_cat)High                      -0.36   0.09    -3.88   0.00
-    ## school                                                                   
-    ## as.factor(educ_cat)Less than                 -0.54   0.13    -4.33   0.00
-    ## high school                                                              
-    ## as.factor(educ_cat)Some                      -0.23   0.10    -2.36   0.02
-    ## college                                                                  
-    ## as.factor(finc_cat)>=200%,                    0.13   0.17     0.80   0.43
-    ## no further detail                                                        
-    ## as.factor(finc_cat)>=500%                     0.59   0.11     5.40   0.00
-    ## as.factor(finc_cat)200â€“299%                 0.15   0.10     1.40   0.16
-    ## as.factor(finc_cat)300â€“399%                 0.36   0.12     3.10   0.00
-    ## as.factor(finc_cat)400â€“499%                 0.44   0.12     3.73   0.00
-    ## as.factor(ausualpl_cat)Other                  0.92   1.12     0.83   0.41
-    ## as.factor(ausualpl_cat)Yes                    1.07   0.14     7.89   0.00
-    ## as.factor(cover_cat)Private/Military          0.94   0.17     5.63   0.00
-    ## as.factor(cover_cat)Public                    0.89   0.17     5.13   0.00
-    ## as.factor(eth_cat)Non-Hispanic               -0.43   0.45    -0.95   0.35
-    ## AN/AI                                                                    
-    ## as.factor(eth_cat)Non-Hispanic               -0.81   0.18    -4.45   0.00
-    ## Asian                                                                    
-    ## as.factor(eth_cat)Non-Hispanic               -0.13   0.16    -0.80   0.42
-    ## Black                                                                    
-    ## as.factor(eth_cat)Non-Hispanic               -0.54   0.14    -3.84   0.00
-    ## White                                                                    
-    ## as.factor(imm_stat)In U.S. <                  0.46   0.33     1.42   0.16
-    ## 10 yrs                                                                   
-    ## as.factor(imm_stat)In U.S.                    0.04   0.13     0.30   0.77
-    ## >= 10 yrs                                                                
-    ## -------------------------------------------------------------------------
-    ## 
-    ## Estimated dispersion parameter = 1
-
-``` r
-Anova(mam_fit2, type = 3)
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: mam_2
-    ##                         Df   Chisq Pr(>Chisq)    
-    ## (Intercept)              1  2.7042     0.1001    
-    ## as.factor(age_cat)       2 24.5310  4.712e-06 ***
-    ## as.factor(educ_cat)      3 21.9781  6.592e-05 ***
-    ## as.factor(finc_cat)      5 35.7829  1.050e-06 ***
-    ## as.factor(ausualpl_cat)  2 62.9084  2.186e-14 ***
-    ## as.factor(cover_cat)     2 31.7361  1.284e-07 ***
-    ## as.factor(eth_cat)       4 34.7799  5.155e-07 ***
-    ## as.factor(imm_stat)      2  2.0099     0.3661    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-mam_fit3 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat), design = des, subset = domain == 1, 
-                  family = binomial(link = "logit"))
-```
-
-    ## Warning in eval(family$initialize): non-integer #successes in a binomial
-    ## glm!
-
-``` r
-summary(mam_fit3)
-```
-
-    ## 
-    ## Call:
-    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
-    ##     as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
-    ##     as.factor(eth_cat), design = des, subset = domain == 1, family = binomial(link = "logit"))
-    ## 
-    ## Survey design:
-    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
-    ##     nest = TRUE, data = mam_dat)
-    ## 
-    ## Coefficients:
-    ##                                              Estimate Std. Error t value
-    ## (Intercept)                                  -0.30090    0.21149  -1.423
-    ## as.factor(age_cat)50–64                      -0.05683    0.09711  -0.585
-    ## as.factor(age_cat)65+                        -0.38801    0.09908  -3.916
-    ## as.factor(educ_cat)High school               -0.35882    0.09215  -3.894
-    ## as.factor(educ_cat)Less than high school     -0.54116    0.12335  -4.387
-    ## as.factor(educ_cat)Some college              -0.23029    0.09735  -2.366
-    ## as.factor(finc_cat)>=200%, no further detail  0.13415    0.16736   0.802
-    ## as.factor(finc_cat)>=500%                     0.59396    0.10993   5.403
-    ## as.factor(finc_cat)200–299%                   0.14725    0.10455   1.408
-    ## as.factor(finc_cat)300–399%                   0.36447    0.11752   3.101
-    ## as.factor(finc_cat)400–499%                   0.43360    0.11706   3.704
-    ## as.factor(ausualpl_cat)Other                  0.89873    1.12004   0.802
-    ## as.factor(ausualpl_cat)Yes                    1.06048    0.13502   7.854
-    ## as.factor(cover_cat)Private/Military          0.92479    0.16572   5.580
-    ## as.factor(cover_cat)Public                    0.87454    0.17188   5.088
-    ## as.factor(eth_cat)Non-Hispanic AN/AI         -0.47325    0.44354  -1.067
-    ## as.factor(eth_cat)Non-Hispanic Asian         -0.78028    0.18254  -4.274
-    ## as.factor(eth_cat)Non-Hispanic Black         -0.16561    0.13811  -1.199
-    ## as.factor(eth_cat)Non-Hispanic White         -0.57610    0.11730  -4.911
-    ##                                              Pr(>|t|)    
-    ## (Intercept)                                  0.155905    
-    ## as.factor(age_cat)50–64                      0.558867    
-    ## as.factor(age_cat)65+                        0.000113 ***
-    ## as.factor(educ_cat)High school               0.000123 ***
-    ## as.factor(educ_cat)Less than high school     1.63e-05 ***
-    ## as.factor(educ_cat)Some college              0.018684 *  
-    ## as.factor(finc_cat)>=200%, no further detail 0.423484    
-    ## as.factor(finc_cat)>=500%                    1.40e-07 ***
-    ## as.factor(finc_cat)200–299%                  0.160118    
-    ## as.factor(finc_cat)300–399%                  0.002123 ** 
-    ## as.factor(finc_cat)400–499%                  0.000256 ***
-    ## as.factor(ausualpl_cat)Other                 0.422991    
-    ## as.factor(ausualpl_cat)Yes                   8.57e-14 ***
-    ## as.factor(cover_cat)Private/Military         5.65e-08 ***
-    ## as.factor(cover_cat)Public                   6.63e-07 ***
-    ## as.factor(eth_cat)Non-Hispanic AN/AI         0.286897    
-    ## as.factor(eth_cat)Non-Hispanic Asian         2.63e-05 ***
-    ## as.factor(eth_cat)Non-Hispanic Black         0.231484    
-    ## as.factor(eth_cat)Non-Hispanic White         1.54e-06 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 0.9953984)
-    ## 
-    ## Number of Fisher Scoring iterations: 4
-
-``` r
-summ(mam_fit3)
-```
-
-    ## MODEL INFO:
-    ## Observations: 9422
-    ## Dependent Variable: mam_2
-    ## Type: Analysis of complex survey design 
-    ##  Family: binomial 
-    ##  Link function: logit 
-    ## 
-    ## MODEL FIT:
-    ## Pseudo-R² (Cragg-Uhler) = 0.02
-    ## Pseudo-R² (McFadden) = 0.06
-    ## AIC = 10151.01 
-    ## 
-    ## -------------------------------------------------------------------------
-    ##                                               Est.   S.E.   t val.      p
-    ## ------------------------------------------ ------- ------ -------- ------
-    ## (Intercept)                                  -0.30   0.21    -1.42   0.16
-    ## as.factor(age_cat)50â€“64                    -0.06   0.10    -0.59   0.56
-    ## as.factor(age_cat)65+                        -0.39   0.10    -3.92   0.00
-    ## as.factor(educ_cat)High                      -0.36   0.09    -3.89   0.00
-    ## school                                                                   
-    ## as.factor(educ_cat)Less than                 -0.54   0.12    -4.39   0.00
-    ## high school                                                              
-    ## as.factor(educ_cat)Some                      -0.23   0.10    -2.37   0.02
-    ## college                                                                  
-    ## as.factor(finc_cat)>=200%,                    0.13   0.17     0.80   0.42
-    ## no further detail                                                        
-    ## as.factor(finc_cat)>=500%                     0.59   0.11     5.40   0.00
-    ## as.factor(finc_cat)200â€“299%                 0.15   0.10     1.41   0.16
-    ## as.factor(finc_cat)300â€“399%                 0.36   0.12     3.10   0.00
-    ## as.factor(finc_cat)400â€“499%                 0.43   0.12     3.70   0.00
-    ## as.factor(ausualpl_cat)Other                  0.90   1.12     0.80   0.42
-    ## as.factor(ausualpl_cat)Yes                    1.06   0.14     7.85   0.00
-    ## as.factor(cover_cat)Private/Military          0.92   0.17     5.58   0.00
-    ## as.factor(cover_cat)Public                    0.87   0.17     5.09   0.00
-    ## as.factor(eth_cat)Non-Hispanic               -0.47   0.44    -1.07   0.29
-    ## AN/AI                                                                    
-    ## as.factor(eth_cat)Non-Hispanic               -0.78   0.18    -4.27   0.00
-    ## Asian                                                                    
-    ## as.factor(eth_cat)Non-Hispanic               -0.17   0.14    -1.20   0.23
-    ## Black                                                                    
-    ## as.factor(eth_cat)Non-Hispanic               -0.58   0.12    -4.91   0.00
-    ## White                                                                    
-    ## -------------------------------------------------------------------------
-    ## 
-    ## Estimated dispersion parameter = 1
-
-``` r
-Anova(mam_fit3, type = 3)
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: mam_2
-    ##                         Df   Chisq Pr(>Chisq)    
-    ## (Intercept)              1  2.0243     0.1548    
-    ## as.factor(age_cat)       2 25.2488  3.291e-06 ***
-    ## as.factor(educ_cat)      3 22.2496  5.788e-05 ***
-    ## as.factor(finc_cat)      5 35.6070  1.138e-06 ***
-    ## as.factor(ausualpl_cat)  2 62.3093  2.949e-14 ***
-    ## as.factor(cover_cat)     2 31.2365  1.648e-07 ***
-    ## as.factor(eth_cat)       4 36.4525  2.335e-07 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
 Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram. 
 The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448. 
 The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784. 
@@ -1163,13 +744,17 @@ mam_temp65 = mam_temp %>%
 *collapsing some categories*
 
 ``` r
+# make financial status and ethnicity only two levels 
 mam_dat2 = mam_dat %>%
   mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
                              if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
          eth_cat2 = if_else(eth_cat == "Hispanic", eth_cat, "Non-Hispanic"))
 
+# refit the design object
 des2 = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat2)
 
+
+# fit the full model on all categorical variables for the included women
 mam2_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
        design = des2, subset = domain == 1, family = binomial(link = "logit"))
 ```
@@ -1286,28 +871,182 @@ summ(mam2_fit)
     ## Estimated dispersion parameter = 0.83
 
 ``` r
-Anova(mam2_fit, type = 3)
+# Rao-scott LRT ANOVA
+
+# test significance of full model
+regTermTest(mam2_fit,  ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+            method = "LRT")
 ```
 
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: mam_2
-    ##                              Df     Chisq Pr(>Chisq)    
-    ## (Intercept)                   1    0.3479   0.555279    
-    ## as.factor(age_cat)            2   25.9316  2.339e-06 ***
-    ## as.factor(educ_cat)           3   12.8987   0.004861 ** 
-    ## as.factor(finc_cat2)          1    0.1175   0.731735    
-    ## as.factor(ausualpl_cat)       2  163.4565  < 2.2e-16 ***
-    ## as.factor(cover_cat)          2   11.2703   0.003570 ** 
-    ## as.factor(lcond_chronic_cat)  1    0.0349   0.851783    
-    ## as.factor(race_cat)           3    6.9470   0.073607 .  
-    ## as.factor(eth_cat2)           1    7.7183   0.005467 ** 
-    ## as.factor(imm_stat)           2 1350.5628  < 2.2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(age_cat) as.factor(educ_cat) as.factor(finc_cat2) as.factor(ausualpl_cat) as.factor(cover_cat) as.factor(lcond_chronic_cat) as.factor(race_cat) as.factor(eth_cat2) as.factor(imm_stat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  6362.691 p= < 2.22e-16 
+    ## (scale factors:  2.1 1.7 1.6 1.5 1.3 1.2 1.1 1.1 0.97 0.88 0.82 0.79 0.73 0.65 0.6 1e-06 8.3e-07 );  denominator df= 244
 
 ``` r
-mam2_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+# test significance of individual terms/term groups
+regTermTest(mam2_fit, "as.factor(age_cat)", 
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(age_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  25.55624 p= 5.9675e-06 
+    ## (scale factors:  1.1 0.93 );  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(educ_cat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(educ_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  34.65693 p= 8.4108e-07 
+    ## (scale factors:  1.2 1 0.81 );  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(finc_cat2)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(finc_cat2)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  68.83743 p= 8.176e-15 
+    ## df=1;  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(ausualpl_cat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(ausualpl_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  14.94767 p= 0.0070806 
+    ## (scale factors:  2 1.9e-06 );  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(cover_cat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(cover_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  15.27826 p= 0.00072295 
+    ## (scale factors:  1.1 0.86 );  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(lcond_chronic_cat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(lcond_chronic_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  6626.936 p= < 2.22e-16 
+    ## df=1;  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(race_cat)",
+            method = "LRT") # not sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(race_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  6.809882 p= 0.080765 
+    ## (scale factors:  1.2 0.92 0.85 );  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(eth_cat2)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(eth_cat2)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  8.116515 p= 0.0050298 
+    ## df=1;  denominator df= 244
+
+``` r
+regTermTest(mam2_fit, "as.factor(imm_stat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(imm_stat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + 
+    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  15.3734 p= 0.0063202 
+    ## (scale factors:  2 2.5e-06 );  denominator df= 244
+
+``` r
+# fit reduced model with significant predictors
+mam2_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
                    design = des2, subset = domain == 1, 
                    family = binomial(link = "logit"))
 ```
@@ -1322,225 +1061,272 @@ summary(mam2_fit2)
     ## 
     ## Call:
     ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
-    ##     as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2) + 
-    ##     as.factor(imm_stat), design = des2, subset = domain == 1, 
-    ##     family = binomial(link = "logit"))
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
     ## 
     ## Survey design:
     ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
     ##     nest = TRUE, data = mam_dat2)
     ## 
     ## Coefficients:
-    ##                                          Estimate Std. Error t value
-    ## (Intercept)                              -0.04941    0.21929  -0.225
-    ## as.factor(age_cat)50–64                  -0.04503    0.09277  -0.485
-    ## as.factor(age_cat)65+                    -0.40882    0.09335  -4.379
-    ## as.factor(educ_cat)High school           -0.52279    0.08115  -6.442
-    ## as.factor(educ_cat)Less than high school -0.73472    0.11143  -6.594
-    ## as.factor(educ_cat)Some college          -0.32815    0.08662  -3.788
-    ## as.factor(ausualpl_cat)Other              0.80179    1.16217   0.690
-    ## as.factor(ausualpl_cat)Yes                1.09634    0.12808   8.560
-    ## as.factor(cover_cat)Private/Military      1.01612    0.16500   6.158
-    ## as.factor(cover_cat)Public                0.85220    0.17027   5.005
-    ## as.factor(eth_cat2)Non-Hispanic          -0.47723    0.12309  -3.877
-    ## as.factor(imm_stat)In U.S. < 10 yrs       0.07032    0.31373   0.224
-    ## as.factor(imm_stat)In U.S. >= 10 yrs     -0.04325    0.10982  -0.394
+    ##                                            Estimate Std. Error t value
+    ## (Intercept)                               -0.052925   0.680627  -0.078
+    ## as.factor(age_cat)50–64                    0.015998   0.220965   0.072
+    ## as.factor(age_cat)65+                     -0.646977   0.219612  -2.946
+    ## as.factor(educ_cat)High school            -0.498641   0.165120  -3.020
+    ## as.factor(educ_cat)Less than high school  -0.608279   0.204379  -2.976
+    ## as.factor(educ_cat)Some college           -0.204383   0.175275  -1.166
+    ## as.factor(finc_cat2)>=200%                 0.002496   0.135112   0.018
+    ## as.factor(ausualpl_cat)Other             -13.503433   1.128254 -11.968
+    ## as.factor(ausualpl_cat)Yes                 0.840210   0.378873   2.218
+    ## as.factor(cover_cat)Private/Military       1.177763   0.341633   3.447
+    ## as.factor(cover_cat)Public                 1.199125   0.362141   3.311
+    ## as.factor(lcond_chronic_cat)Yes           -0.082223   0.358358  -0.229
+    ## as.factor(eth_cat2)Non-Hispanic           -0.717933   0.256433  -2.800
+    ## as.factor(imm_stat)In U.S. < 10 yrs       14.012023   0.395671  35.413
+    ## as.factor(imm_stat)In U.S. >= 10 yrs      -0.164101   0.223060  -0.736
     ##                                          Pr(>|t|)    
-    ## (Intercept)                              0.821897    
-    ## as.factor(age_cat)50–64                  0.627761    
-    ## as.factor(age_cat)65+                    1.67e-05 ***
-    ## as.factor(educ_cat)High school           4.95e-10 ***
-    ## as.factor(educ_cat)Less than high school 2.06e-10 ***
-    ## as.factor(educ_cat)Some college          0.000185 ***
-    ## as.factor(ausualpl_cat)Other             0.490808    
-    ## as.factor(ausualpl_cat)Yes               6.95e-16 ***
-    ## as.factor(cover_cat)Private/Military     2.47e-09 ***
-    ## as.factor(cover_cat)Public               9.76e-07 ***
-    ## as.factor(eth_cat2)Non-Hispanic          0.000131 ***
-    ## as.factor(imm_stat)In U.S. < 10 yrs      0.822807    
-    ## as.factor(imm_stat)In U.S. >= 10 yrs     0.693981    
+    ## (Intercept)                              0.938082    
+    ## as.factor(age_cat)50–64                  0.942343    
+    ## as.factor(age_cat)65+                    0.003527 ** 
+    ## as.factor(educ_cat)High school           0.002794 ** 
+    ## as.factor(educ_cat)Less than high school 0.003208 ** 
+    ## as.factor(educ_cat)Some college          0.244711    
+    ## as.factor(finc_cat2)>=200%               0.985274    
+    ## as.factor(ausualpl_cat)Other              < 2e-16 ***
+    ## as.factor(ausualpl_cat)Yes               0.027489 *  
+    ## as.factor(cover_cat)Private/Military     0.000665 ***
+    ## as.factor(cover_cat)Public               0.001068 ** 
+    ## as.factor(lcond_chronic_cat)Yes          0.818714    
+    ## as.factor(eth_cat2)Non-Hispanic          0.005519 ** 
+    ## as.factor(imm_stat)In U.S. < 10 yrs       < 2e-16 ***
+    ## as.factor(imm_stat)In U.S. >= 10 yrs     0.462624    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## (Dispersion parameter for binomial family taken to be 1.000119)
+    ## (Dispersion parameter for binomial family taken to be 0.8273784)
     ## 
-    ## Number of Fisher Scoring iterations: 4
+    ## Number of Fisher Scoring iterations: 13
 
 ``` r
 summ(mam2_fit2)
 ```
 
     ## MODEL INFO:
-    ## Observations: 10147
+    ## Observations: 2669
     ## Dependent Variable: mam_2
     ## Type: Analysis of complex survey design 
     ##  Family: binomial 
     ##  Link function: logit 
     ## 
     ## MODEL FIT:
-    ## Pseudo-R² (Cragg-Uhler) = 0.01
-    ## Pseudo-R² (McFadden) = 0.04
-    ## AIC = 11066.22 
+    ## Pseudo-R² (Cragg-Uhler) = 0.05
+    ## Pseudo-R² (McFadden) = 0.20
+    ## AIC = 2750.10 
     ## 
-    ## -------------------------------------------------------------------------
-    ##                                               Est.   S.E.   t val.      p
-    ## ------------------------------------------ ------- ------ -------- ------
-    ## (Intercept)                                  -0.05   0.22    -0.23   0.82
-    ## as.factor(age_cat)50â€“64                    -0.05   0.09    -0.49   0.63
-    ## as.factor(age_cat)65+                        -0.41   0.09    -4.38   0.00
-    ## as.factor(educ_cat)High                      -0.52   0.08    -6.44   0.00
-    ## school                                                                   
-    ## as.factor(educ_cat)Less than                 -0.73   0.11    -6.59   0.00
-    ## high school                                                              
-    ## as.factor(educ_cat)Some                      -0.33   0.09    -3.79   0.00
-    ## college                                                                  
-    ## as.factor(ausualpl_cat)Other                  0.80   1.16     0.69   0.49
-    ## as.factor(ausualpl_cat)Yes                    1.10   0.13     8.56   0.00
-    ## as.factor(cover_cat)Private/Military          1.02   0.16     6.16   0.00
-    ## as.factor(cover_cat)Public                    0.85   0.17     5.00   0.00
-    ## as.factor(eth_cat2)Non-Hispanic              -0.48   0.12    -3.88   0.00
-    ## as.factor(imm_stat)In U.S. <                  0.07   0.31     0.22   0.82
-    ## 10 yrs                                                                   
-    ## as.factor(imm_stat)In U.S.                   -0.04   0.11    -0.39   0.69
-    ## >= 10 yrs                                                                
-    ## -------------------------------------------------------------------------
+    ## --------------------------------------------------------------------------
+    ##                                                Est.   S.E.   t val.      p
+    ## ------------------------------------------ -------- ------ -------- ------
+    ## (Intercept)                                   -0.05   0.68    -0.08   0.94
+    ## as.factor(age_cat)50â€“64                      0.02   0.22     0.07   0.94
+    ## as.factor(age_cat)65+                         -0.65   0.22    -2.95   0.00
+    ## as.factor(educ_cat)High                       -0.50   0.17    -3.02   0.00
+    ## school                                                                    
+    ## as.factor(educ_cat)Less than                  -0.61   0.20    -2.98   0.00
+    ## high school                                                               
+    ## as.factor(educ_cat)Some                       -0.20   0.18    -1.17   0.24
+    ## college                                                                   
+    ## as.factor(finc_cat2)>=200%                     0.00   0.14     0.02   0.99
+    ## as.factor(ausualpl_cat)Other                 -13.50   1.13   -11.97   0.00
+    ## as.factor(ausualpl_cat)Yes                     0.84   0.38     2.22   0.03
+    ## as.factor(cover_cat)Private/Military           1.18   0.34     3.45   0.00
+    ## as.factor(cover_cat)Public                     1.20   0.36     3.31   0.00
+    ## as.factor(lcond_chronic_cat)Yes               -0.08   0.36    -0.23   0.82
+    ## as.factor(eth_cat2)Non-Hispanic               -0.72   0.26    -2.80   0.01
+    ## as.factor(imm_stat)In U.S. <                  14.01   0.40    35.41   0.00
+    ## 10 yrs                                                                    
+    ## as.factor(imm_stat)In U.S.                    -0.16   0.22    -0.74   0.46
+    ## >= 10 yrs                                                                 
+    ## --------------------------------------------------------------------------
     ## 
-    ## Estimated dispersion parameter = 1
+    ## Estimated dispersion parameter = 0.83
 
 ``` r
-Anova(mam2_fit2, type = 3)
+# Rao-Scott of full model
+regTermTest(mam2_fit2,  ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat))
 ```
 
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: mam_2
-    ##                         Df   Chisq Pr(>Chisq)    
-    ## (Intercept)              1  0.0508  0.8217371    
-    ## as.factor(age_cat)       2 34.7906  2.788e-08 ***
-    ## as.factor(educ_cat)      3 57.4587  2.051e-12 ***
-    ## as.factor(ausualpl_cat)  2 73.5663  < 2.2e-16 ***
-    ## as.factor(cover_cat)     2 39.0810  3.263e-09 ***
-    ## as.factor(eth_cat2)      1 15.0329  0.0001057 ***
-    ## as.factor(imm_stat)      2  0.2327  0.8901841    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## Wald test for as.factor(age_cat) as.factor(educ_cat) as.factor(finc_cat2) as.factor(ausualpl_cat) as.factor(cover_cat) as.factor(lcond_chronic_cat) as.factor(eth_cat2) as.factor(imm_stat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## F =  124.692  on  14  and  247  df: p= < 2.22e-16
 
 ``` r
-mam2_fit3 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2),
-                   design = des2, subset = (domain == 1 & ausualpl_cat != "Other"),
-                   family = binomial(link = "logit")) 
+# single term/term group significance
+regTermTest(mam2_fit2, "as.factor(age_cat)",
+            method = "LRT") # sig
 ```
 
     ## Warning in eval(family$initialize): non-integer #successes in a binomial
     ## glm!
 
+    ## Working (Rao-Scott+F) LRT for as.factor(age_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  28.35498 p= 1.5789e-06 
+    ## (scale factors:  1 0.96 );  denominator df= 247
+
 ``` r
-summary(mam2_fit3)
+regTermTest(mam2_fit2, "as.factor(educ_cat)",
+            method = "LRT") # sig
 ```
 
-    ## 
-    ## Call:
-    ## svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
-    ##     as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2), 
-    ##     design = des2, subset = (domain == 1 & ausualpl_cat != "Other"), 
-    ##     family = binomial(link = "logit"))
-    ## 
-    ## Survey design:
-    ## svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, 
-    ##     nest = TRUE, data = mam_dat2)
-    ## 
-    ## Coefficients:
-    ##                                          Estimate Std. Error t value
-    ## (Intercept)                              -0.05937    0.19861  -0.299
-    ## as.factor(age_cat)50–64                  -0.05054    0.09224  -0.548
-    ## as.factor(age_cat)65+                    -0.41238    0.09206  -4.480
-    ## as.factor(educ_cat)High school           -0.52121    0.08127  -6.414
-    ## as.factor(educ_cat)Less than high school -0.73917    0.11037  -6.697
-    ## as.factor(educ_cat)Some college          -0.32540    0.08724  -3.730
-    ## as.factor(ausualpl_cat)Yes                1.09991    0.12802   8.592
-    ## as.factor(cover_cat)Private/Military      1.00284    0.16372   6.125
-    ## as.factor(cover_cat)Public                0.83859    0.16944   4.949
-    ## as.factor(eth_cat2)Non-Hispanic          -0.45805    0.10736  -4.266
-    ##                                          Pr(>|t|)    
-    ## (Intercept)                               0.76521    
-    ## as.factor(age_cat)50–64                   0.58416    
-    ## as.factor(age_cat)65+                    1.08e-05 ***
-    ## as.factor(educ_cat)High school           5.76e-10 ***
-    ## as.factor(educ_cat)Less than high school 1.10e-10 ***
-    ## as.factor(educ_cat)Some college           0.00023 ***
-    ## as.factor(ausualpl_cat)Yes               5.38e-16 ***
-    ## as.factor(cover_cat)Private/Military     2.94e-09 ***
-    ## as.factor(cover_cat)Public               1.27e-06 ***
-    ## as.factor(eth_cat2)Non-Hispanic          2.69e-05 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 0.9998118)
-    ## 
-    ## Number of Fisher Scoring iterations: 4
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(educ_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  35.26798 p= 6.7475e-07 
+    ## (scale factors:  1.2 1 0.81 );  denominator df= 247
 
 ``` r
-summ(mam2_fit3)
+regTermTest(mam2_fit2, "as.factor(finc_cat2)",
+            method = "LRT") # sig
 ```
 
-    ## MODEL INFO:
-    ## Observations: 10158
-    ## Dependent Variable: mam_2
-    ## Type: Analysis of complex survey design 
-    ##  Family: binomial 
-    ##  Link function: logit 
-    ## 
-    ## MODEL FIT:
-    ## Pseudo-R² (Cragg-Uhler) = 0.01
-    ## Pseudo-R² (McFadden) = 0.04
-    ## AIC = 11066.70 
-    ## 
-    ## -------------------------------------------------------------------------
-    ##                                               Est.   S.E.   t val.      p
-    ## ------------------------------------------ ------- ------ -------- ------
-    ## (Intercept)                                  -0.06   0.20    -0.30   0.77
-    ## as.factor(age_cat)50â€“64                    -0.05   0.09    -0.55   0.58
-    ## as.factor(age_cat)65+                        -0.41   0.09    -4.48   0.00
-    ## as.factor(educ_cat)High                      -0.52   0.08    -6.41   0.00
-    ## school                                                                   
-    ## as.factor(educ_cat)Less than                 -0.74   0.11    -6.70   0.00
-    ## high school                                                              
-    ## as.factor(educ_cat)Some                      -0.33   0.09    -3.73   0.00
-    ## college                                                                  
-    ## as.factor(ausualpl_cat)Yes                    1.10   0.13     8.59   0.00
-    ## as.factor(cover_cat)Private/Military          1.00   0.16     6.13   0.00
-    ## as.factor(cover_cat)Public                    0.84   0.17     4.95   0.00
-    ## as.factor(eth_cat2)Non-Hispanic              -0.46   0.11    -4.27   0.00
-    ## -------------------------------------------------------------------------
-    ## 
-    ## Estimated dispersion parameter = 1
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(finc_cat2)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  69.82433 p= 5.2975e-15 
+    ## df=1;  denominator df= 247
 
 ``` r
-Anova(mam2_fit3, type = 3)
+regTermTest(mam2_fit2, "as.factor(ausualpl_cat)",
+            method = "LRT") # sig
 ```
 
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: mam_2
-    ##                         Df   Chisq Pr(>Chisq)    
-    ## (Intercept)              1  0.0894      0.765    
-    ## as.factor(age_cat)       2 35.5016  1.954e-08 ***
-    ## as.factor(educ_cat)      3 57.7555  1.773e-12 ***
-    ## as.factor(ausualpl_cat)  1 73.8161  < 2.2e-16 ***
-    ## as.factor(cover_cat)     2 38.7375  3.875e-09 ***
-    ## as.factor(eth_cat2)      1 18.2021  1.987e-05 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(ausualpl_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  10.98479 p= 0.02077 
+    ## (scale factors:  2 1.5e-06 );  denominator df= 247
 
 ``` r
-coef <- names(coef(mam2_fit3))
+regTermTest(mam2_fit2, "as.factor(cover_cat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(cover_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  15.67381 p= 0.00061215 
+    ## (scale factors:  1.1 0.86 );  denominator df= 247
+
+``` r
+regTermTest(mam2_fit2, "as.factor(lcond_chronic_cat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(lcond_chronic_cat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  6378.172 p= < 2.22e-16 
+    ## df=1;  denominator df= 247
+
+``` r
+regTermTest(mam2_fit2, "as.factor(eth_cat2)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(eth_cat2)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  8.236244 p= 0.0047162 
+    ## df=1;  denominator df= 247
+
+``` r
+regTermTest(mam2_fit2, "as.factor(imm_stat)",
+            method = "LRT") # sig
+```
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Working (Rao-Scott+F) LRT for as.factor(imm_stat)
+    ##  in svyglm(formula = mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
+    ##     as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
+    ##     as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+    ##     design = des2, subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  14.32067 p= 0.008369 
+    ## (scale factors:  2 2.1e-06 );  denominator df= 247
+
+``` r
+# give labels to the coefficients to look nicer on the OR graph
+
+coef <- names(coef(mam2_fit2))
 coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
 coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_stat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat[)]")
 names(coef) <- coef_new
-coef = coef[-1]
+coef1 = coef[-1] # remove intercept 
+coef2 = coef1[-7] # remove coefficient for Usual Care = Other
+coef3a = coef2[-12] 
+coef3b = coef2[12] # pull out immigration status because of the intercept magnitude
 
-jtools::plot_summs(mam2_fit3, coefs = coef, exp = TRUE) +
-  labs(title = "Mammogram Significant Predictors")
+# plot ORs with CIs
+jtools::plot_summs(mam2_fit2, coefs = coef3a, exp = TRUE) +
+  labs(title = "Mammogram Significant Predictors") +
+  scale_x_continuous(limits = c(0, 6), breaks = c(0, 2, 4, 6))
 ```
 
-![](mammogram_files/figure-markdown_github/unnamed-chunk-7-1.png)
+    ## Warning: Removed 2 rows containing missing values (geom_pointrangeh).
+
+![](mammogram_files/figure-markdown_github/unnamed-chunk-6-1.png)
+
+``` r
+jtools::plot_summs(mam2_fit2, coefs = coef3b, exp = TRUE) +
+  labs(title = "Mammogram Significant Predictors") +
+  scale_x_continuous(labels = scales::comma)
+```
+
+![](mammogram_files/figure-markdown_github/unnamed-chunk-6-2.png)
+
+``` r
+# write out analysis data set
+
+# write_csv(mam_dat2, "C:/Users/court/Documents/Columbia/Fall 2019/Health Surveys/Final Project/mam_analysis.csv")
+```
