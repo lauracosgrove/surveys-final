@@ -10,26 +10,32 @@ library(survey)
 library(car)
 library(jtools)
 library(ggthemes)
+library(ggstance)
 ```
 
 Read in the data.
 ```{r, import, warning = FALSE, message = FALSE}
+# read in cancer module data
 cancer = read_csv("./data/cancerxx.csv") %>%
   select(HHX, FMX, FPX, WTFA_SA, STRAT_P, PSU_P, REGION, MAMHAD, MAM6YR, 
          RMAM1_MT, RMAM1YR, RMAM1N, RMAM1T, RMAM2, RMAM3A, RMAM3B, MAMPAY, 
          MAMREAS, MDRECMAM, MAMDNBR, MAMABN1, MFOLLOW0, MFOLLO01, MFOLLO02, 
          MFOLLO03, MFOLLO04, MFOLLO05, MNOTFOL1, MAMMODE, MAMCAN1)
 
+# read in adult data
 adult = read_csv("./data/samadult.csv") %>%
   select(HHX, FMX, FPX, AUSUALPL, AHCPLROU, AHCPLKND, FLA1AR)
 
+# read in family data
 family = read_csv("./data/familyxx.csv") %>%
   select(HHX, FMX, RAT_CAT4, RAT_CAT5)
 
+# read in person data
 person = read_csv("./data/personsx.csv") %>%
   select(HHX, FMX, FPX, AGE_P, EDUC1, SEX, NOTCOV, COVER65, COVER65O, LA1AR,
          LCONDRT, LACHRONR, HISCODI3, RACRECI3, COVER, YRSINUS, PLBORN)
 
+# join these data files into one for analysis
 mam_dat = cancer %>%
   left_join(adult, by = c("HHX", "FMX", "FPX")) %>%
   left_join(person, by = c("HHX", "FMX", "FPX")) %>%
@@ -38,7 +44,10 @@ mam_dat = cancer %>%
 
 Data Manipulation
 ```{r}
+# CREATE VARIABLES FOR ANALYSIS: OUTCOME AND DEMOGRAPHIC
+
 # outcome is having a mammogram in the last 2 years:RMAM3A = 1,2
+# create immigration status variable based on PLBORN and YRSINUS
 mam_dat = mam_dat %>%
   mutate(mam_2 = if_else(RMAM3A <= 2, 1, 0),
          imm_stat = case_when(YRSINUS < 4 ~ "In U.S. < 10 yrs",
@@ -68,22 +77,22 @@ mam_dat = mam_dat %>%
                               RAT_CAT5 == 17  ~">=200%, no further detail",
                               RAT_CAT5 %in% c(96, 99) ~ "Unknown"))
 
-# create as usual category
+# create usual care category
 mam_dat = mam_dat %>% 
   mutate(ausualpl_cat  = case_when(AUSUALPL == 2 ~ "No",
                                    AUSUALPL %in% c(1, 3) ~ "Yes",
                                    AUSUALPL %in% c(7, 8, 9) ~ "Other"))
-# coverage status
+# create coverage status
 mam_dat = mam_dat %>% 
   mutate(cover_cat  = case_when(NOTCOV == 1 | COVER == 4 | COVER65 == 6 ~ "None",
                                 COVER == 2 | COVER65 %in% 2:4 ~ "Public",
                                 COVER %in% c(1, 3) | COVER65 %in% c(1, 5) ~ "Private/Military"))
 
-# disability
+# create disability variable
 mam_dat = mam_dat %>% 
   mutate(lcond_chronic_cat = if_else(LCONDRT == 1, "Yes", "No"))
 
-# race
+# create race & ethnic categories
 mam_dat = mam_dat %>% 
   mutate(race_cat = case_when(RACRECI3 == 1 ~ "White",
                               RACRECI3 == 2 ~ "Black",
@@ -101,23 +110,24 @@ mam_dat = mam_dat %>%
 
 Survey Design
 ```{r}
+# create domain variable for inclusion criteria
 mam_dat = mam_dat %>%
   mutate(domain = if_else(SEX == 2 & AGE_P >= 40, 1, 0))
 
-
+# create survey design object
 des = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat)
 ```
 
 Tables
 ```{r, tables}
-# percent of women who have had mammogram in the last two years
+# percent of women who have had mammogram in the last two years by age
 
 age_pct = svyby(~mam_2, by = ~domain+age_cat, svymean, na.rm = TRUE, 
                 design = des, vartype = c("ci", "se"))
 age_pct %>% filter(domain == 1) %>% select(-domain, -se) %>% knitr::kable()
 
 
-# mammogram by education
+# percent of women who have had mammogram by education
 edu_pct = svyby(~mam_2, by = ~domain+educ_cat, svymean, na.rm = TRUE, 
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -126,7 +136,7 @@ edu_pct = svyby(~mam_2, by = ~domain+educ_cat, svymean, na.rm = TRUE,
 edu_pct %>% 
   knitr::kable()
 
-# mammogram by finc
+# percent of women who have had mammogram by financial category
 finc_pct = svyby(~mam_2, by = ~domain+finc_cat, svymean, na.rm = TRUE, 
                  design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -135,7 +145,7 @@ finc_pct = svyby(~mam_2, by = ~domain+finc_cat, svymean, na.rm = TRUE,
 finc_pct %>% knitr::kable()
 
 
-# mammogram by usual care
+# percent of women who have had mammogram by usual care category
 ausualp_pct = svyby(~mam_2, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE, 
                     design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -144,7 +154,7 @@ ausualp_pct = svyby(~mam_2, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE,
 ausualp_pct %>% knitr::kable()
 
 
-# mammogram by health coverage
+# percent of women who have had mammogram by health coverage
 cover_pct = svyby(~mam_2, by = ~domain+cover_cat, svymean, na.rm = TRUE, 
                   design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -153,7 +163,7 @@ cover_pct = svyby(~mam_2, by = ~domain+cover_cat, svymean, na.rm = TRUE,
 cover_pct %>% knitr::kable()
 
 
-# mammogram by chronic conditions
+# percent of women who have had mammogram by chronic conditions
 lcond_chronic_pct = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svymean, 
                           na.rm = TRUE, design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -162,7 +172,7 @@ lcond_chronic_pct = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svymean,
 lcond_chronic_pct %>% knitr::kable()
 
 
-#mammogram by race
+# percent of women who have had mammogram by race
 race_pct = svyby(~mam_2, by = ~domain+race_cat, svymean, na.rm = TRUE, 
                  design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -171,7 +181,7 @@ race_pct = svyby(~mam_2, by = ~domain+race_cat, svymean, na.rm = TRUE,
 race_pct %>% knitr::kable()
 
 
-# mammogram by ethnicity
+# percent of women who have had mammogram by ethnicity
 eth_pct = svyby(~mam_2, by = ~domain+eth_cat, svymean, na.rm = TRUE, 
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -179,6 +189,7 @@ eth_pct = svyby(~mam_2, by = ~domain+eth_cat, svymean, na.rm = TRUE,
 
 eth_pct %>% knitr::kable()
 
+# percent of women who have had mammogram by immigration status
 imm_pct = svyby(~mam_2, by = ~domain+imm_stat, svymean, na.rm = TRUE,
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
@@ -191,7 +202,7 @@ imm_pct %>% knitr::kable()
 Tables By Age Group 
 
 ```{r, age_table}
-# mammogram by education
+# percent of women who have had mammogram by education and age 
 edu_pct_strat = svyby(~mam_2, by = ~domain + age_cat + educ_cat, svymean, 
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 edu_tab = edu_pct_strat %>% 
@@ -201,7 +212,7 @@ edu_tab = edu_pct_strat %>%
 edu_tab %>% knitr::kable()
 
 
-# mammogram by finc
+# percent of women who have had mammogram by financial category and age
 finc_pct_strat = svyby(~mam_2, by = ~domain + age_cat + finc_cat, svymean, 
                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -212,7 +223,7 @@ finc_tab = finc_pct_strat %>%
 finc_tab %>% knitr::kable()
 
 
-# mammogram by usual care
+# percent of women who have had mammogram by usual care and age
 ausualp_pct_strat = svyby(~mam_2, by = ~domain + age_cat + ausualpl_cat,
                           svymean, na.rm = TRUE, design = des, 
                           vartype = c("se", "ci"))
@@ -224,7 +235,7 @@ usual_tab = ausualp_pct_strat %>%
 usual_tab %>% knitr::kable()
 
 
-# mammogram by health coverage
+# percent of women who have had mammogram by health coverage and age
 cover_pct_strat = svyby(~mam_2, by = ~domain + age_cat + cover_cat, svymean,
                         na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -236,7 +247,7 @@ ins_tab %>% knitr::kable()
 
 
 
-# mammogram by chronic conditions
+# percent of women who have had mammogram by chronic conditions and age
 lcond_chronic_pct_strat = svyby(~mam_2, 
                                 by = ~domain + age_cat + lcond_chronic_cat,
                                 svymean, na.rm = TRUE, design = des,
@@ -249,7 +260,7 @@ dis_tab = lcond_chronic_pct_strat %>%
 dis_tab %>% knitr::kable()
 
 
-# mammogram by race
+# percent of women who have had mammogram by race and age
 race_pct_strat = svyby(~mam_2, by = ~domain + age_cat + race_cat, svymean, 
                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -260,7 +271,7 @@ race_tab = race_pct_strat %>%
 race_tab %>% knitr::kable()
 
 
-# mammogram by ethnicity
+# percent of women who have had mammogram by ethnicity and age
 eth_pct_strat = svyby(~mam_2, by = ~domain + age_cat + eth_cat, svymean, 
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -270,6 +281,7 @@ eth_tab = eth_pct_strat %>%
 
 eth_tab %>% knitr::kable()
 
+# percent of women who have had mammogram by immigration and age
 imm_pct_strat = svyby(~mam_2, by = ~domain + age_cat + imm_stat, svymean,
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
@@ -279,7 +291,7 @@ imm_tab = imm_pct_strat %>%
 
 imm_tab %>% knitr::kable()
 
-# total gotten mammogram
+# overall percent of women who have had mammogram
 total = svyby(~mam_2, by = ~domain + age_cat, svymean, na.rm = TRUE, 
               design = des, vartype = c("se", "ci"))
 
@@ -300,95 +312,114 @@ tot_pct = svyby(~mam_2, by = ~domain, svymean, na.rm = TRUE, design = des,
 Combine into paper table
 
 ```{r}
+# COMBINE TABLES BY AGE WITH TABLES OVERALL
+
+# overall
 tot_tab = rbind(tot_pct, tot_tab)
 
 tot_tab2 = tot_tab %>%
   mutate(type = "Total",
          level = "-")
 
+# education
 edu_pct2 = edu_pct %>%
   mutate(age_cat = "40+")
 
 edu_tab = rbind(edu_pct2, edu_tab)
 
+# factor levels for presentation
 edu_tab2 = edu_tab %>%
   mutate(type = "Education") %>%
   rename(level = educ_cat) %>%
   mutate(level = factor(level, levels = c("Less than high school", "High school", "Some college", "College graduate"))) %>%
   arrange(level)
 
+# financial category
 finc_pct2 = finc_pct %>%
   mutate(age_cat = "40+")
 
 finc_tab = rbind(finc_pct2, finc_tab)
 
-# 
+# factor levels for presentation
 finc_tab2 = finc_tab %>%
   mutate(type = "Family Income Poverty Ratio") %>%
   rename(level = finc_cat) %>%
   mutate(level = factor(level, levels = c("<200%", ">=200%, no further detail", "200–299%", "300–399%", "400–499%", ">=500%", "Unknown"))) %>%
   arrange(level)
 
+# usual care category
 ausualp_pct2 = ausualp_pct %>%
   mutate(age_cat = "40+")
 
 usual_tab = rbind(ausualp_pct2, usual_tab)
 
+
+# factor levels for presentation
 usual_tab2 = usual_tab %>%
   mutate(type = "Usual Source of Care") %>%
   rename(level = ausualpl_cat) %>%
   mutate(level = factor(level, levels = c("No", "Yes", "Other"))) %>%
   arrange(level)
 
+# insurance coverage category
 cover_pct2 = cover_pct %>%
   mutate(age_cat = "40+")
 
 ins_tab = rbind(cover_pct2, ins_tab)
 
+# factor levels for presentation
 ins_tab2 = ins_tab %>%
   mutate(type = "Insurance Type") %>%
   rename(level = cover_cat) %>%
   mutate(level = factor(level, levels = c("None", "Public", "Private/Military"))) %>%
   arrange(level)
 
+# chronic condition category
 lcond_chronic_pct2 = lcond_chronic_pct %>%
   mutate(age_cat = "40+")
 
 dis_tab = rbind(lcond_chronic_pct2, dis_tab)
 
+# factor levels for presentation
 dis_tab2 = dis_tab %>%
   mutate(type = "Chronic Disability") %>%
   rename(level = lcond_chronic_cat) %>%
   mutate(level = factor(level, levels = c("Yes", "No"))) %>%
   arrange(level)
 
+# ethnic category
 eth_pct2 = eth_pct %>%
   mutate(age_cat = "40+")
 
 eth_tab = rbind(eth_pct2, eth_tab)
 
+# factor levels for presentation
 eth_tab2 = eth_tab %>%
   mutate(type = "Ethnicity") %>%
   rename(level = eth_cat) %>%
   mutate(level = factor(level, levels = c("Hispanic", "Non-Hispanic White", "Non-Hispanic Black", "Non-Hispanic AN/AI", "Non-Hispanic Asian"))) %>%
   arrange(level)
 
+# race category
 race_pct2 = race_pct %>%
   mutate(age_cat = "40+")
 
 race_tab = rbind(race_pct2, race_tab)
 
+# factor levels for presentation
 race_tab2 = race_tab %>%
   mutate(type = "Race") %>%
   rename(level = race_cat) %>%
   mutate(level = factor(level, levels = c("White", "Black", "AN/AI", "Asian"))) %>%
   arrange(level)
 
+# immigration category
 imm_pct2 = imm_pct %>%
   mutate(age_cat = "40+")
 
 imm_tab = rbind(imm_pct2, imm_tab)
 
+# factor levels for presentation
 imm_tab2 = imm_tab %>%
   mutate(type = "Immigration") %>%
   rename(level = imm_stat) %>%
@@ -438,32 +469,6 @@ ins_tab %>%
 
 Models
 
-```{r}
-mam_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat) + as.factor(imm_stat), 
-       design = des, subset = domain == 1, family = binomial(link = "logit"))
-
-summary(mam_fit)
-summ(mam_fit)
-
-Anova(mam_fit, type = 3)
-
-mam_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 1,
-                  family = binomial(link = "logit"))
-
-summary(mam_fit2)
-summ(mam_fit2)
-
-Anova(mam_fit2, type = 3)
-
-mam_fit3 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat), design = des, subset = domain == 1, 
-                  family = binomial(link = "logit"))
-
-summary(mam_fit3)
-summ(mam_fit3)
-
-Anova(mam_fit3, type = 3)
-```
-
 Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram.\   
 The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448.\   
 The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784.\   
@@ -502,5 +507,127 @@ mam_temp50 = mam_temp %>%
 # 4904
 mam_temp65 = mam_temp %>%
   filter(age_cat == "65+")
+```
+
+
+*collapsing some categories*
+
+```{r}
+# make financial status and ethnicity only two levels 
+mam_dat2 = mam_dat %>%
+  mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
+                             if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
+         eth_cat2 = if_else(eth_cat == "Hispanic", eth_cat, "Non-Hispanic"))
+
+# refit the design object
+des2 = svydesign(ids = ~PSU_P, strata = ~STRAT_P, weights = ~WTFA_SA, nest = TRUE, data = mam_dat2)
+
+
+# fit the full model on all categorical variables for the included women
+mam2_fit = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat), 
+       design = des2, subset = domain == 1, family = binomial(link = "logit"))
+
+summary(mam2_fit)
+summ(mam2_fit)
+
+# Rao-scott LRT ANOVA
+
+# test significance of full model
+regTermTest(mam2_fit,  ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+            method = "LRT")
+
+# test significance of individual terms/term groups
+regTermTest(mam2_fit, "as.factor(age_cat)", 
+            method = "LRT") # sig
+
+regTermTest(mam2_fit, "as.factor(educ_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit, "as.factor(finc_cat2)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit, "as.factor(ausualpl_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit, "as.factor(cover_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit, "as.factor(lcond_chronic_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit, "as.factor(race_cat)",
+            method = "LRT") # not sig
+
+regTermTest(mam2_fit, "as.factor(eth_cat2)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit, "as.factor(imm_stat)",
+            method = "LRT") # sig
+
+# fit reduced model with significant predictors
+mam2_fit2 = svyglm(mam_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+                   design = des2, subset = domain == 1, 
+                   family = binomial(link = "logit"))
+
+summary(mam2_fit2)
+summ(mam2_fit2)
+
+# Rao-Scott of full model
+regTermTest(mam2_fit2,  ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(eth_cat2) + as.factor(imm_stat))
+
+# single term/term group significance
+regTermTest(mam2_fit2, "as.factor(age_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit2, "as.factor(educ_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit2, "as.factor(finc_cat2)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit2, "as.factor(ausualpl_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit2, "as.factor(cover_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit2, "as.factor(lcond_chronic_cat)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit2, "as.factor(eth_cat2)",
+            method = "LRT") # sig
+
+regTermTest(mam2_fit2, "as.factor(imm_stat)",
+            method = "LRT") # sig
+
+
+# give labels to the coefficients to look nicer on the OR graph
+
+coef <- names(coef(mam2_fit2))
+coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_stat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat[)]")
+names(coef) <- coef_new
+coef1 = coef[-1] # remove intercept 
+coef2 = coef1[-7] # remove coefficient for Usual Care = Other
+coef3a = coef2[-12] 
+coef3b = coef2[12] # pull out immigration status because of the intercept magnitude
+
+# plot ORs with CIs
+jtools::plot_summs(mam2_fit2, coefs = coef3a, exp = TRUE) +
+  labs(title = "Mammogram Significant Predictors") +
+  scale_x_continuous(limits = c(0, 6), breaks = c(0, 2, 4, 6))
+
+jtools::plot_summs(mam2_fit2, coefs = coef3b, exp = TRUE) +
+  labs(title = "Mammogram Significant Predictors") +
+  scale_x_continuous(labels = scales::comma)
+```
+
+
+```{r, data_export}
+# write out analysis data set
+
+# write_csv(mam_dat2, "C:/Users/court/Documents/Columbia/Fall 2019/Health Surveys/Final Project/mam_analysis.csv")
 ```
 

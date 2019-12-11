@@ -5,22 +5,23 @@ date: "11/25/2019"
 output: github_document
 ---
 
-```{r}
+```{r message = F}
 library(tidyverse)
 library(survey)
+library(car)
+library(jtools)
+library(ggthemes)
 ```
 
 Data Import
 
-```{r}
+```{r message = F, warning = F}
 cancer = read_csv("./data/cancerxx.csv") %>% 
   janitor::clean_names() %>% 
   select(hhx, fmx, fpx, wtfa_sa, strat_p, psu_p, region, hfobhad1, 
          rhfo2_mt, rhfo2yr, rhfo2n, rhfo2t, rhfo2, rhfob3a,
          rhfob3b, hfobrea2, fobhad1, rfob2_mt, rfob2yr,
-         rfob2n, rfob2t, rofob3a, rofob3b, rfobres1, colhad, 
-         col_mt, colyr, coln, colt, col2, col3a, col3b, colreas, 
-         colpay, sighad, sig_mt, sigyr, sign, sigt, sig2, sig3a, sig3b, sigreas)
+         rfob2n, rfob2t, rofob3a, rofob3b, rfobres1)
 
 adult = read_csv("./data/samadult.csv") %>%
   janitor::clean_names() %>% 
@@ -33,7 +34,7 @@ family = read_csv("./data/familyxx.csv") %>%
 person = read_csv("./data/personsx.csv") %>%
   janitor::clean_names() %>% 
   select(hhx, fmx, fpx, age_p, educ1, sex, notcov, cover65, cover65o, 
-         la1ar, lcondrt, lachronr, hiscodi3, racreci3, cover)
+         la1ar, lcondrt, lachronr, hiscodi3, racreci3, cover, yrsinus, plborn)
 
 col_dat = cancer %>%
   left_join(adult, by = c("hhx", "fmx", "fpx")) %>%
@@ -46,8 +47,11 @@ Data Manipulation
 ```{r}
 #home stool test within last year
 col_dat = col_dat %>%
-  mutate(col_2 = if_else(sig3a <= 5, 1, 0))
-#rhfob3a <= 1 | col3a <= 5 | 
+  mutate(col_2 = if_else(rhfob3a <= 1, 1, 0),
+         imm_stat = case_when(yrsinus < 4 ~ "In U.S. < 10 yrs",
+                              yrsinus == 4 | yrsinus == 5 ~ "In U.S. >= 10 yrs",
+                              plborn == 1 ~ "Born in U.S."))
+
 # create the age category
 col_dat = col_dat %>% 
   mutate(age_cat = case_when(age_p >= 25 & age_p < 40 ~ "25–39",
@@ -100,121 +104,103 @@ col_dat = col_dat %>%
                              hiscodi3 == 5 ~ "Non-Hispanic AN/AI"))
 ```
 
-Survey Design Men
+Survey Design
 
 ```{r}
 col_dat = col_dat %>%
-  mutate(domain = if_else(sex == 1 & age_p >= 50, 1, 0))
+  mutate(domain = if_else(age_p >= 50, 1, 0))
 
 des = svydesign(ids = ~ psu_p, strata = ~ strat_p, 
                 weights = ~ wtfa_sa, nest = TRUE, data = col_dat)
 ```
 
-Tables Men
+Tables
 
 ```{r}
-#percentage
-age_pct = svyby(~col_2, by = ~domain + age_cat, svymean, na.rm = TRUE, 
-                design = des)
+#age percentage
+age_pct = svyby(~col_2, by = ~domain + age_cat + sex, svymean, na.rm = TRUE, 
+                design = des, vartype = c("ci", "se"))
 age_pct %>% 
   filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
-#total
-age_tot = svyby(~col_2, by = ~domain + age_cat, svytotal, na.rm = TRUE, 
-                design = des)
-age_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
 #education
-edu_pct = svyby(~col_2, by = ~domain + educ_cat, svymean, na.rm = TRUE, 
-                design = des, vartype = c("se", "ci"))
-edu_pct %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+edu_pct = svyby(~col_2, by = ~domain + educ_cat + sex, svymean, na.rm = TRUE, 
+                design = des, vartype = c("se", "ci")) %>% 
+  filter(domain == 1) %>%
+  select(-domain, -se)
 
-#education total
-edu_tot = svyby(~col_2, by = ~domain + educ_cat, svytotal, na.rm = TRUE, 
-                design = des)
-edu_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+edu_pct %>% 
+  knitr::kable()
+
 
 #finc
-finc_pct = svyby(~col_2, by = ~domain + finc_cat, svymean, na.rm = TRUE, 
-                 design = des, vartype = c("se", "ci"))
-finc_pct %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+finc_pct = svyby(~col_2, by = ~domain + finc_cat + sex, svymean, na.rm = TRUE, 
+                 design = des, vartype = c("se", "ci")) %>% 
+  filter(domain == 1) %>%
+  select(-domain, -se)
 
-#finc total
-finc_tot = svyby(~col_2, by = ~domain + finc_cat, svytotal, na.rm = TRUE, 
-                 design = des)
-finc_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+finc_pct %>% knitr::kable()
+
 
 #usual care
-ausualp_pct = svyby(~col_2, by = ~domain + ausualpl_cat, svymean, na.rm = TRUE, 
-                    design = des, vartype = c("se", "ci"))
-ausualp_pct %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+ausualp_pct = svyby(~col_2, by = ~domain + ausualpl_cat + sex, svymean, 
+                    na.rm = TRUE, design = des, vartype = c("se", "ci")) %>% 
+  filter(domain == 1) %>%
+  select(-domain, -se)
 
-#usual care total
-ausualp_tot = svyby(~col_2, by = ~domain + ausualpl_cat, svytotal, na.rm = TRUE, 
-                    design = des)
-ausualp_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+ausualp_pct %>% knitr::kable()
+
 
 #health coverage
-cover_pct = svyby(~col_2, by = ~domain + cover_cat, svymean, na.rm = TRUE, 
-                  design = des, vartype = c("se", "ci"))
-cover_pct %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+cover_pct = svyby(~col_2, by = ~domain + cover_cat + sex, svymean, na.rm = TRUE, 
+                  design = des, vartype = c("se", "ci")) %>% 
+  filter(domain == 1) %>%
+  select(-domain, -se)
 
-#health coverage total
-cover_tot = svyby(~col_2, by = ~domain + cover_cat, svytotal, na.rm = TRUE, 
-                  design = des)
-cover_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+cover_pct %>% knitr::kable()
+
 
 #chronic conditions
-lcond_chronic_pct = svyby(~col_2, by = ~domain + lcond_chronic_cat, svymean, 
-                          na.rm = TRUE, design = des, vartype = c("se", "ci"))
-lcond_chronic_pct %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+lcond_chronic_pct = svyby(~col_2, by = ~domain + lcond_chronic_cat + sex, svymean, 
+                          na.rm = TRUE, design = des, vartype = c("se", "ci")) %>% 
+  filter(domain == 1) %>%
+  select(-domain, -se)
 
-#chronic conditions total
-lcond_chronic_tot = svyby(~col_2, by = ~domain + lcond_chronic_cat, svytotal, 
-                          na.rm = TRUE, design = des)
-lcond_chronic_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+lcond_chronic_pct %>% knitr::kable()
+
 
 #race
-race_pct = svyby(~col_2, by = ~domain + race_cat, svymean, na.rm = TRUE, 
-                 design = des, vartype = c("se", "ci"))
-race_pct %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+race_pct = svyby(~col_2, by = ~domain + race_cat + sex, svymean, na.rm = TRUE, 
+                 design = des, vartype = c("se", "ci")) %>% 
+  filter(domain == 1) %>%
+  select(-domain, -se)
 
-#race total
-race_tot = svyby(~col_2, by = ~domain + race_cat, svytotal, na.rm = TRUE, 
-                 design = des)
-race_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+race_pct %>% knitr::kable()
+
 
 #ethnicity
-eth_pct = svyby(~col_2, by = ~domain + eth_cat, svymean, na.rm = TRUE,
-                design = des, vartype = c("se", "ci"))
-eth_pct %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+eth_pct = svyby(~col_2, by = ~domain + eth_cat + sex, svymean, na.rm = TRUE,
+                design = des, vartype = c("se", "ci")) %>% 
+  filter(domain == 1) %>%
+  select(-domain, -se)
 
-#ethnicity total
-eth_tot = svyby(~col_2, by = ~domain + eth_cat, svytotal, na.rm = TRUE, 
-                design = des)
-eth_tot %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+eth_pct %>% knitr::kable()
+
+
+#immigration
+imm_pct = svyby(~col_2, by = ~domain + imm_stat + sex, svymean, na.rm = TRUE,
+                design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  select(-domain, -se)
+imm_pct %>% knitr::kable()
 ```
 
-Tables by Age Men
+Tables by Age
 
 ```{r}
 #education
-edu_pct_strat = svyby(~col_2, by = ~domain + age_cat + educ_cat, svymean, 
+edu_pct_strat = svyby(~col_2, by = ~domain + age_cat + educ_cat + sex, svymean, 
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 edu_tab = edu_pct_strat %>% 
   filter(domain == 1) %>% 
@@ -222,20 +208,9 @@ edu_tab = edu_pct_strat %>%
 
 edu_tab %>% knitr::kable()
 
-#education total
-edu_tot_strat = svyby(~col_2, by = ~domain + age_cat + educ_cat, svytotal, 
-                      na.rm = TRUE, design = des) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-edu_tot_strat %>% knitr::kable()
-
-num = edu_tot_strat$num
-
-edu_tab = cbind(edu_tab, num) 
 
 #finc
-finc_pct_strat = svyby(~col_2, by = ~domain + age_cat + finc_cat, svymean, 
+finc_pct_strat = svyby(~col_2, by = ~domain + age_cat + finc_cat + sex, svymean, 
                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
 
 finc_tab = finc_pct_strat %>% 
@@ -244,39 +219,20 @@ finc_tab = finc_pct_strat %>%
 
 finc_tab %>% knitr::kable()
 
-#finc total
-finc_tot_strat = svyby(~col_2, by = ~domain + age_cat + finc_cat, svytotal, 
-                       na.rm = TRUE, design = des) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-num = finc_tot_strat$num
-
-finc_tab = cbind(finc_tab, num)
 
 #usual care
-ausualp_pct_strat = svyby(~col_2, by = ~domain + age_cat + ausualpl_cat, svymean, 
-                          na.rm = TRUE, design = des, vartype = c("se", "ci"))
+ausualp_pct_strat = svyby(~col_2, by = ~domain + age_cat + ausualpl_cat + sex, 
+                          svymean, na.rm = TRUE, 
+                          design = des, vartype = c("se", "ci"))
 usual_tab = ausualp_pct_strat %>% 
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
 usual_tab %>% knitr::kable()
 
-#usual care total
-ausualp_tot_strat = svyby(~col_2, by = ~domain + age_cat + ausualpl_cat, svytotal, 
-                          na.rm = TRUE, design = des) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-num = ausualp_tot_strat$num
-
-usual_tab = cbind(usual_tab, num)
 
 #health coverage
-cover_pct_strat = svyby(~col_2, by = ~domain + age_cat + cover_cat, svymean, 
+cover_pct_strat = svyby(~col_2, by = ~domain + age_cat + cover_cat + sex, svymean, 
                         na.rm = TRUE, design = des, vartype = c("se", "ci"))
 ins_tab = cover_pct_strat %>% 
   filter(domain == 1) %>% 
@@ -284,19 +240,10 @@ ins_tab = cover_pct_strat %>%
 
 ins_tab %>% knitr::kable()
 
-#health coverage total
-cover_tot_strat = svyby(~col_2, by = ~domain + age_cat + cover_cat, svytotal, 
-                        na.rm = TRUE, design = des) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-num = cover_tot_strat$num
-
-ins_tab = cbind(ins_tab, num)
 
 #chronic conditions
-lcond_chronic_pct_strat = svyby(~col_2, by = ~domain + age_cat + lcond_chronic_cat,
+lcond_chronic_pct_strat = svyby(~col_2, by = ~domain + age_cat + 
+                                  lcond_chronic_cat + sex,
                                 svymean, na.rm = TRUE, design = des,
                                 vartype = c("se", "ci"))
 dis_tab = lcond_chronic_pct_strat %>% 
@@ -305,19 +252,9 @@ dis_tab = lcond_chronic_pct_strat %>%
 
 dis_tab %>% knitr::kable()
 
-#chronic conditions total
-lcond_chronic_tot_strat = svyby(~col_2, by = ~domain + age_cat + lcond_chronic_cat,
-                                svytotal, na.rm = TRUE, design = des) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-num = lcond_chronic_tot_strat$num
-
-dis_tab = cbind(dis_tab, num)
 
 #race
-race_pct_strat = svyby(~col_2, by = ~domain + age_cat + race_cat, svymean, 
+race_pct_strat = svyby(~col_2, by = ~domain + age_cat + race_cat + sex, svymean, 
                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
 race_tab = race_pct_strat %>% 
   filter(domain == 1) %>% 
@@ -325,19 +262,9 @@ race_tab = race_pct_strat %>%
 
 race_tab %>% knitr::kable()
 
-#race total
-race_tot_strat = svyby(~col_2, by = ~domain + age_cat + race_cat, svytotal, 
-                       na.rm = TRUE, design = des) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-num = race_tot_strat$num
-
-race_tab = cbind(race_tab, num)
 
 #ethnicity
-eth_pct_strat = svyby(~col_2, by = ~domain + age_cat + eth_cat, svymean, 
+eth_pct_strat = svyby(~col_2, by = ~domain + age_cat + eth_cat + sex, svymean, 
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 eth_tab = eth_pct_strat %>% 
   filter(domain == 1) %>% 
@@ -345,19 +272,18 @@ eth_tab = eth_pct_strat %>%
 
 eth_tab %>% knitr::kable()
 
-#ethnicity total
-eth_tot_strat = svyby(~col_2, by = ~domain + age_cat + eth_cat, svytotal, 
-                      na.rm = TRUE, design = des) %>%
+
+#immigration
+imm_pct_strat = svyby(~col_2, by = ~domain + age_cat + imm_stat + sex, svymean,
+                      na.rm = TRUE, design = des, vartype = c("se", "ci"))
+imm_tab = imm_pct_strat %>%
   filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
+  select(-domain, -se)
+imm_tab %>% knitr::kable()
 
-num = eth_tot_strat$num
 
-eth_tab = cbind(eth_tab, num)
-
-#total gotten fobt
-total = svyby(~col_2, by = ~domain + age_cat, svymean, na.rm = TRUE, 
+#total gotten colorectal
+total = svyby(~col_2, by = ~domain + age_cat + sex, svymean, na.rm = TRUE, 
               design = des, vartype = c("se", "ci"))
 
 tot_tab = total %>% 
@@ -366,513 +292,249 @@ tot_tab = total %>%
 
 tot_tab %>% knitr::kable()
 
-tot_num = svyby(~col_2, by = ~domain + age_cat, svytotal, na.rm = TRUE, 
-                design = des) %>%
+tot_pct = svyby(~col_2, by = ~domain + sex, svymean, na.rm = TRUE, 
+                design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se) %>%
-  rename(num = col_2)
+  mutate(age_cat = "50+")
 
-num = tot_num$num
-
-tot_tab = cbind(tot_tab, num)
 ```
 
-Combine all tables Men
+Combine all tables
 
 ```{r}
+tot_tab = rbind(tot_pct, tot_tab)
+
 tot_tab2 = tot_tab %>%
   mutate(type = "Total",
          level = "-")
 
+edu_pct2 = edu_pct %>%
+  mutate(age_cat = "50+")
+
+edu_tab = rbind(edu_pct2, edu_tab)
+
 edu_tab2 = edu_tab %>%
   mutate(type = "Education") %>%
-  rename(level = educ_cat)
+  rename(level = educ_cat) %>%
+  mutate(level = factor(level, 
+                        levels = c("Less than high school", "High school", 
+                                   "Some college", "College graduate"))) %>%
+  arrange(level)
+
+finc_pct2 = finc_pct %>%
+  mutate(age_cat = "50+")
+
+finc_tab = rbind(finc_pct2, finc_tab)
 
 finc_tab2 = finc_tab %>%
   mutate(type = "Family Income Poverty Ratio") %>%
-  rename(level = finc_cat)
+  rename(level = finc_cat) %>%
+  mutate(level = factor(level, levels = c("<200%", ">=200%, no further detail", "200–299%", "300–399%", "400–499%", ">=500%", "Unknown"))) %>%
+  arrange(level)
+
+ausualp_pct2 = ausualp_pct %>%
+  mutate(age_cat = "50+")
+
+usual_tab = rbind(ausualp_pct2, usual_tab)
 
 usual_tab2 = usual_tab %>%
   mutate(type = "Usual Source of Care") %>%
-  rename(level = ausualpl_cat)
+  rename(level = ausualpl_cat) %>%
+  mutate(level = factor(level, levels = c("No", "Yes", "Other"))) %>%
+  arrange(level)
+
+cover_pct2 = cover_pct %>%
+  mutate(age_cat = "50+")
+
+ins_tab = rbind(cover_pct2, ins_tab)
 
 ins_tab2 = ins_tab %>%
   mutate(type = "Insurance Type") %>%
-  rename(level = cover_cat)
+  rename(level = cover_cat) %>%
+  mutate(level = factor(level, levels = c("None", "Public", "Private/Military"))) %>%
+  arrange(level)
+
+lcond_chronic_pct2 = lcond_chronic_pct %>%
+  mutate(age_cat = "50+")
+
+dis_tab = rbind(lcond_chronic_pct2, dis_tab)
 
 dis_tab2 = dis_tab %>%
   mutate(type = "Chronic Disability") %>%
-  rename(level = lcond_chronic_cat)
+  rename(level = lcond_chronic_cat) %>%
+  mutate(level = factor(level, levels = c("Yes", "No"))) %>%
+  arrange(level)
+
+eth_pct2 = eth_pct %>%
+  mutate(age_cat = "50+")
+
+eth_tab = rbind(eth_pct2, eth_tab)
 
 eth_tab2 = eth_tab %>%
   mutate(type = "Ethnicity") %>%
-  rename(level = eth_cat)
+  rename(level = eth_cat) %>%
+  mutate(level = factor(level, levels = c("Hispanic", "Non-Hispanic White", "Non-Hispanic Black", "Non-Hispanic AN/AI", "Non-Hispanic Asian"))) %>%
+  arrange(level)
+
+race_pct2 = race_pct %>%
+  mutate(age_cat = "50+")
+
+race_tab = rbind(race_pct2, race_tab)
 
 race_tab2 = race_tab %>%
   mutate(type = "Race") %>%
-  rename(level = race_cat)
+  rename(level = race_cat) %>%
+  mutate(level = factor(level, levels = c("White", "Black", "AN/AI", "Asian"))) %>%
+  arrange(level)
 
-# create table of percentages of men who have gotten fobts within the last year
-tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, eth_tab2, race_tab2) %>%
+imm_pct2 = imm_pct %>%
+  mutate(age_cat = "50+")
+
+imm_tab = rbind(imm_pct2, imm_tab)
+
+imm_tab2 = imm_tab %>%
+  mutate(type = "Immigration") %>%
+  rename(level = imm_stat) %>%
+  mutate(level = factor(level, levels = c("In U.S. < 10 yrs", "In U.S. >= 10 yrs", "Born in U.S."))) %>%
+  arrange(level)
+
+# create table of percentages of people who have gotten fobts within the last year
+tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, eth_tab2, race_tab2, imm_tab2) %>%
   mutate(col_2 = round(col_2*100, 2),
          ci_l = round(ci_l*100, 2),
          ci_u = round(ci_u*100, 2),
          CI = str_c(ci_l, ", ", ci_u)) %>%
-  rename(Percent = col_2,
-         No = num) %>%
+  rename(Percent = col_2) %>%
   select(-ci_l, -ci_u) %>%
-  pivot_wider(names_from = age_cat, values_from = c(No, Percent, CI)) %>%
+  pivot_wider(names_from = c(sex, age_cat), values_from = c(Percent, CI)) %>%
   janitor::clean_names() %>%
-  select(type, level, no_50_64, percent_50_64, ci_50_64, everything())
+  select(Type = type, Level = level, 
+         "Percent Men Age 50-64" = percent_1_50_64, 
+         "CI Men Age 50-64" = ci_1_50_64, 
+         "Percent Men Age 65+" = percent_1_65, 
+         "CI Men Age 65+" = ci_1_65,
+         "Percent Women Age 50-64" = percent_2_50_64, 
+         "CI Women Age 50-64" = ci_2_50_64, 
+         "Percent Women Age 65+" = percent_2_65, 
+         "CI Women Age 65+" = ci_2_65)
+
+# print percentages
+tab_one %>% knitr::kable()
 ```
 
-Survey Design Women
+Barplots of Usual Care and Insurance Coverage
 
 ```{r}
-col_datf = col_dat %>%
-  mutate(domain = if_else(sex == 2 & age_p >= 50, 1, 0))
-
-desf = svydesign(ids = ~ psu_p, strata = ~ strat_p, 
-                weights = ~ wtfa_sa, nest = TRUE, data = col_datf)
+# usual source of care barchart
+usual_tab %>%
+  mutate(sex = if_else(sex == 1, "M", "F")) %>% 
+  filter(age_cat != "50+" & ausualpl_cat != "Other") %>%
+  ggplot(aes(x = ausualpl_cat, y = col_2, fill = ausualpl_cat)) +
+  geom_col() +
+  scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat + sex) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
+  labs(y = "Percent Had Colorectal Screen, Last 5 Years", x = "Usual Source of Care (Have/Have Not)")
+# insurance type barchart
+ins_tab %>%
+  mutate(sex = if_else(sex == 1, "M", "F")) %>%
+  filter(age_cat != "50+") %>%
+  ggplot(aes(x = cover_cat, y = col_2, fill = cover_cat)) +
+  geom_col() + 
+  scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat + sex) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none", axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(y = "Percent Had Colorectal Screen, Last 5 Years", x = "Type of Insurance Coverage")
 ```
 
-Tables Women
+Models
 
-```{r}
-#percentage
-age_pctf = svyby(~col_2, by = ~domain + age_cat, svymean, na.rm = TRUE, 
-                design = desf)
-age_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+```{r warning = F}
 
-#total
-age_totf = svyby(~col_2, by = ~domain + age_cat, svytotal, na.rm = TRUE, 
-                design = desf)
-age_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+col_fit = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 1,
+                  family = binomial(link = "logit"))
+summary(col_fit)
+summ(col_fit)
+Anova(col_fit, type = 3)
 
-#education
-edu_pctf = svyby(~col_2, by = ~domain + educ_cat, svymean, na.rm = TRUE, 
-                design = desf, vartype = c("se", "ci"))
-edu_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
 
-#education total
-edu_totf = svyby(~col_2, by = ~domain + educ_cat, svytotal, na.rm = TRUE, 
-                design = desf)
-edu_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#finc
-finc_pctf = svyby(~col_2, by = ~domain + finc_cat, svymean, na.rm = TRUE, 
-                 design = desf, vartype = c("se", "ci"))
-finc_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#finc total
-finc_totf = svyby(~col_2, by = ~domain + finc_cat, svytotal, na.rm = TRUE, 
-                 design = desf)
-finc_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#usual care
-ausualp_pctf = svyby(~col_2, by = ~domain + ausualpl_cat, svymean, na.rm = TRUE, 
-                    design = desf, vartype = c("se", "ci"))
-ausualp_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#usual care total
-ausualp_totf = svyby(~col_2, by = ~domain + ausualpl_cat, svytotal, na.rm = TRUE, 
-                    design = desf)
-ausualp_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#health coverage
-cover_pctf = svyby(~col_2, by = ~domain + cover_cat, svymean, na.rm = TRUE, 
-                  design = desf, vartype = c("se", "ci"))
-cover_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#health coverage total
-cover_totf = svyby(~col_2, by = ~domain + cover_cat, svytotal, na.rm = TRUE, 
-                  design = desf)
-cover_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#chronic conditions
-lcond_chronic_pctf = svyby(~col_2, by = ~domain + lcond_chronic_cat, svymean, 
-                          na.rm = TRUE, design = desf, vartype = c("se", "ci"))
-lcond_chronic_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#chronic conditions total
-lcond_chronic_totf = svyby(~col_2, by = ~domain + lcond_chronic_cat, svytotal, 
-                          na.rm = TRUE, design = desf)
-lcond_chronic_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#race
-race_pctf = svyby(~col_2, by = ~domain + race_cat, svymean, na.rm = TRUE, 
-                 design = desf, vartype = c("se", "ci"))
-race_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#race total
-race_totf = svyby(~col_2, by = ~domain + race_cat, svytotal, na.rm = TRUE, 
-                 design = desf)
-race_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#ethnicity
-eth_pctf = svyby(~col_2, by = ~domain + eth_cat, svymean, na.rm = TRUE,
-                design = desf, vartype = c("se", "ci"))
-eth_pctf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
-
-#ethnicity total
-eth_totf = svyby(~col_2, by = ~domain + eth_cat, svytotal, na.rm = TRUE, 
-                design = desf)
-eth_totf %>% 
-  filter(domain == 1) %>% select(-domain) %>% knitr::kable()
+col_fit2 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat), design = des, subset = domain == 1, 
+                  family = binomial(link = "logit"))
+summary(col_fit2)
+summ(col_fit2)
+Anova(col_fit2, type = 3)
 ```
 
-Tables by Age Women
-
 ```{r}
-#education
-edu_pct_stratf = svyby(~col_2, by = ~domain + age_cat + educ_cat, svymean, 
-                      na.rm = TRUE, design = desf, vartype = c("se", "ci"))
-edu_tabf = edu_pct_stratf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se) 
+# get sample sizes
+# 17056
+col_temp = col_dat %>%
+  filter(domain == 1)
 
-edu_tabf %>% knitr::kable()
+#7436
+col_tempm = col_temp %>% 
+  filter(sex == 1)
 
-#education total
-edu_tot_stratf = svyby(~col_2, by = ~domain + age_cat + educ_cat, svytotal, 
-                      na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-edu_tot_stratf %>% knitr::kable()
+#9620
+col_tempf = col_temp %>% 
+  filter(sex == 2)
 
-numf = edu_tot_stratf$num
+# 8678
+col_temp50 = col_temp %>%
+  filter(age_cat == "50–64")
 
-edu_tabf = cbind(edu_tabf, numf) 
-
-#finc
-finc_pct_stratf = svyby(~col_2, by = ~domain + age_cat + finc_cat, svymean, 
-                       na.rm = TRUE, design = desf, vartype = c("se", "ci"))
-
-finc_tabf = finc_pct_stratf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se) 
-
-finc_tabf %>% knitr::kable()
-
-#finc total
-finc_tot_stratf = svyby(~col_2, by = ~domain + age_cat + finc_cat, svytotal, 
-                       na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-numf = finc_tot_stratf$num
-
-finc_tabf = cbind(finc_tabf, numf)
-
-#usual care
-ausualp_pct_stratf = svyby(~col_2, by = ~domain + age_cat + ausualpl_cat, svymean, 
-                          na.rm = TRUE, design = desf, vartype = c("se", "ci"))
-usual_tabf = ausualp_pct_stratf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se) 
-
-usual_tabf %>% knitr::kable()
-
-#usual care total
-ausualp_tot_stratf = svyby(~col_2, by = ~domain + age_cat + ausualpl_cat, svytotal, 
-                          na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-numf = ausualp_tot_stratf$num
-
-usual_tabf = cbind(usual_tabf, numf)
-
-#health coverage
-cover_pct_stratf = svyby(~col_2, by = ~domain + age_cat + cover_cat, svymean, 
-                        na.rm = TRUE, design = desf, vartype = c("se", "ci"))
-ins_tabf = cover_pct_stratf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se)
-
-ins_tabf %>% knitr::kable()
-
-#health coverage total
-cover_tot_stratf = svyby(~col_2, by = ~domain + age_cat + cover_cat, svytotal, 
-                        na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-numf = cover_tot_stratf$num
-
-ins_tabf = cbind(ins_tabf, numf)
-
-#chronic conditions
-lcond_chronic_pct_stratf = svyby(~col_2, by = ~domain + age_cat + lcond_chronic_cat,
-                                svymean, na.rm = TRUE, design = desf,
-                                vartype = c("se", "ci"))
-dis_tabf = lcond_chronic_pct_stratf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se) 
-
-dis_tabf %>% knitr::kable()
-
-#chronic conditions total
-lcond_chronic_tot_stratf = svyby(~col_2, by = ~domain + age_cat + lcond_chronic_cat,
-                                svytotal, na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-numf = lcond_chronic_tot_stratf$num
-
-dis_tabf = cbind(dis_tabf, numf)
-
-#race
-race_pct_stratf = svyby(~col_2, by = ~domain + age_cat + race_cat, svymean, 
-                       na.rm = TRUE, design = desf, vartype = c("se", "ci"))
-race_tabf = race_pct_stratf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se) 
-
-race_tabf %>% knitr::kable()
-
-#race total
-race_tot_stratf = svyby(~col_2, by = ~domain + age_cat + race_cat, svytotal, 
-                       na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-numf = race_tot_stratf$num
-
-race_tabf = cbind(race_tabf, numf)
-
-#ethnicity
-eth_pct_stratf = svyby(~col_2, by = ~domain + age_cat + eth_cat, svymean, 
-                      na.rm = TRUE, design = desf, vartype = c("se", "ci"))
-eth_tabf = eth_pct_stratf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se) 
-
-eth_tabf %>% knitr::kable()
-
-#ethnicity total
-eth_tot_stratf = svyby(~col_2, by = ~domain + age_cat + eth_cat, svytotal, 
-                      na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-numf = eth_tot_stratf$num
-
-eth_tabf = cbind(eth_tabf, numf)
-
-#total gotten fobt
-totalf = svyby(~col_2, by = ~domain + age_cat, svymean, na.rm = TRUE, 
-              design = desf, vartype = c("se", "ci"))
-
-tot_tabf = totalf %>% 
-  filter(domain == 1) %>% 
-  select(-domain, -se) 
-
-tot_tabf %>% knitr::kable()
-
-tot_numf = svyby(~col_2, by = ~domain + age_cat, svytotal, na.rm = TRUE, 
-                design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain, -se) %>%
-  rename(num = col_2)
-
-numf = tot_numf$num
-
-tot_tabf = cbind(tot_tabf, numf)
-```
-
-Combine all tables Women
-
-```{r}
-tot_tab2f = tot_tabf %>%
-  mutate(type = "Total",
-         level = "-")
-
-edu_tab2f = edu_tabf %>%
-  mutate(type = "Education") %>%
-  rename(level = educ_cat)
-
-finc_tab2f = finc_tabf %>%
-  mutate(type = "Family Income Poverty Ratio") %>%
-  rename(level = finc_cat)
-
-usual_tab2f = usual_tabf %>%
-  mutate(type = "Usual Source of Care") %>%
-  rename(level = ausualpl_cat)
-
-ins_tab2f = ins_tabf %>%
-  mutate(type = "Insurance Type") %>%
-  rename(level = cover_cat)
-
-dis_tab2f = dis_tabf %>%
-  mutate(type = "Chronic Disability") %>%
-  rename(level = lcond_chronic_cat)
-
-eth_tab2f = eth_tabf %>%
-  mutate(type = "Ethnicity") %>%
-  rename(level = eth_cat)
-
-race_tab2f = race_tabf %>%
-  mutate(type = "Race") %>%
-  rename(level = race_cat)
-
-# create table of percentages of women who have gotten fobts within the last year
-tab_onef = rbind(tot_tab2f, edu_tab2f, finc_tab2f, usual_tab2f, ins_tab2f, dis_tab2f, eth_tab2f, race_tab2f) %>%
-  mutate(col_2 = round(col_2*100, 2),
-         ci_l = round(ci_l*100, 2),
-         ci_u = round(ci_u*100, 2),
-         CI = str_c(ci_l, ", ", ci_u)) %>%
-  rename(Percent = col_2,
-         No = numf) %>%
-  select(-ci_l, -ci_u) %>%
-  pivot_wider(names_from = age_cat, values_from = c(No, Percent, CI)) %>%
-  janitor::clean_names() %>%
-  select(type, level, no_50_64, percent_50_64, ci_50_64, everything())
-```
-
-Combine Men and Women Tables
-
-```{r}
-tab_all = cbind(tab_one, tab_onef)
-tab_all %>% knitr::kable()
-```
-
-
-Barplots Usual Care Men
-
-```{r}
-b = svyby(~col_2, by = ~domain + age_cat + ausualpl_cat,
-                          svymean, na.rm = TRUE, design = des) %>%
-  filter(domain == 1,
-         ausualpl_cat != "Other") %>%
-  select(-domain)
-
-b1 = b %>%
-  filter(trimws(age_cat) == "50–64")
-
-b2 = b %>%
+# 8378
+col_temp65 = col_temp %>%
   filter(age_cat == "65+")
-
-
-barplot(b1$col_2, beside = FALSE,
-        names.arg = c("No", "Yes"),
-        main = "Recent FOBT or Endoscopy for Men 50-64 by Usual Care",
-        ylim = c(0, 1),
-        col = rainbow(2))
-
-barplot(b2$col_2, beside = FALSE,
-        names.arg = c("No", "Yes"),
-        main = "Recent FOBT or Endoscopy for Men 65+ by Usual Care",
-        ylim = c(0, 1),
-        col = rainbow(2))
 ```
-
-Barplots Usual Care Women
 
 ```{r}
-bf = svyby(~col_2, by = ~domain + age_cat + ausualpl_cat,
-                          svymean, na.rm = TRUE, design = desf) %>%
-  filter(domain == 1,
-         ausualpl_cat != "Other") %>%
-  select(-domain)
+col_dat2 = col_dat %>%
+  mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
+                             if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
+         eth_cat2 = if_else(eth_cat == "Hispanic", eth_cat, "Non-Hispanic"),
+         sex = if_else(sex == 1, "M", "F"))
 
-b1f = bf %>%
-  filter(trimws(age_cat) == "50–64")
+des2 = svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE,
+                 data = col_dat2)
 
-b2f = bf %>%
-  filter(age_cat == "65+")
+col2_fit = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
+       design = des2, subset = domain == 1, 
+       family = binomial(link = "logit"))
+
+summary(col2_fit)
+summ(col2_fit)
+Anova(col2_fit, type = 3)
 
 
-barplot(b1f$col_2, beside = FALSE,
-        names.arg = c("No", "Yes"),
-        main = "Recent FOBT or Endoscopy for Women 50-64 by Usual Care",
-        ylim = c(0, 1),
-        col = rainbow(2))
+col2_fit2 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(race_cat) + as.factor(eth_cat2),
+                   design = des2, subset = domain == 1 & ausualpl_cat != "Other", 
+                   family = binomial(link = "logit"))
 
-barplot(b2f$col_2, beside = FALSE,
-        names.arg = c("No", "Yes"),
-        main = "Recent FOBT or Endoscopy for Women 65+ by Usual Care",
-        ylim = c(0, 1),
-        col = rainbow(2))
+summary(col2_fit2)
+summ(col2_fit2)
+Anova(col2_fit2, type = 3)
+
+
+col2_fit3 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2),
+                   design = des2, subset = (domain == 1 & ausualpl_cat != "Other"),
+                   family = binomial(link = "logit")) 
+
+summary(col2_fit3)
+summ(col2_fit3)
+Anova(col2_fit3, type = 3)
+
+#use fit 2
+
+coef <- names(coef(col2_fit2))
+coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*sex[)]")
+names(coef) <- coef_new
+coef = coef[-1]
+
+jtools::plot_summs(col2_fit, coefs = coef, exp = TRUE) +
+  labs(title = "Colorectal Screen Significant Predictors")
 ```
-
-Barplots Insurance Men
-
-```{r}
-bi = svyby(~col_2, by = ~domain + age_cat + cover_cat,
-                          svymean, na.rm = TRUE, design = des) %>%
-  filter(domain == 1) %>%
-  select(-domain)
-
-b1i = bi %>%
-  filter(trimws(age_cat) == "50–64")
-
-b2i = bi %>%
-  filter(age_cat == "65+")
-
-
-barplot(b1i$col_2, beside = FALSE,
-        names.arg = c("None", "Private/Military", "Public"),
-        main = "Recent FOBT or Endoscopy for Men 50-64 by Insurance",
-        ylim = c(0, 1),
-        col = rainbow(2))
-
-barplot(b2i$col_2, beside = FALSE,
-        names.arg = c("None", "Private/Military", "Public"),
-        main = "Recent FOBT or Endoscopy for Men 65+ by Insurance",
-        ylim = c(0, 1),
-        col = rainbow(2))
-```
-
-Barplots Insurance Women
-
-```{r}
-bfi = svyby(~col_2, by = ~domain + age_cat + cover_cat,
-                          svymean, na.rm = TRUE, design = desf) %>%
-  filter(domain == 1) %>%
-  select(-domain)
-
-b1fi = bfi %>%
-  filter(trimws(age_cat) == "50–64")
-
-b2fi = bfi %>%
-  filter(age_cat == "65+")
-
-
-barplot(b1fi$col_2, beside = FALSE,
-        names.arg = c("None", "Private/Military", "Public"),
-        main = "Recent FOBT or Endoscopy for Women 50-64 by Insurance",
-        ylim = c(0, 1),
-        col = rainbow(2))
-
-barplot(b2fi$col_2, beside = FALSE,
-        names.arg = c("None", "Private/Military", "Public"),
-        main = "Recent FOBT or Endoscopy for Women 65+ by Insurance",
-        ylim = c(0, 1),
-        col = rainbow(2))
-```
-
-
 
