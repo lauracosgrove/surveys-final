@@ -448,9 +448,9 @@ p1 / p2 / p3
 ```{r}
 pap_formod <- pap_dat %>% 
   select(psu_p, strat_p, wtfa_sa, ends_with("cat"), imm_stat, hpvhrd, paphad1, mdrecp1, inc) %>% 
-  mutate(imm_stat = if_else(imm_stat == "Born in U.S.", "Born in U.S.", "Immigrated"))
+  mutate(imm_stat = if_else(imm_stat == "Born in U.S.", "Born in U.S.", "Immigrated")) %>% 
+  mutate(lcond_chronic_cat = forcats::fct_explicit_na(lcond_chronic_cat, "None Reported"))
 
-pap_formod %>% count(imm_stat)
 
 pap_formod <- pap_formod %>% 
   mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
@@ -461,7 +461,11 @@ pap_formod %>% ggplot(aes(x = paprec_3bcat)) + geom_histogram() + facet_grid(~in
 
 vars = pap_dat %>% select(ends_with("cat"), imm_stat, inc) %>% select(-paprec_3bcat) %>% names()
 vars = vars[1:9]
+varssym = map(vars, ~sym(.x))
+
 .form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
+
+map(.x = varssym, ~count(pap_formod, !!.x))
 
 
 des2 <- svydesign(ids = ~psu_p, strata = ~strat_p, 
@@ -484,29 +488,31 @@ sig1 = tibble(vars) %>%
 
 sig1
 
-mod2 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
-                     ausualpl_cat + finc_cat + cover_cat + lcond_chronic_cat + 
-                     eth_cat + race_cat, design = des2, 
-       family = binomial,
-       subset = inc == 1) 
+# mod2 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
+#                      ausualpl_cat + finc_cat + cover_cat + lcond_chronic_cat + 
+#                      eth_cat + race_cat, design = des2, 
+#        family = binomial,
+#        subset = inc == 1) 
+# 
+# jtools::summ(mod2)
+# 
+# sig2 = tibble(vars) %>% 
+#   filter(vars != "imm_stat") %>% 
+#   mutate(test = map(vars, ~regTermTest(mod, .x,  method = "LRT"))) %>% 
+#   mutate(pval = map_dbl(test, ~.x$p)) %>% 
+#   arrange(desc(pval)) %>% 
+#   mutate(sig = if_else(pval > 0.05, 0, 1))
+# sig2
+# 
 
-jtools::summ(mod2)
-
-sig2 = tibble(vars) %>% 
-  filter(vars != "imm_stat") %>% 
-  mutate(test = map(vars, ~regTermTest(mod, .x,  method = "LRT"))) %>% 
-  mutate(pval = map_dbl(test, ~.x$p)) %>% 
-  arrange(desc(pval)) %>% 
-  mutate(sig = if_else(pval > 0.05, 0, 1))
-sig2
-
-
-new_coef <- stringr::str_remove(names(coef(mod2)), "^[^_]*_cat")  #make pretty names
-coef <- names(coef(mod2)) #assign pretty names
+new_coef <- stringr::str_remove(names(coef(mod)), "^[^_]*_cat")  #make pretty names
+new_coef <- stringr::str_remove(new_coef, "^[^_]*_stat")  #make pretty names
+new_coef <- stringr::str_remove(new_coef, "^[^_]*_chronic_cat")  #make pretty names
+coef <- names(coef(mod)) #assign pretty names
 names(coef) <- new_coef #names original coef vector with pretty names
 coef <- coef[-1] #remove intercept
 
-jtools::plot_summs(mod2, ci_level = 0.95, 
+jtools::plot_summs(mod, ci_level = 0.95, 
                    coefs = coef,
                    exp = TRUE, robust = TRUE) + labs(title = "Pap Smear Significant Predictors")
 ```
