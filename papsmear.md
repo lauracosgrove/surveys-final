@@ -478,14 +478,41 @@ pct_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_ca
 
 ##replace this function with an unweighted total 
 tot_func <- function(outcome = "paprec_3bcat", inclusion = "inc", var1 = "age_cat", var2 = NULL) {
-  .outcome = reformulate(outcome)
-  .by = reformulate(c(inclusion, var1, var2))
-   svyby(.outcome , by = .by, svytotal, na.rm = TRUE, design = des, vartype = "ci") 
-  
+outcome_sym = rlang::sym(outcome)
+inc_sym = rlang::sym(inclusion)
+var1_sym = rlang::sym(var1)
+var2_sym = ifelse(is.null(var2), rlang::sym(" "), rlang::sym(var2))
+
+if (is.null(var2)) {
+  pap_dat %>% 
+    count(!!outcome_sym, !!inc_sym, !!var1_sym) %>% drop_na() %>% 
+    group_by(!!var1_sym, !!inc_sym) %>% 
+    summarize(n = sum(n))
+} else  {
+  pap_dat %>% 
+    count(!!outcome_sym, !!inc_sym, !!var1_sym, !!var2_sym) %>% drop_na() %>% 
+    group_by(!!var1_sym, !!var2_sym, !!inc_sym) %>% 
+    summarize(n = sum(n))
+
+}
 }
 
+tot_func()
+```
+
+    ## # A tibble: 4 x 3
+    ## # Groups:   age_cat [4]
+    ##   age_cat   inc     n
+    ##   <chr>   <dbl> <int>
+    ## 1 25–39       1  3980
+    ## 2 40–49       1  2551
+    ## 3 50–64       1  4256
+    ## 4 65+         1  4384
+
+``` r
 pap_by <- pap_dat %>% 
-  select(ends_with("cat"), imm_stat) %>% 
+  select(ends_with("cat"), imm_stat, -paprec_3bcat) %>% 
+  mutate(ausualpl_cat = fct_explicit_na(ausualpl_cat)) %>% 
   names() %>% 
   tibble(var = .) %>% 
   mutate(pct = map(var, ~pct_func(var1 = .x))) %>% 
@@ -493,6 +520,12 @@ pap_by <- pap_dat %>%
   mutate(pct_byage = map(var, ~pct_func(var1 = "age_cat", var2 = .x))) %>% 
   mutate(tot_byage = map(var, ~tot_func(var1 = "age_cat", var2 = .x)))
 ```
+
+    ## Warning: Factor `finc_cat` contains implicit NA, consider using
+    ## `forcats::fct_explicit_na`
+    
+    ## Warning: Factor `finc_cat` contains implicit NA, consider using
+    ## `forcats::fct_explicit_na`
 
 ``` r
 get_comp_tables <- function(tablepct, tabletot, var) {
@@ -502,124 +535,140 @@ get_comp_tables <- function(tablepct, tabletot, var) {
   bind_cols(tabletot) %>% 
   mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
   mutate(pct = paste0(paprec_3bcat, " (", ci_l, ", ", ci_u, ")")) %>% 
-  mutate_at(vars(t_paprec_3bcat, t_ci_l, t_ci_u), ~round(.x/1e6, 1)) %>% 
-  mutate(tot = paste0(t_paprec_3bcat, "M (", t_ci_l, "M, ", t_ci_u, "M)")) %>% 
+  mutate(tot = t_n) %>% 
   select(var, pct, tot) %>% 
   rename(levels = var) %>% 
   as_tibble()
 }
 
 pap_by <- pap_by %>% 
-  filter(var != "paprec_3bcat") %>% 
-  rename(variable = var) %>% 
-  mutate(comp_tbl = pmap(list(x = pct, y = tot, z = variable), function(x, y, z) 
+  mutate(comp_tbl = pmap(list(x = pct, y = tot, z = var), function(x, y, z) 
     {get_comp_tables(tablepct = x, tabletot = y, var =  z)} ))
 
 pap_sel <- pap_by %>% 
-  select(variable, comp_tbl) %>% 
+  select(var, comp_tbl) %>% 
   unnest_wider(comp_tbl) %>% 
-  unnest(-variable)
+  unnest(-var)
   
 pap_sel %>% 
   filter(!levels %in% c("Unknown", "Other")) %>% 
   knitr::kable(names = c("Variable", "Levels", "Percent", "Total"))
 ```
 
-| variable            | levels                     | pct               | tot                  |
-| :------------------ | :------------------------- | :---------------- | :------------------- |
-| age\_cat            | 25–39                      | 91.2 (90.1, 92.3) | 24.8M (23.7M, 26M)   |
-| age\_cat            | 40–49                      | 83.6 (81.7, 85.5) | 15.4M (14.4M, 16.4M) |
-| age\_cat            | 50–64                      | 75.7 (74.1, 77.4) | 22.1M (21.1M, 23.2M) |
-| age\_cat            | 65+                        | 45.1 (43, 47.3)   | 10.4M (9.7M, 11.1M)  |
-| educ\_cat           | College graduate           | 83.9 (82.7, 85.1) | 28.1M (26.8M, 29.4M) |
-| educ\_cat           | High school                | 65.4 (63.3, 67.6) | 14.7M (13.8M, 15.5M) |
-| educ\_cat           | Less than high school      | 62.4 (59.5, 65.4) | 7.1M (6.5M, 7.6M)    |
-| educ\_cat           | Some college               | 74.8 (73.2, 76.3) | 22.6M (21.5M, 23.6M) |
-| finc\_cat           | \<200%                     | 68.1 (66.4, 69.9) | 19.4M (18.5M, 20.4M) |
-| finc\_cat           | 200–299%                   | 72.1 (69.5, 74.6) | 9.4M (8.8M, 10.1M)   |
-| finc\_cat           | 300–399%                   | 76.4 (73.6, 79.3) | 7.8M (7.1M, 8.4M)    |
-| finc\_cat           | 400–499%                   | 70 (66.9, 73)     | 7.5M (6.8M, 8.1M)    |
-| finc\_cat           | \>=500%                    | 83 (81.2, 84.7)   | 20.5M (19.3M, 21.7M) |
-| finc\_cat           | \>=200%, no further detail | 66.1 (59.5, 72.6) | 1.8M (1.5M, 2.1M)    |
-| ausualpl\_cat       | No                         | 68.6 (65.3, 71.8) | 5.5M (5M, 6M)        |
-| ausualpl\_cat       | Yes                        | 74.8 (73.9, 75.8) | 67.3M (65.3M, 69.2M) |
-| cover\_cat          | None                       | 69.6 (66.4, 72.8) | 5.3M (4.9M, 5.8M)    |
-| cover\_cat          | Private/Military           | 79.3 (78.3, 80.3) | 54M (52.2M, 55.9M)   |
-| cover\_cat          | Public                     | 60.2 (57.9, 62.5) | 13.1M (12.3M, 13.9M) |
-| lcond\_chronic\_cat | No                         | 58.5 (44.1, 72.9) | 0.2M (0.1M, 0.3M)    |
-| lcond\_chronic\_cat | Yes                        | 56.6 (54.1, 59.2) | 9.7M (9.1M, 10.4M)   |
-| race\_cat           | AN/AI                      | 70.5 (63.2, 77.8) | 0.9M (0.7M, 1.1M)    |
-| race\_cat           | Asian                      | 80.3 (76.7, 83.9) | 4.6M (4.1M, 5M)      |
-| race\_cat           | Black                      | 79.2 (77.1, 81.2) | 9.9M (9.3M, 10.6M)   |
-| race\_cat           | White                      | 73.2 (72.2, 74.1) | 57.4M (55.5M, 59.3M) |
-| eth\_cat            | Hispanic                   | 80.1 (78, 82.3)   | 10.7M (10.1M, 11.4M) |
-| eth\_cat            | Non-Hispanic AN/AI         | 71.6 (62.3, 81)   | 0.6M (0.4M, 0.8M)    |
-| eth\_cat            | Non-Hispanic Asian         | 80.1 (76.4, 83.8) | 4.4M (3.9M, 4.8M)    |
-| eth\_cat            | Non-Hispanic Black         | 78.9 (76.8, 81)   | 9.3M (8.7M, 9.9M)    |
-| eth\_cat            | Non-Hispanic White         | 71.9 (70.8, 73)   | 47.8M (46M, 49.5M)   |
-| imm\_stat           | Born in U.S.               | 73.4 (72.5, 74.4) | 59.1M (57.2M, 60.9M) |
-| imm\_stat           | In U.S. \< 10 yrs          | 82.2 (77.2, 87.2) | 2.1M (1.9M, 2.4M)    |
-| imm\_stat           | In U.S. \>= 10 yrs         | 77.8 (75.4, 80.1) | 11.5M (10.7M, 12.2M) |
+| var                 | levels                     | pct               |   tot |
+| :------------------ | :------------------------- | :---------------- | ----: |
+| age\_cat            | 25–39                      | 91.2 (90.1, 92.3) |  3980 |
+| age\_cat            | 40–49                      | 83.6 (81.7, 85.5) |  2551 |
+| age\_cat            | 50–64                      | 75.7 (74.1, 77.4) |  4256 |
+| age\_cat            | 65+                        | 45.1 (43, 47.3)   |  4384 |
+| educ\_cat           | College graduate           | 83.9 (82.7, 85.1) |  4703 |
+| educ\_cat           | High school                | 65.4 (63.3, 67.6) |  3616 |
+| educ\_cat           | Less than high school      | 62.4 (59.5, 65.4) |  1991 |
+| educ\_cat           | Some college               | 74.8 (73.2, 76.3) |  4798 |
+| finc\_cat           | \<200%                     | 68.1 (66.4, 69.9) |  5459 |
+| finc\_cat           | 200–299%                   | 72.1 (69.5, 74.6) |  2059 |
+| finc\_cat           | 300–399%                   | 76.4 (73.6, 79.3) |  1559 |
+| finc\_cat           | 400–499%                   | 70 (66.9, 73)     |  1443 |
+| finc\_cat           | \>=500%                    | 83 (81.2, 84.7)   |  3109 |
+| finc\_cat           | \>=200%, no further detail | 66.1 (59.5, 72.6) |   407 |
+| ausualpl\_cat       | No                         | 68.6 (65.3, 71.8) |  1240 |
+| ausualpl\_cat       | Yes                        | 74.8 (73.9, 75.8) | 13928 |
+| cover\_cat          | None                       | 69.6 (66.4, 72.8) |  1253 |
+| cover\_cat          | Private/Military           | 79.3 (78.3, 80.3) |  9884 |
+| cover\_cat          | Public                     | 60.2 (57.9, 62.5) |  3983 |
+| lcond\_chronic\_cat | No                         | 58.5 (44.1, 72.9) |    74 |
+| lcond\_chronic\_cat | Yes                        | 56.6 (54.1, 59.2) |  3220 |
+| race\_cat           | AN/AI                      | 70.5 (63.2, 77.8) |   251 |
+| race\_cat           | Asian                      | 80.3 (76.7, 83.9) |   773 |
+| race\_cat           | Black                      | 79.2 (77.1, 81.2) |  2343 |
+| race\_cat           | White                      | 73.2 (72.2, 74.1) | 11804 |
+| eth\_cat            | Hispanic                   | 80.1 (78, 82.3)   |  2372 |
+| eth\_cat            | Non-Hispanic AN/AI         | 71.6 (62.3, 81)   |   171 |
+| eth\_cat            | Non-Hispanic Asian         | 80.1 (76.4, 83.8) |   734 |
+| eth\_cat            | Non-Hispanic Black         | 78.9 (76.8, 81)   |  2223 |
+| eth\_cat            | Non-Hispanic White         | 71.9 (70.8, 73)   |  9671 |
+| imm\_stat           | Born in U.S.               | 73.4 (72.5, 74.4) | 12532 |
+| imm\_stat           | In U.S. \< 10 yrs          | 82.2 (77.2, 87.2) |   366 |
+| imm\_stat           | In U.S. \>= 10 yrs         | 77.8 (75.4, 80.1) |  2246 |
 
 ``` r
-pap_strat <- pap_by %>% 
-  select(variable, pct_byage, tot_byage) %>% 
-  filter(variable != "age_cat") %>% 
-  mutate(pct_byage = map2(.x = pct_byage, .y = variable, ~.x %>% rename(levels = .y))) %>% 
-  mutate(tot_byage = map(.x = tot_byage, ~.x %>% rename(tot = paprec_3bcat) %>% select(tot)) ) %>% 
-  unnest(c(pct_byage, tot_byage)) %>% 
-  filter(inc == 1) %>%
+get_by_tables <- function(tablepct, tabletot, var) {
+  tabletot <- tabletot %>% filter(inc == 1) %>% rename_all(~paste0("t_", .x)) 
+  tablepct %>% 
+  filter(inc == 1) %>% 
+  bind_cols(tabletot) %>% 
   mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
-  mutate(CI = paste0(" (", ci_l, ", ", ci_u, ")")) %>% 
-  rename(pct = paprec_3bcat) %>% 
-  mutate(tot = paste0(round(tot/1e6, 1), "M")) %>% 
-  select(-ci_l, -ci_u, -inc) %>% 
-  pivot_wider(names_from = "age_cat", values_from = c(tot, pct, CI)) %>% 
-  select(variable, levels, ends_with("39"), ends_with("49"), ends_with("64"), ends_with("+"))
+  mutate(pct = paste0(paprec_3bcat, " (", ci_l, ", ", ci_u, ")")) %>% 
+  mutate(tot = t_n) %>% 
+  select(age_cat, var, pct, tot) %>% 
+  rename(levels = var) %>% 
+  as_tibble()
+}
 
+new_ausualpl_tot <- (pap_by %>% 
+    filter(var == "ausualpl_cat") %>% 
+  pull(tot_byage))[[1]] %>% ungroup() %>% 
+  add_case(age_cat = "65+", ausualpl_cat = "Other", inc = 1, n = 0)
+
+pap_strat <- pap_by %>% 
+  dplyr::select(var, pct_byage, tot_byage) %>% 
+  mutate(tot_byage = if_else(var == "ausualpl_cat", list(new_ausualpl_tot), tot_byage)) %>% 
+  mutate(comp_tbl = pmap(list(x = pct_byage, y = tot_byage, z = var), function(x, y, z) 
+    {get_by_tables(tablepct = x, tabletot = y, var =  z)} )) %>% 
+  dplyr::select(var, comp_tbl) %>% unnest() 
+```
+
+    ## Warning: `cols` is now required.
+    ## Please use `cols = c(comp_tbl)`
+
+``` r
 pap_strat %>% 
-  filter(!levels %in% c("Unknown", "Other")) %>% 
+  filter(var != "age_cat") %>% 
+  pivot_wider(names_from = age_cat, values_from = c(pct, tot), names_prefix = "Age_", names_sep = "_") %>% 
+  select(var, levels, ends_with("39"), ends_with("49"), ends_with("64"), ends_with("+")) %>%
   knitr::kable()
 ```
 
-| variable            | levels                     | tot\_25–39 | pct\_25–39 | CI\_25–39     | tot\_40–49 | pct\_40–49 | CI\_40–49     | tot\_50–64 | pct\_50–64 | CI\_50–64    | tot\_65+ | pct\_65+ | CI\_65+      |
-| :------------------ | :------------------------- | :--------- | ---------: | :------------ | :--------- | ---------: | :------------ | :--------- | ---------: | :----------- | :------- | -------: | :----------- |
-| educ\_cat           | College graduate           | 10.6M      |       94.7 | (93.2, 96.3)  | 6.4M       |       91.4 | (89.1, 93.7)  | 8.1M       |       82.6 | (80.1, 85.1) | 3M       |     54.3 | (50.3, 58.3) |
-| educ\_cat           | High school                | 4M         |       85.4 | (82.1, 88.7)  | 2.8M       |       75.3 | (70.5, 80.1)  | 4.9M       |       71.5 | (67.7, 75.3) | 3M       |     41.5 | (37.6, 45.4) |
-| educ\_cat           | Less than high school      | 2.3M       |       86.5 | (82.7, 90.4)  | 1.4M       |       71.2 | (63.6, 78.7)  | 2M         |       66.1 | (60, 72.1)   | 1.4M     |     37.3 | (32, 42.6)   |
-| educ\_cat           | Some college               | 7.8M       |       91.0 | (88.9, 93.2)  | 4.7M       |       83.1 | (79.3, 86.9)  | 7.1M       |       74.8 | (71.7, 77.8) | 3M       |     46.2 | (42, 50.4)   |
-| finc\_cat           | \<200%                     | 8.3M       |       87.7 | (85.8, 89.6)  | 3.9M       |       77.5 | (73.3, 81.8)  | 4.7M       |       65.4 | (61.6, 69.1) | 2.6M     |     37.6 | (34.1, 41.1) |
-| finc\_cat           | 200–299%                   | 3.5M       |       88.1 | (84.9, 91.3)  | 2.1M       |       81.1 | (75.1, 87.2)  | 2.5M       |       75.0 | (69.8, 80.2) | 1.4M     |     42.9 | (37.7, 48.1) |
-| finc\_cat           | 300–399%                   | 3M         |       92.4 | (89.5, 95.3)  | 1.6M       |       81.9 | (75.8, 88)    | 2M         |       74.8 | (68.7, 80.9) | 1.2M     |     51.3 | (44.3, 58.3) |
-| finc\_cat           | 400–499%                   | 1.6M       |       93.4 | (89.7, 97.2)  | 1.4M       |       84.7 | (78.2, 91.3)  | 3M         |       77.2 | (72.2, 82.3) | 1.6M     |     44.6 | (39.7, 49.4) |
-| finc\_cat           | \>=500%                    | 5.9M       |       95.5 | (93.6, 97.4)  | 4.8M       |       91.7 | (88.9, 94.5)  | 7.4M       |       82.1 | (79.3, 84.9) | 2.4M     |     56.0 | (51.2, 60.9) |
-| finc\_cat           | \>=200%, no further detail | 0.5M       |       90.9 | (80.6, 101.2) | 0.3M       |       75.6 | (59.8, 91.4)  | 0.5M       |       73.7 | (60.9, 86.6) | 0.5M     |     45.6 | (35.7, 55.4) |
-| ausualpl\_cat       | No                         | 3.5M       |       85.2 | (81.7, 88.6)  | 1.1M       |       64.4 | (55.9, 72.9)  | 0.8M       |       47.1 | (39, 55.3)   | 0.2M     |     25.9 | (15.5, 36.3) |
-| ausualpl\_cat       | Yes                        | 21.4M      |       92.3 | (91, 93.5)    | 14.3M      |       85.5 | (83.6, 87.4)  | 21.3M      |       77.5 | (75.8, 79.1) | 10.3M    |     45.6 | (43.5, 47.8) |
-| cover\_cat          | None                       | 3M         |       82.8 | (79.1, 86.6)  | 1.2M       |       59.2 | (51.8, 66.6)  | 1.1M       |       57.6 | (50.4, 64.8) | 0M       |     38.6 | (10.1, 67)   |
-| cover\_cat          | Private/Military           | 17.5M      |       93.2 | (92, 94.4)    | 12.3M      |       87.9 | (86, 89.9)    | 18.8M      |       78.7 | (77, 80.3)   | 5.4M     |     47.3 | (44.4, 50.1) |
-| cover\_cat          | Public                     | 4.2M       |       89.7 | (87.2, 92.2)  | 1.8M       |       78.4 | (72.7, 84.1)  | 2.1M       |       65.1 | (59.3, 70.8) | 4.9M     |     43.1 | (39.9, 46.2) |
-| lcond\_chronic\_cat | No                         | 0.1M       |       90.6 | (76.2, 105)   | 0M         |       87.3 | (67.2, 107.4) | 0.1M       |       84.9 | (64.8, 105)  | 0M       |     18.4 | (3.6, 33.1)  |
-| lcond\_chronic\_cat | Yes                        | 1.5M       |       88.2 | (83, 93.4)    | 1.3M       |       73.7 | (66.6, 80.7)  | 4.1M       |       68.7 | (64.7, 72.8) | 2.8M     |     36.4 | (33.2, 39.6) |
-| race\_cat           | AN/AI                      | 0.4M       |       84.1 | (74.3, 94)    | 0.3M       |       82.9 | (70.3, 95.4)  | 0.2M       |       63.4 | (47.5, 79.4) | 0.1M     |     35.1 | (12.5, 57.6) |
-| race\_cat           | Asian                      | 1.8M       |       89.2 | (84.9, 93.6)  | 1.2M       |       87.9 | (81.7, 94.1)  | 1.2M       |       79.5 | (72.4, 86.6) | 0.4M     |     47.5 | (38.6, 56.4) |
-| race\_cat           | Black                      | 3.9M       |       92.8 | (90.4, 95.1)  | 2.1M       |       87.6 | (83.6, 91.5)  | 3M         |       78.4 | (74, 82.7)   | 1M       |     45.9 | (40.5, 51.4) |
-| race\_cat           | White                      | 18.9M      |       91.2 | (89.9, 92.5)  | 11.8M      |       82.5 | (80.4, 84.7)  | 17.7M      |       75.3 | (73.4, 77.1) | 8.9M     |     45.0 | (42.7, 47.4) |
-| eth\_cat            | Hispanic                   | 4.7M       |       89.2 | (87, 91.4)    | 2.6M       |       84.7 | (80.6, 88.8)  | 2.5M       |       78.3 | (73.2, 83.5) | 0.9M     |     49.7 | (42.5, 56.9) |
-| eth\_cat            | Non-Hispanic AN/AI         | 0.2M       |       85.5 | (74, 97)      | 0.2M       |       83.0 | (66.9, 99)    | 0.2M       |       68.9 | (49.3, 88.5) | 0.1M     |     35.6 | (8.8, 62.5)  |
-| eth\_cat            | Non-Hispanic Asian         | 1.7M       |       89.0 | (84.4, 93.5)  | 1.2M       |       88.7 | (82.5, 94.9)  | 1.1M       |       79.0 | (71.8, 86.2) | 0.4M     |     47.8 | (38.9, 56.8) |
-| eth\_cat            | Non-Hispanic Black         | 3.5M       |       92.8 | (90.3, 95.2)  | 2M         |       87.9 | (84.1, 91.8)  | 2.8M       |       78.7 | (74.5, 82.9) | 1M       |     45.5 | (40.1, 51)   |
-| eth\_cat            | Non-Hispanic White         | 14.7M      |       91.8 | (90.3, 93.3)  | 9.5M       |       81.9 | (79.3, 84.5)  | 15.5M      |       74.7 | (72.7, 76.6) | 8.1M     |     44.6 | (42.1, 47)   |
-| imm\_stat           | Born in U.S.               | 19.9M      |       92.0 | (90.7, 93.2)  | 11.8M      |       83.5 | (81.4, 85.6)  | 18.4M      |       74.9 | (73.1, 76.7) | 9M       |     44.6 | (42.3, 46.9) |
-| imm\_stat           | In U.S. \< 10 yrs          | 1.4M       |       86.6 | (80.9, 92.3)  | 0.4M       |       77.1 | (64.4, 89.7)  | 0.2M       |       81.8 | (68.7, 94.8) | 0.1M     |     52.6 | (29.5, 75.8) |
-| imm\_stat           | In U.S. \>= 10 yrs         | 3.5M       |       88.8 | (85.9, 91.8)  | 3.2M       |       85.2 | (80.9, 89.4)  | 3.4M       |       80.3 | (76.4, 84.3) | 1.4M     |     48.8 | (42.8, 54.7) |
+| var                 | levels                     | pct\_Age\_25–39    | tot\_Age\_25–39 | pct\_Age\_40–49    | tot\_Age\_40–49 | pct\_Age\_50–64   | tot\_Age\_50–64 | pct\_Age\_65+     | tot\_Age\_65+ |
+| :------------------ | :------------------------- | :----------------- | --------------: | :----------------- | --------------: | :---------------- | --------------: | :---------------- | ------------: |
+| educ\_cat           | College graduate           | 94.7 (93.2, 96.3)  |            1492 | 91.4 (89.1, 93.7)  |             719 | 82.6 (80.1, 85.1) |             448 | 54.3 (50.3, 58.3) |          1314 |
+| educ\_cat           | High school                | 85.4 (82.1, 88.7)  |             931 | 75.3 (70.5, 80.1)  |             511 | 71.5 (67.7, 75.3) |             298 | 41.5 (37.6, 45.4) |           802 |
+| educ\_cat           | Less than high school      | 86.5 (82.7, 90.4)  |            1307 | 71.2 (63.6, 78.7)  |            1034 | 66.1 (60, 72.1)   |             484 | 37.3 (32, 42.6)   |          1417 |
+| educ\_cat           | Some college               | 91 (88.9, 93.2)    |             973 | 83.1 (79.3, 86.9)  |            1352 | 74.8 (71.7, 77.8) |             761 | 46.2 (42, 50.4)   |          1265 |
+| finc\_cat           | \<200%                     | 87.7 (85.8, 89.6)  |            1663 | 77.5 (73.3, 81.8)  |             587 | 65.4 (61.6, 69.1) |             442 | 37.6 (34.1, 41.1) |           193 |
+| finc\_cat           | 200–299%                   | 88.1 (84.9, 91.3)  |             722 | 81.1 (75.1, 87.2)  |              63 | 75 (69.8, 80.2)   |               3 | 42.9 (37.7, 48.1) |           832 |
+| finc\_cat           | 300–399%                   | 92.4 (89.5, 95.3)  |             349 | 81.9 (75.8, 88)    |             289 | 74.8 (68.7, 80.9) |             186 | 51.3 (44.3, 58.3) |           623 |
+| finc\_cat           | 400–499%                   | 93.4 (89.7, 97.2)  |              51 | 84.7 (78.2, 91.3)  |               1 | 77.2 (72.2, 82.3) |            1324 | 44.6 (39.7, 49.4) |           494 |
+| finc\_cat           | \>=500%                    | 95.5 (93.6, 97.4)  |             406 | 91.7 (88.9, 94.5)  |             457 | 82.1 (79.3, 84.9) |            1137 | 56 (51.2, 60.9)   |           102 |
+| finc\_cat           | \>=200%, no further detail | 90.9 (80.6, 101.2) |               5 | 75.6 (59.8, 91.4)  |            1640 | 73.7 (60.9, 86.6) |             629 | 45.6 (35.7, 55.4) |           422 |
+| finc\_cat           | Unknown                    | 100 (100, 100)     |             607 | 100 (100, 100)     |             627 | 100 (100, 100)    |             191 | 11 (-8.3, 30.3)   |            10 |
+| ausualpl\_cat       | No                         | 85.2 (81.7, 88.6)  |             593 | 64.4 (55.9, 72.9)  |               1 | 47.1 (39, 55.3)   |            3386 | 25.9 (15.5, 36.3) |           259 |
+| ausualpl\_cat       | Other                      | 100 (100, 100)     |               1 | 0 (0, 0)           |            2291 | 0 (0, 0)          |             266 | 0 (0, 0)          |             1 |
+| ausualpl\_cat       | Yes                        | 92.3 (91, 93.5)    |            3989 | 85.5 (83.6, 87.4)  |             122 | 77.5 (75.8, 79.1) |            4262 | 45.6 (43.5, 47.8) |             0 |
+| cover\_cat          | None                       | 82.8 (79.1, 86.6)  |             584 | 59.2 (51.8, 66.6)  |            2542 | 57.6 (50.4, 64.8) |             836 | 38.6 (10.1, 67)   |           309 |
+| cover\_cat          | Private/Military           | 93.2 (92, 94.4)    |            1828 | 87.9 (86, 89.9)    |             406 | 78.7 (77, 80.3)   |             341 | 47.3 (44.4, 50.1) |          3282 |
+| cover\_cat          | Public                     | 89.7 (87.2, 92.2)  |             617 | 78.4 (72.7, 84.1)  |              19 | 65.1 (59.3, 70.8) |            2232 | 43.1 (39.9, 46.2) |          2124 |
+| lcond\_chronic\_cat | No                         | 90.6 (76.2, 105)   |              15 | 87.3 (67.2, 107.4) |             285 | 84.9 (64.8, 105)  |              10 | 18.4 (3.6, 33.1)  |           322 |
+| lcond\_chronic\_cat | Yes                        | 88.2 (83, 93.4)    |              17 | 73.7 (66.6, 80.7)  |            1025 | 68.7 (64.7, 72.8) |              32 | 36.4 (33.2, 39.6) |          1588 |
+| race\_cat           | AN/AI                      | 84.1 (74.3, 94)    |              89 | 82.9 (70.3, 95.4)  |             256 | 63.4 (47.5, 79.4) |             689 | 35.1 (12.5, 57.6) |          2946 |
+| race\_cat           | Asian                      | 89.2 (84.9, 93.6)  |              47 | 87.9 (81.7, 94.1)  |             161 | 79.5 (72.4, 86.6) |             406 | 47.5 (38.6, 56.4) |          1937 |
+| race\_cat           | Black                      | 92.8 (90.4, 95.1)  |              74 | 87.6 (83.6, 91.5)  |             200 | 78.4 (74, 82.7)   |             680 | 45.9 (40.5, 51.4) |          3302 |
+| race\_cat           | White                      | 91.2 (89.9, 92.5)  |              41 | 82.5 (80.4, 84.7)  |             156 | 75.3 (73.4, 77.1) |             568 | 45 (42.7, 47.4)   |          3619 |
+| eth\_cat            | Hispanic                   | 89.2 (87, 91.4)    |             902 | 84.7 (80.6, 88.8)  |              57 | 78.3 (73.2, 83.5) |             241 | 49.7 (42.5, 56.9) |           634 |
+| eth\_cat            | Non-Hispanic AN/AI         | 85.5 (74, 97)      |            2146 | 83 (66.9, 99)      |             515 | 68.9 (49.3, 88.5) |              31 | 35.6 (8.8, 62.5)  |           149 |
+| eth\_cat            | Non-Hispanic Asian         | 89 (84.4, 93.5)    |             376 | 88.7 (82.5, 94.9)  |            1480 | 79 (71.8, 86.2)   |             521 | 47.8 (38.9, 56.8) |            52 |
+| eth\_cat            | Non-Hispanic Black         | 92.8 (90.3, 95.2)  |             192 | 87.9 (84.1, 91.8)  |             657 | 78.7 (74.5, 82.9) |            2834 | 45.5 (40.1, 51)   |           434 |
+| eth\_cat            | Non-Hispanic White         | 91.8 (90.3, 93.3)  |              31 | 81.9 (79.3, 84.5)  |             152 | 74.7 (72.7, 76.6) |             556 | 44.6 (42.1, 47)   |          3211 |
+| imm\_stat           | Born in U.S.               | 92 (90.7, 93.2)    |            3153 | 83.5 (81.4, 85.6)  |             221 | 74.9 (73.1, 76.7) |             598 | 44.6 (42.3, 46.9) |          1951 |
+| imm\_stat           | In U.S. \< 10 yrs          | 86.6 (80.9, 92.3)  |              79 | 77.1 (64.4, 89.7)  |             514 | 81.8 (68.7, 94.8) |            3620 | 52.6 (29.5, 75.8) |            40 |
+| imm\_stat           | In U.S. \>= 10 yrs         | 88.8 (85.9, 91.8)  |             590 | 85.2 (80.9, 89.4)  |            3808 | 80.3 (76.4, 84.3) |              26 | 48.8 (42.8, 54.7) |           544 |
 
 # plot
 
 ``` r
 p1 <- pap_by %>% 
-  filter(variable == "ausualpl_cat") %>% 
-  select(variable, pct_byage) %>% 
+  filter(var == "ausualpl_cat") %>% 
+  select(var, pct_byage) %>% 
   unnest(pct_byage) %>% 
   filter(inc == 1) %>% 
   filter(!ausualpl_cat %in% c("Unknown", "Other")) %>% 
@@ -632,8 +681,8 @@ p1 <- pap_by %>%
 
 ``` r
 p2 <- pap_by %>% 
-  filter(variable == "cover_cat") %>% 
-  select(variable, pct_byage) %>% 
+  filter(var == "cover_cat") %>% 
+  select(var, pct_byage) %>% 
   unnest(pct_byage) %>% 
   filter(inc == 1) %>% 
   filter(!cover_cat %in% c("Unknown", "Other")) %>% 
@@ -647,8 +696,8 @@ p2 <- pap_by %>%
 
 ``` r
 p3 <- pap_by %>% 
-  filter(variable == "educ_cat") %>% 
-  select(variable, pct_byage) %>% 
+  filter(var == "educ_cat") %>% 
+  select(var, pct_byage) %>% 
   unnest(pct_byage) %>% 
   filter(inc == 1) %>% 
   ggplot(aes(x = educ_cat, y = 100*paprec_3bcat, fill = educ_cat)) +
@@ -661,11 +710,26 @@ p3 <- pap_by %>%
 ```
 
 ``` r
+p4 <- pap_by %>% 
+  filter(var == "imm_stat") %>% 
+  select(var, pct_byage) %>% 
+  unnest(pct_byage) %>% 
+  filter(inc == 1) %>% 
+  ggplot(aes(x = imm_stat, y = 100*paprec_3bcat, fill = imm_stat)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = 100*ci_l, ymax = 100*ci_u)) +
+  facet_grid(~age_cat) + 
+  ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") + ylim(0, 100) +
+  coord_flip() + 
+  labs(y = "Percent Had Pap Smear, Last 3 years", x = "Immigration Status")
+```
+
+``` r
 library(patchwork)
 p1 / p2 / p3 
 ```
 
-![](papsmear_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](papsmear_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 # models
 
@@ -685,10 +749,11 @@ pap_formod %>% ggplot(aes(x = paprec_3bcat)) + geom_histogram() + facet_grid(~in
 
     ## Warning: Removed 17615 rows containing non-finite values (stat_bin).
 
-![](papsmear_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](papsmear_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 ``` r
 vars = pap_dat %>% select(ends_with("cat"), imm_stat, inc) %>% select(-paprec_3bcat) %>% names()
+vars = vars[1:9]
 .form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
 
 
@@ -1662,31 +1727,62 @@ imm\_statIn U.S. \>= 10 yrs
 </table>
 
 ``` r
-car::Anova(mod, type = "3")
+# test significance of individual terms/term groups
+sig1 = tibble(vars) %>% 
+  mutate(test = map(vars, ~regTermTest(mod, .x,  method = "LRT"))) %>% 
+  mutate(pval = map_dbl(test, ~.x$p)) %>% 
+  arrange(desc(pval)) %>% 
+  mutate(sig = if_else(pval > 0.05, 0, 1))
 ```
 
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: paprec_3bcat
-    ##                   Df    Chisq Pr(>Chisq)    
-    ## (Intercept)        1  12.0087  0.0005295 ***
-    ## age_cat            3 193.6985  < 2.2e-16 ***
-    ## educ_cat           3  19.2985  0.0002372 ***
-    ## ausualpl_cat       1  12.7607  0.0003540 ***
-    ## finc_cat           5   4.3618  0.4985875    
-    ## cover_cat          2   6.2167  0.0446744 *  
-    ## lcond_chronic_cat  1   0.1283  0.7202115    
-    ## eth_cat            1  10.5452  0.0011649 ** 
-    ## race_cat           3   8.3196  0.0398489 *  
-    ## imm_stat           2 829.1520  < 2.2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
 
 ``` r
-#remove lcondchronic
-mod_step1 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
-                     ausualpl_cat + finc_cat + cover_cat + 
-                     eth_cat + race_cat + imm_stat, design = des2, 
+sig1
+```
+
+    ## # A tibble: 9 x 4
+    ##   vars              test            pval   sig
+    ##   <chr>             <list>         <dbl> <dbl>
+    ## 1 race_cat          <rgTrTLRT> 4.00e-  2     1
+    ## 2 cover_cat         <rgTrTLRT> 9.20e-  3     1
+    ## 3 imm_stat          <rgTrTLRT> 7.26e-  3     1
+    ## 4 eth_cat           <rgTrTLRT> 1.12e-  3     1
+    ## 5 ausualpl_cat      <rgTrTLRT> 2.33e-  4     1
+    ## 6 educ_cat          <rgTrTLRT> 2.14e-  7     1
+    ## 7 finc_cat          <rgTrTLRT> 1.10e- 13     1
+    ## 8 age_cat           <rgTrTLRT> 1.48e- 33     1
+    ## 9 lcond_chronic_cat <rgTrTLRT> 1.60e-209     1
+
+``` r
+mod2 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
+                     ausualpl_cat + finc_cat + cover_cat + lcond_chronic_cat + 
+                     eth_cat + race_cat, design = des2, 
        family = binomial,
        subset = inc == 1) 
 ```
@@ -1695,7 +1791,7 @@ mod_step1 <- svyglm(paprec_3bcat ~ age_cat + educ_cat +
     ## glm!
 
 ``` r
-jtools::summ(mod_step1)
+jtools::summ(mod2)
 ```
 
 <table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
@@ -1712,7 +1808,7 @@ Observations
 
 <td style="text-align:right;">
 
-13929
+3148
 
 </td>
 
@@ -1801,7 +1897,7 @@ Pseudo-R² (Cragg-Uhler)
 
 <td style="text-align:right;">
 
-0.06
+0.09
 
 </td>
 
@@ -1813,712 +1909,6 @@ Pseudo-R² (Cragg-Uhler)
 
 Pseudo-R²
 (McFadden)
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-AIC
-
-</td>
-
-<td style="text-align:right;">
-
-12736.02
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<thead>
-
-<tr>
-
-<th style="text-align:left;">
-
-</th>
-
-<th style="text-align:right;">
-
-Est.
-
-</th>
-
-<th style="text-align:right;">
-
-S.E.
-
-</th>
-
-<th style="text-align:right;">
-
-t val.
-
-</th>
-
-<th style="text-align:right;">
-
-p
-
-</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-(Intercept)
-
-</td>
-
-<td style="text-align:right;">
-
-2.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.26
-
-</td>
-
-<td style="text-align:right;">
-
-8.26
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-age\_cat40–49
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.80
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-\-7.25
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-age\_cat50–64
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.39
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-\-14.42
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-age\_cat65+
-
-</td>
-
-<td style="text-align:right;">
-
-\-2.61
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-\-24.34
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-educ\_catHigh school
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.53
-
-</td>
-
-<td style="text-align:right;">
-
-0.08
-
-</td>
-
-<td style="text-align:right;">
-
-\-6.45
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-educ\_catLess than high school
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.66
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-\-5.92
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-educ\_catSome college
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.32
-
-</td>
-
-<td style="text-align:right;">
-
-0.08
-
-</td>
-
-<td style="text-align:right;">
-
-\-4.25
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-ausualpl\_catNo
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.76
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-\-7.34
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat200–299%
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-0.08
-
-</td>
-
-<td style="text-align:right;">
-
-1.41
-
-</td>
-
-<td style="text-align:right;">
-
-0.16
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat300–399%
-
-</td>
-
-<td style="text-align:right;">
-
-0.27
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-2.62
-
-</td>
-
-<td style="text-align:right;">
-
-0.01
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat400–499%
-
-</td>
-
-<td style="text-align:right;">
-
-0.20
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-1.90
-
-</td>
-
-<td style="text-align:right;">
-
-0.06
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat\>=500%
-
-</td>
-
-<td style="text-align:right;">
-
-0.56
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-<td style="text-align:right;">
-
-5.86
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat\>=200%, no further detail
-
-</td>
-
-<td style="text-align:right;">
-
-0.15
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.84
-
-</td>
-
-<td style="text-align:right;">
-
-0.40
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-cover\_catPrivate/Military
-
-</td>
-
-<td style="text-align:right;">
-
-0.67
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-6.28
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-cover\_catPublic
-
-</td>
-
-<td style="text-align:right;">
-
-0.51
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-4.20
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-eth\_catNot Hispanic
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.48
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-\-4.23
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-race\_catAsian
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.27
-
-</td>
-
-<td style="text-align:right;">
-
-0.67
-
-</td>
-
-<td style="text-align:right;">
-
-0.50
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-race\_catBlack
-
-</td>
-
-<td style="text-align:right;">
-
-0.60
-
-</td>
-
-<td style="text-align:right;">
-
-0.23
-
-</td>
-
-<td style="text-align:right;">
-
-2.60
-
-</td>
-
-<td style="text-align:right;">
-
-0.01
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-race\_catWhite
-
-</td>
-
-<td style="text-align:right;">
-
-0.22
-
-</td>
-
-<td style="text-align:right;">
-
-0.22
-
-</td>
-
-<td style="text-align:right;">
-
-1.02
 
 </td>
 
@@ -2534,261 +1924,13 @@ race\_catWhite
 
 <td style="text-align:left;font-weight: bold;">
 
-imm\_statIn U.S. \< 10 yrs
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.02
-
-</td>
-
-<td style="text-align:right;">
-
-0.23
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.09
-
-</td>
-
-<td style="text-align:right;">
-
-0.93
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-imm\_statIn U.S. \>= 10 yrs
-
-</td>
-
-<td style="text-align:right;">
-
-0.16
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-1.37
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-</tr>
-
-</tbody>
-
-<tfoot>
-
-<tr>
-
-<td style="padding: 0; border: 0;" colspan="100%">
-
-<sup></sup> Standard errors: Robust
-
-</td>
-
-</tr>
-
-</tfoot>
-
-</table>
-
-``` r
-car::Anova(mod_step1, type = "3")
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: paprec_3bcat
-    ##              Df    Chisq Pr(>Chisq)    
-    ## (Intercept)   1  68.2801  < 2.2e-16 ***
-    ## age_cat       3 699.9782  < 2.2e-16 ***
-    ## educ_cat      3  50.3888  6.602e-11 ***
-    ## ausualpl_cat  1  53.9240  2.084e-13 ***
-    ## finc_cat      5  36.4654  7.665e-07 ***
-    ## cover_cat     2  40.4513  1.645e-09 ***
-    ## eth_cat       1  17.9157  2.309e-05 ***
-    ## race_cat      3  24.1748  2.297e-05 ***
-    ## imm_stat      2   2.1703     0.3378    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-#remove imm_stat
-mod_step2 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
-                     ausualpl_cat + finc_cat + cover_cat + 
-                     eth_cat + race_cat, design = des2, 
-       family = binomial,
-       subset = inc == 1) 
-```
-
-    ## Warning in eval(family$initialize): non-integer #successes in a binomial
-    ## glm!
-
-``` r
-jtools::summ(mod_step2)
-```
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Observations
-
-</td>
-
-<td style="text-align:right;">
-
-13948
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Dependent variable
-
-</td>
-
-<td style="text-align:right;">
-
-paprec\_3bcat
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Type
-
-</td>
-
-<td style="text-align:right;">
-
-Survey-weighted generalized linear
-model
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Family
-
-</td>
-
-<td style="text-align:right;">
-
-binomial
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Link
-
-</td>
-
-<td style="text-align:right;">
-
-logit
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R² (Cragg-Uhler)
-
-</td>
-
-<td style="text-align:right;">
-
-0.06
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R²
-(McFadden)
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
 AIC
 
 </td>
 
 <td style="text-align:right;">
 
-12762.26
+2890.12
 
 </td>
 
@@ -2848,19 +1990,19 @@ p
 
 <td style="text-align:right;">
 
-2.26
+2.36
 
 </td>
 
 <td style="text-align:right;">
 
-0.25
+0.66
 
 </td>
 
 <td style="text-align:right;">
 
-8.89
+3.58
 
 </td>
 
@@ -2882,19 +2024,19 @@ age\_cat40–49
 
 <td style="text-align:right;">
 
-\-0.79
+\-1.00
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.33
 
 </td>
 
 <td style="text-align:right;">
 
-\-7.10
+\-3.07
 
 </td>
 
@@ -2922,13 +2064,13 @@ age\_cat50–64
 
 <td style="text-align:right;">
 
-0.10
+0.27
 
 </td>
 
 <td style="text-align:right;">
 
-\-14.37
+\-5.19
 
 </td>
 
@@ -2950,19 +2092,19 @@ age\_cat65+
 
 <td style="text-align:right;">
 
-\-2.59
+\-2.75
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.28
 
 </td>
 
 <td style="text-align:right;">
 
-\-24.19
+\-9.90
 
 </td>
 
@@ -2984,25 +2126,25 @@ educ\_catHigh school
 
 <td style="text-align:right;">
 
-\-0.54
+\-0.45
 
 </td>
 
 <td style="text-align:right;">
 
-0.08
+0.18
 
 </td>
 
 <td style="text-align:right;">
 
-\-6.52
+\-2.51
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+0.01
 
 </td>
 
@@ -3018,19 +2160,19 @@ educ\_catLess than high school
 
 <td style="text-align:right;">
 
-\-0.66
+\-0.87
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.21
 
 </td>
 
 <td style="text-align:right;">
 
-\-5.92
+\-4.14
 
 </td>
 
@@ -3052,25 +2194,25 @@ educ\_catSome college
 
 <td style="text-align:right;">
 
-\-0.33
+\-0.27
 
 </td>
 
 <td style="text-align:right;">
 
-0.08
+0.18
 
 </td>
 
 <td style="text-align:right;">
 
-\-4.38
+\-1.53
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+0.13
 
 </td>
 
@@ -3086,19 +2228,19 @@ ausualpl\_catNo
 
 <td style="text-align:right;">
 
-\-0.77
+\-0.99
 
 </td>
 
 <td style="text-align:right;">
 
-0.10
+0.29
 
 </td>
 
 <td style="text-align:right;">
 
-\-7.44
+\-3.48
 
 </td>
 
@@ -3120,25 +2262,25 @@ finc\_cat200–299%
 
 <td style="text-align:right;">
 
-0.12
+0.13
 
 </td>
 
 <td style="text-align:right;">
 
-0.08
+0.16
 
 </td>
 
 <td style="text-align:right;">
 
-1.39
+0.83
 
 </td>
 
 <td style="text-align:right;">
 
-0.17
+0.41
 
 </td>
 
@@ -3160,19 +2302,19 @@ finc\_cat300–399%
 
 <td style="text-align:right;">
 
-0.10
+0.23
 
 </td>
 
 <td style="text-align:right;">
 
-2.53
+1.14
 
 </td>
 
 <td style="text-align:right;">
 
-0.01
+0.25
 
 </td>
 
@@ -3188,25 +2330,25 @@ finc\_cat400–499%
 
 <td style="text-align:right;">
 
-0.19
+\-0.11
 
 </td>
 
 <td style="text-align:right;">
 
-0.10
+0.21
 
 </td>
 
 <td style="text-align:right;">
 
-1.83
+\-0.54
 
 </td>
 
 <td style="text-align:right;">
 
-0.07
+0.59
 
 </td>
 
@@ -3222,25 +2364,25 @@ finc\_cat\>=500%
 
 <td style="text-align:right;">
 
-0.55
+0.31
 
 </td>
 
 <td style="text-align:right;">
 
-0.09
+0.20
 
 </td>
 
 <td style="text-align:right;">
 
-5.80
+1.53
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+0.13
 
 </td>
 
@@ -3256,25 +2398,25 @@ finc\_cat\>=200%, no further detail
 
 <td style="text-align:right;">
 
-0.15
+0.13
 
 </td>
 
 <td style="text-align:right;">
 
-0.17
+0.31
 
 </td>
 
 <td style="text-align:right;">
 
-0.86
+0.41
 
 </td>
 
 <td style="text-align:right;">
 
-0.39
+0.68
 
 </td>
 
@@ -3290,25 +2432,25 @@ cover\_catPrivate/Military
 
 <td style="text-align:right;">
 
-0.67
+0.78
 
 </td>
 
 <td style="text-align:right;">
 
-0.10
+0.31
 
 </td>
 
 <td style="text-align:right;">
 
-6.42
+2.51
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+0.01
 
 </td>
 
@@ -3324,25 +2466,59 @@ cover\_catPublic
 
 <td style="text-align:right;">
 
-0.50
+0.74
 
 </td>
 
 <td style="text-align:right;">
 
-0.12
+0.30
 
 </td>
 
 <td style="text-align:right;">
 
-4.25
+2.45
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+0.01
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+lcond\_chronic\_catYes
+
+</td>
+
+<td style="text-align:right;">
+
+0.10
+
+</td>
+
+<td style="text-align:right;">
+
+0.29
+
+</td>
+
+<td style="text-align:right;">
+
+0.35
+
+</td>
+
+<td style="text-align:right;">
+
+0.73
 
 </td>
 
@@ -3358,19 +2534,19 @@ eth\_catNot Hispanic
 
 <td style="text-align:right;">
 
-\-0.55
+\-0.81
 
 </td>
 
 <td style="text-align:right;">
 
-0.10
+0.19
 
 </td>
 
 <td style="text-align:right;">
 
-\-5.62
+\-4.16
 
 </td>
 
@@ -3392,25 +2568,25 @@ race\_catAsian
 
 <td style="text-align:right;">
 
-0.27
+0.46
 
 </td>
 
 <td style="text-align:right;">
 
-0.26
+0.53
 
 </td>
 
 <td style="text-align:right;">
 
-1.03
+0.87
 
 </td>
 
 <td style="text-align:right;">
 
-0.31
+0.38
 
 </td>
 
@@ -3426,25 +2602,25 @@ race\_catBlack
 
 <td style="text-align:right;">
 
-0.61
+0.40
 
 </td>
 
 <td style="text-align:right;">
 
-0.24
+0.46
 
 </td>
 
 <td style="text-align:right;">
 
-2.58
+0.87
 
 </td>
 
 <td style="text-align:right;">
 
-0.01
+0.39
 
 </td>
 
@@ -3460,25 +2636,25 @@ race\_catWhite
 
 <td style="text-align:right;">
 
-0.22
+0.00
 
 </td>
 
 <td style="text-align:right;">
 
-0.22
+0.46
 
 </td>
 
 <td style="text-align:right;">
 
-1.00
+0.01
 
 </td>
 
 <td style="text-align:right;">
 
-0.32
+0.99
 
 </td>
 
@@ -3503,669 +2679,63 @@ race\_catWhite
 </table>
 
 ``` r
-car::Anova(mod_step2, type = "3")
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: paprec_3bcat
-    ##              Df   Chisq Pr(>Chisq)    
-    ## (Intercept)   1  79.060  < 2.2e-16 ***
-    ## age_cat       3 700.524  < 2.2e-16 ***
-    ## educ_cat      3  50.880  5.189e-11 ***
-    ## ausualpl_cat  1  55.367  9.998e-14 ***
-    ## finc_cat      5  35.637  1.123e-06 ***
-    ## cover_cat     2  42.151  7.032e-10 ***
-    ## eth_cat       1  31.640  1.856e-08 ***
-    ## race_cat      3  24.975  1.563e-05 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-mod_small <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
-                     ausualpl_cat + cover_cat + 
-                     eth_cat, design = des2, 
-       family = binomial,
-       subset = inc == 1) 
+sig2 = tibble(vars) %>% 
+  filter(vars != "imm_stat") %>% 
+  mutate(test = map(vars, ~regTermTest(mod, .x,  method = "LRT"))) %>% 
+  mutate(pval = map_dbl(test, ~.x$p)) %>% 
+  arrange(desc(pval)) %>% 
+  mutate(sig = if_else(pval > 0.05, 0, 1))
 ```
 
     ## Warning in eval(family$initialize): non-integer #successes in a binomial
     ## glm!
-
-``` r
-jtools::summ(mod_small)
-```
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Observations
-
-</td>
-
-<td style="text-align:right;">
-
-15059
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Dependent variable
-
-</td>
-
-<td style="text-align:right;">
-
-paprec\_3bcat
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Type
-
-</td>
-
-<td style="text-align:right;">
-
-Survey-weighted generalized linear
-model
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Family
-
-</td>
-
-<td style="text-align:right;">
-
-binomial
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Link
-
-</td>
-
-<td style="text-align:right;">
-
-logit
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R² (Cragg-Uhler)
-
-</td>
-
-<td style="text-align:right;">
-
-0.05
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R²
-(McFadden)
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-AIC
-
-</td>
-
-<td style="text-align:right;">
-
-13831.52
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<thead>
-
-<tr>
-
-<th style="text-align:left;">
-
-</th>
-
-<th style="text-align:right;">
-
-Est.
-
-</th>
-
-<th style="text-align:right;">
-
-S.E.
-
-</th>
-
-<th style="text-align:right;">
-
-t val.
-
-</th>
-
-<th style="text-align:right;">
-
-p
-
-</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-(Intercept)
-
-</td>
-
-<td style="text-align:right;">
-
-2.71
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-20.12
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-age\_cat40–49
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.82
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-\-7.50
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-age\_cat50–64
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.35
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-<td style="text-align:right;">
-
-\-14.67
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-age\_cat65+
-
-</td>
-
-<td style="text-align:right;">
-
-\-2.61
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-\-24.71
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-educ\_catHigh school
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.68
-
-</td>
-
-<td style="text-align:right;">
-
-0.08
-
-</td>
-
-<td style="text-align:right;">
-
-\-8.84
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-educ\_catLess than high school
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.84
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-\-8.31
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-educ\_catSome college
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.44
-
-</td>
-
-<td style="text-align:right;">
-
-0.07
-
-</td>
-
-<td style="text-align:right;">
-
-\-6.41
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-ausualpl\_catNo
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.80
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-\-8.14
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-cover\_catPrivate/Military
-
-</td>
-
-<td style="text-align:right;">
-
-0.76
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-7.54
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-cover\_catPublic
-
-</td>
-
-<td style="text-align:right;">
-
-0.50
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-4.33
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-eth\_catNot Hispanic
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.46
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-<td style="text-align:right;">
-
-\-5.11
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-</tbody>
-
-<tfoot>
-
-<tr>
-
-<td style="padding: 0; border: 0;" colspan="100%">
-
-<sup></sup> Standard errors:
-    Robust
-
-</td>
-
-</tr>
-
-</tfoot>
-
-</table>
-
-``` r
-anova(mod_step2, mod_small) #go with step2
-```
-
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
+    ## Warning in eval(family$initialize): non-integer #successes in a binomial
+    ## glm!
+    
     ## Warning in eval(family$initialize): non-integer #successes in a binomial
     ## glm!
 
-    ## Working (Rao-Scott+F) LRT for finc_cat race_cat
-    ##  in svyglm(formula = paprec_3bcat ~ age_cat + educ_cat + ausualpl_cat + 
-    ##     finc_cat + cover_cat + eth_cat + race_cat, design = des2, 
-    ##     subset = inc == 1, family = binomial)
-    ## Working 2logLR =  646.7665 p= < 2.22e-16 
-    ## (scale factors:  1.3 1.3 1.1 0.99 0.94 0.86 0.81 0.67 );  denominator df= 282
-
 ``` r
-broom::tidy(mod_step2 , exponentiate = TRUE, conf.int = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  knitr::kable(digits = 2)
+sig2
 ```
 
-| term                                | estimate | conf.low | conf.high | p.value |
-| :---------------------------------- | -------: | -------: | --------: | ------: |
-| (Intercept)                         |     9.59 |     5.82 |     15.78 |    0.00 |
-| age\_cat40–49                       |     0.45 |     0.36 |      0.56 |    0.00 |
-| age\_cat50–64                       |     0.25 |     0.21 |      0.30 |    0.00 |
-| age\_cat65+                         |     0.07 |     0.06 |      0.09 |    0.00 |
-| educ\_catHigh school                |     0.58 |     0.50 |      0.69 |    0.00 |
-| educ\_catLess than high school      |     0.52 |     0.42 |      0.64 |    0.00 |
-| educ\_catSome college               |     0.72 |     0.62 |      0.83 |    0.00 |
-| ausualpl\_catNo                     |     0.46 |     0.38 |      0.57 |    0.00 |
-| finc\_cat200–299%                   |     1.13 |     0.95 |      1.33 |    0.17 |
-| finc\_cat300–399%                   |     1.30 |     1.06 |      1.58 |    0.01 |
-| finc\_cat400–499%                   |     1.21 |     0.99 |      1.48 |    0.07 |
-| finc\_cat\>=500%                    |     1.73 |     1.44 |      2.09 |    0.00 |
-| finc\_cat\>=200%, no further detail |     1.16 |     0.82 |      1.64 |    0.39 |
-| cover\_catPrivate/Military          |     1.95 |     1.59 |      2.39 |    0.00 |
-| cover\_catPublic                    |     1.65 |     1.31 |      2.09 |    0.00 |
-| eth\_catNot Hispanic                |     0.57 |     0.47 |      0.70 |    0.00 |
-| race\_catAsian                      |     1.30 |     0.78 |      2.17 |    0.31 |
-| race\_catBlack                      |     1.83 |     1.16 |      2.91 |    0.01 |
-| race\_catWhite                      |     1.25 |     0.81 |      1.93 |    0.32 |
+    ## # A tibble: 8 x 4
+    ##   vars              test            pval   sig
+    ##   <chr>             <list>         <dbl> <dbl>
+    ## 1 race_cat          <rgTrTLRT> 4.00e-  2     1
+    ## 2 cover_cat         <rgTrTLRT> 9.20e-  3     1
+    ## 3 eth_cat           <rgTrTLRT> 1.12e-  3     1
+    ## 4 ausualpl_cat      <rgTrTLRT> 2.33e-  4     1
+    ## 5 educ_cat          <rgTrTLRT> 2.14e-  7     1
+    ## 6 finc_cat          <rgTrTLRT> 1.10e- 13     1
+    ## 7 age_cat           <rgTrTLRT> 1.48e- 33     1
+    ## 8 lcond_chronic_cat <rgTrTLRT> 1.60e-209     1
 
 ``` r
-new_coef <- stringr::str_remove(names(coef(mod_step2)), "^[^_]*_cat")  #make pretty names
-coef <- names(coef(mod_step2)) #assign pretty names
+new_coef <- stringr::str_remove(names(coef(mod2)), "^[^_]*_cat")  #make pretty names
+coef <- names(coef(mod2)) #assign pretty names
 names(coef) <- new_coef #names original coef vector with pretty names
 coef <- coef[-1] #remove intercept
 
-jtools::plot_summs(mod_step2, ci_level = 0.95, 
+jtools::plot_summs(mod2, ci_level = 0.95, 
                    coefs = coef,
                    exp = TRUE, robust = TRUE) + labs(title = "Pap Smear Significant Predictors")
 ```
 
-![](papsmear_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+![](papsmear_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
