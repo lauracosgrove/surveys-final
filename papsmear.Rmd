@@ -266,6 +266,9 @@ des <- svydesign(ids = ~psu_p, strata = ~strat_p,
 pap_dat %>% select(ends_with("cat"))  %>% names()
 pap_dat %>% count(paprec_3bcat) #unwt
 
+svyby(~paprec_3bcat, by = ~inc, svymean, na.rm = TRUE, design = des, vartype = "ci") %>% filter(inc == 1)
+pap_dat %>% count(paprec_3bcat, inc) %>% drop_na() %>% filter(inc == 1) %>% summarize(n = sum(n))
+
 ```
 
 # descriptive stats
@@ -288,18 +291,18 @@ var2_sym = ifelse(is.null(var2), rlang::sym(" "), rlang::sym(var2))
 if (is.null(var2)) {
   pap_dat %>% 
     count(!!outcome_sym, !!inc_sym, !!var1_sym) %>% drop_na() %>% 
-    group_by(!!var1_sym, !!inc_sym) %>% 
+    group_by(!!var1_sym, !!inc_sym) %>% filter(!!inc_sym == 1) %>% 
     summarize(n = sum(n))
 } else  {
   pap_dat %>% 
-    count(!!outcome_sym, !!inc_sym, !!var1_sym, !!var2_sym) %>% drop_na() %>% 
-    group_by(!!var1_sym, !!var2_sym, !!inc_sym) %>% 
+    count(!!outcome_sym, !!inc_sym, !!var2_sym, !!var1_sym) %>% drop_na() %>% 
+    group_by(!!var2_sym, !!var1_sym, !!inc_sym) %>% filter(!!inc_sym == 1) %>% 
     summarize(n = sum(n))
 
 }
 }
 
-tot_func()
+tot_func(var2 = NULL, var1 = "race_cat")
 
 pap_by <- pap_dat %>% 
   select(ends_with("cat"), imm_stat, -paprec_3bcat) %>% 
@@ -308,8 +311,8 @@ pap_by <- pap_dat %>%
   tibble(var = .) %>% 
   mutate(pct = map(var, ~pct_func(var1 = .x))) %>% 
   mutate(tot = map(var, ~tot_func(var1 = .x))) %>% 
-  mutate(pct_byage = map(var, ~pct_func(var1 = "age_cat", var2 = .x))) %>% 
-  mutate(tot_byage = map(var, ~tot_func(var1 = "age_cat", var2 = .x)))
+  mutate(pct_byage = map(var, ~pct_func(var2 = "age_cat", var1 = .x))) %>% 
+  mutate(tot_byage = map(var, ~tot_func(var2 = "age_cat", var1 = .x)))
 ```
 
 ```{r}
@@ -319,9 +322,10 @@ get_comp_tables <- function(tablepct, tabletot, var) {
   filter(inc == 1) %>% 
   bind_cols(tabletot) %>% 
   mutate_at(vars(paprec_3bcat, ci_l, ci_u), ~round(.x*100, 1)) %>% 
-  mutate(pct = paste0(paprec_3bcat, " (", ci_l, ", ", ci_u, ")")) %>% 
+  mutate(pct = paprec_3bcat) %>% 
+  mutate(pct_ci = paste0("(", ci_l, ", ", ci_u, ")")) %>% 
   mutate(tot = t_n) %>% 
-  select(var, pct, tot) %>% 
+  select(var, tot, pct, pct_ci) %>% 
   rename(levels = var) %>% 
   as_tibble()
 }
@@ -336,8 +340,9 @@ pap_sel <- pap_by %>%
   unnest(-var)
   
 pap_sel %>% 
+  dplyr::select(var, levels, tot, pct, pct_ci) %>% 
   filter(!levels %in% c("Unknown", "Other")) %>% 
-  knitr::kable(names = c("Variable", "Levels", "Percent", "Total"))
+  knitr::kable(names = c("Variable", "Levels", "Total", "Percent"))
 
 get_by_tables <- function(tablepct, tabletot, var) {
   tabletot <- tabletot %>% filter(inc == 1) %>% rename_all(~paste0("t_", .x)) 
@@ -366,7 +371,8 @@ pap_strat <- pap_by %>%
 
 pap_strat %>% 
   filter(var != "age_cat") %>% 
-  pivot_wider(names_from = age_cat, values_from = c(pct, tot), names_prefix = "Age_", names_sep = "_") %>% 
+  rename(n = tot) %>% 
+  pivot_wider(names_from = age_cat, values_from = c(n, pct), names_prefix = "Age_", names_sep = "_") %>% 
   select(var, levels, ends_with("39"), ends_with("49"), ends_with("64"), ends_with("+")) %>%
   knitr::kable()
 ```
@@ -450,7 +456,6 @@ pap_formod <- pap_dat %>%
   select(psu_p, strat_p, wtfa_sa, ends_with("cat"), imm_stat, hpvhrd, paphad1, mdrecp1, inc) %>% 
   mutate(imm_stat = if_else(imm_stat == "Born in U.S.", "Born in U.S.", "Immigrated")) %>% 
   mutate(lcond_chronic_cat = forcats::fct_explicit_na(lcond_chronic_cat, "None Reported"))
-
 
 pap_formod <- pap_formod %>% 
   mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
