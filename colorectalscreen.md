@@ -2344,15 +2344,12 @@ coef_new = stringr::str_remove(coef_new, "^[^_]*lcond_chronic_cat[)]")
 names(coef) <- coef_new
 coef1 = coef[-1] # remove intercept 
 coef2 = coef1[-7] # remove coefficient for Usual Care = Other
-coef3a = coef2[-12] 
-coef3b = coef2[12] # pull out immigration status because of the intercept magnitude
+coef3c = coef2[-2] # remove income = unknown
 
 # plot ORs with CIs
-jtools::plot_summs(col2_fit2, coefs = coef3a, exp = TRUE) +
+jtools::plot_summs(col2_fit2, coefs = coef3c, exp = TRUE) +
   labs(title = "Colorectal Screen Significant Predictors") +
   scale_x_continuous(limits = c(0, 6), breaks = c(0, 2, 4, 6))
 ```
 
 ![](colorectalscreen_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
-
-\`\`\`
