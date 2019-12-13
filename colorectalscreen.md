@@ -2346,6 +2346,30 @@ coef1 = coef[-1] # remove intercept
 coef2 = coef1[-7] # remove coefficient for Usual Care = Other
 coef3c = coef2[-2] # remove income = unknown
 
+model_coef = broom::tidy(col2_fit2, conf.int = TRUE, 
+                         conf.level = 0.95, exponentiate = TRUE) %>%
+  mutate(term = case_when(term == "(Intercept)" ~ "Intercept",
+                          term == "as.factor(finc_cat2)>=200%" ~ ">=200% vs <200% Poverty Level",
+                          term == "as.factor(race_cat)Asian" ~ "Asian vs American Indian/Alaskan Native",
+                          term == "as.factor(race_cat)Black" ~ "Black vs American Indian/Alaskan Native",
+                          term == "as.factor(race_cat)White" ~ "White vs American Indian/Alaskan Native")) 
+
+model_coef[is.na(model_coef)] = "Chronic Condition vs No Chronic Condition"
+model_coef = model_coef[-3,]
+
+model_coef %>% knitr::kable()
+```
+
+| term                                      |  estimate | std.error |   statistic |   p.value |  conf.low | conf.high |
+| :---------------------------------------- | --------: | --------: | ----------: | --------: | --------: | --------: |
+| Intercept                                 | 0.2557411 | 0.8698380 | \-1.5676366 | 0.1189793 | 0.0464936 |  1.406721 |
+| \>=200% vs \<200% Poverty Level           | 0.7984074 | 0.1833352 | \-1.2280042 | 0.2212832 | 0.5574031 |  1.143615 |
+| Chronic Condition vs No Chronic Condition | 0.9997479 | 0.6704593 | \-0.0003760 | 0.9997005 | 0.2686547 |  3.720373 |
+| Asian vs American Indian/Alaskan Native   | 2.1655465 | 0.7517048 |   1.0278939 | 0.3055807 | 0.4962668 |  9.449738 |
+| Black vs American Indian/Alaskan Native   | 2.8826869 | 0.6195526 |   1.7088505 | 0.0894547 | 0.8559203 |  9.708713 |
+| White vs American Indian/Alaskan Native   | 1.3642359 | 0.6114087 |   0.5079981 | 0.6121676 | 0.4115830 |  4.521906 |
+
+``` r
 # plot ORs with CIs
 jtools::plot_summs(col2_fit2, coefs = coef3c, exp = TRUE) +
   labs(title = "Colorectal Screen Significant Predictors") +
