@@ -760,1880 +760,6 @@ ins_tab %>%
 Models
 
 ``` r
-col_fit = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 1,
-                  family = binomial(link = "logit"))
-summary(col_fit)
-```
-
-    ## 
-    ## Call:
-    ## svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
-    ##     as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
-    ##     as.factor(eth_cat) + as.factor(imm_stat), design = des, subset = domain == 
-    ##     1, family = binomial(link = "logit"))
-    ## 
-    ## Survey design:
-    ## svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, 
-    ##     nest = TRUE, data = col_dat)
-    ## 
-    ## Coefficients:
-    ##                                               Estimate Std. Error t value
-    ## (Intercept)                                   -1.08030    0.55007  -1.964
-    ## as.factor(age_cat)65+                         -0.22385    0.11822  -1.893
-    ## as.factor(educ_cat)High school                 0.16931    0.12939   1.309
-    ## as.factor(educ_cat)Less than high school       0.06568    0.17467   0.376
-    ## as.factor(educ_cat)Some college               -0.03013    0.13656  -0.221
-    ## as.factor(finc_cat)>=200%, no further detail  -0.19415    0.26869  -0.723
-    ## as.factor(finc_cat)>=500%                      0.08225    0.16594   0.496
-    ## as.factor(finc_cat)200–299%                   -0.22656    0.17185  -1.318
-    ## as.factor(finc_cat)300–399%                   -0.40463    0.21482  -1.884
-    ## as.factor(finc_cat)400–499%                    0.03187    0.17678   0.180
-    ## as.factor(ausualpl_cat)Other                 -11.51020    1.12087 -10.269
-    ## as.factor(ausualpl_cat)Yes                     0.77967    0.41630   1.873
-    ## as.factor(cover_cat)Private/Military          -0.56473    0.36681  -1.540
-    ## as.factor(cover_cat)Public                    -0.30357    0.36746  -0.826
-    ## as.factor(eth_cat)Non-Hispanic AN/AI          -0.54568    0.52733  -1.035
-    ## as.factor(eth_cat)Non-Hispanic Asian           0.50023    0.30487   1.641
-    ## as.factor(eth_cat)Non-Hispanic Black           0.25527    0.24389   1.047
-    ## as.factor(eth_cat)Non-Hispanic White          -0.18167    0.21476  -0.846
-    ## as.factor(imm_stat)In U.S. < 10 yrs            2.54161    0.66332   3.832
-    ## as.factor(imm_stat)In U.S. >= 10 yrs           0.47288    0.19236   2.458
-    ##                                              Pr(>|t|)    
-    ## (Intercept)                                  0.050642 .  
-    ## as.factor(age_cat)65+                        0.059449 .  
-    ## as.factor(educ_cat)High school               0.191877    
-    ## as.factor(educ_cat)Less than high school     0.707225    
-    ## as.factor(educ_cat)Some college              0.825539    
-    ## as.factor(finc_cat)>=200%, no further detail 0.470603    
-    ## as.factor(finc_cat)>=500%                    0.620593    
-    ## as.factor(finc_cat)200–299%                  0.188589    
-    ## as.factor(finc_cat)300–399%                  0.060782 .  
-    ## as.factor(finc_cat)400–499%                  0.857077    
-    ## as.factor(ausualpl_cat)Other                  < 2e-16 ***
-    ## as.factor(ausualpl_cat)Yes                   0.062250 .  
-    ## as.factor(cover_cat)Private/Military         0.124922    
-    ## as.factor(cover_cat)Public                   0.409514    
-    ## as.factor(eth_cat)Non-Hispanic AN/AI         0.301757    
-    ## as.factor(eth_cat)Non-Hispanic Asian         0.102099    
-    ## as.factor(eth_cat)Non-Hispanic Black         0.296252    
-    ## as.factor(eth_cat)Non-Hispanic White         0.398395    
-    ## as.factor(imm_stat)In U.S. < 10 yrs          0.000161 ***
-    ## as.factor(imm_stat)In U.S. >= 10 yrs         0.014638 *  
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 0.9872891)
-    ## 
-    ## Number of Fisher Scoring iterations: 11
-
-``` r
-summ(col_fit)
-```
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Observations
-
-</td>
-
-<td style="text-align:right;">
-
-3638
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Dependent variable
-
-</td>
-
-<td style="text-align:right;">
-
-col\_2
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Type
-
-</td>
-
-<td style="text-align:right;">
-
-Survey-weighted generalized linear
-model
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Family
-
-</td>
-
-<td style="text-align:right;">
-
-binomial
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Link
-
-</td>
-
-<td style="text-align:right;">
-
-logit
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R² (Cragg-Uhler)
-
-</td>
-
-<td style="text-align:right;">
-
-0.01
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R²
-(McFadden)
-
-</td>
-
-<td style="text-align:right;">
-
-0.04
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-AIC
-
-</td>
-
-<td style="text-align:right;">
-
-4085.53
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<thead>
-
-<tr>
-
-<th style="text-align:left;">
-
-</th>
-
-<th style="text-align:right;">
-
-Est.
-
-</th>
-
-<th style="text-align:right;">
-
-S.E.
-
-</th>
-
-<th style="text-align:right;">
-
-t val.
-
-</th>
-
-<th style="text-align:right;">
-
-p
-
-</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-(Intercept)
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.08
-
-</td>
-
-<td style="text-align:right;">
-
-0.55
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.96
-
-</td>
-
-<td style="text-align:right;">
-
-0.05
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(age\_cat)65+
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.22
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.89
-
-</td>
-
-<td style="text-align:right;">
-
-0.06
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)High school
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-1.31
-
-</td>
-
-<td style="text-align:right;">
-
-0.19
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Less than high school
-
-</td>
-
-<td style="text-align:right;">
-
-0.07
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-0.38
-
-</td>
-
-<td style="text-align:right;">
-
-0.71
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Some college
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.03
-
-</td>
-
-<td style="text-align:right;">
-
-0.14
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.22
-
-</td>
-
-<td style="text-align:right;">
-
-0.83
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)\>=200%, no further detail
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.19
-
-</td>
-
-<td style="text-align:right;">
-
-0.27
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.72
-
-</td>
-
-<td style="text-align:right;">
-
-0.47
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)\>=500%
-
-</td>
-
-<td style="text-align:right;">
-
-0.08
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-0.50
-
-</td>
-
-<td style="text-align:right;">
-
-0.62
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)200–299%
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.23
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.32
-
-</td>
-
-<td style="text-align:right;">
-
-0.19
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)300–399%
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.40
-
-</td>
-
-<td style="text-align:right;">
-
-0.21
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.88
-
-</td>
-
-<td style="text-align:right;">
-
-0.06
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)400–499%
-
-</td>
-
-<td style="text-align:right;">
-
-0.03
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.86
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(ausualpl\_cat)Other
-
-</td>
-
-<td style="text-align:right;">
-
-\-11.51
-
-</td>
-
-<td style="text-align:right;">
-
-1.12
-
-</td>
-
-<td style="text-align:right;">
-
-\-10.27
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(ausualpl\_cat)Yes
-
-</td>
-
-<td style="text-align:right;">
-
-0.78
-
-</td>
-
-<td style="text-align:right;">
-
-0.42
-
-</td>
-
-<td style="text-align:right;">
-
-1.87
-
-</td>
-
-<td style="text-align:right;">
-
-0.06
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(cover\_cat)Private/Military
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.56
-
-</td>
-
-<td style="text-align:right;">
-
-0.37
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.54
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(cover\_cat)Public
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.30
-
-</td>
-
-<td style="text-align:right;">
-
-0.37
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.83
-
-</td>
-
-<td style="text-align:right;">
-
-0.41
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic AN/AI
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.55
-
-</td>
-
-<td style="text-align:right;">
-
-0.53
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.03
-
-</td>
-
-<td style="text-align:right;">
-
-0.30
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic Asian
-
-</td>
-
-<td style="text-align:right;">
-
-0.50
-
-</td>
-
-<td style="text-align:right;">
-
-0.30
-
-</td>
-
-<td style="text-align:right;">
-
-1.64
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic Black
-
-</td>
-
-<td style="text-align:right;">
-
-0.26
-
-</td>
-
-<td style="text-align:right;">
-
-0.24
-
-</td>
-
-<td style="text-align:right;">
-
-1.05
-
-</td>
-
-<td style="text-align:right;">
-
-0.30
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic White
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.21
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.85
-
-</td>
-
-<td style="text-align:right;">
-
-0.40
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(imm\_stat)In U.S. \< 10 yrs
-
-</td>
-
-<td style="text-align:right;">
-
-2.54
-
-</td>
-
-<td style="text-align:right;">
-
-0.66
-
-</td>
-
-<td style="text-align:right;">
-
-3.83
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(imm\_stat)In U.S. \>= 10 yrs
-
-</td>
-
-<td style="text-align:right;">
-
-0.47
-
-</td>
-
-<td style="text-align:right;">
-
-0.19
-
-</td>
-
-<td style="text-align:right;">
-
-2.46
-
-</td>
-
-<td style="text-align:right;">
-
-0.01
-
-</td>
-
-</tr>
-
-</tbody>
-
-<tfoot>
-
-<tr>
-
-<td style="padding: 0; border: 0;" colspan="100%">
-
-<sup></sup> Standard errors: Robust
-
-</td>
-
-</tr>
-
-</tfoot>
-
-</table>
-
-``` r
-Anova(col_fit, type = 3)
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: col_2
-    ##                         Df    Chisq Pr(>Chisq)    
-    ## (Intercept)              1   3.8570   0.049538 *  
-    ## as.factor(age_cat)       1   3.5851   0.058299 .  
-    ## as.factor(educ_cat)      3   2.4681   0.481083    
-    ## as.factor(finc_cat)      5   9.0916   0.105465    
-    ## as.factor(ausualpl_cat)  2 139.1951  < 2.2e-16 ***
-    ## as.factor(cover_cat)     2   5.4704   0.064882 .  
-    ## as.factor(eth_cat)       4  15.2350   0.004238 ** 
-    ## as.factor(imm_stat)      2  21.7613  1.882e-05 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-col_fit2 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat), design = des, subset = domain == 1, 
-                  family = binomial(link = "logit"))
-summary(col_fit2)
-```
-
-    ## 
-    ## Call:
-    ## svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(educ_cat) + 
-    ##     as.factor(finc_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
-    ##     as.factor(eth_cat), design = des, subset = domain == 1, family = binomial(link = "logit"))
-    ## 
-    ## Survey design:
-    ## svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, 
-    ##     nest = TRUE, data = col_dat)
-    ## 
-    ## Coefficients:
-    ##                                               Estimate Std. Error t value
-    ## (Intercept)                                   -0.55817    0.55080  -1.013
-    ## as.factor(age_cat)65+                         -0.21327    0.11557  -1.845
-    ## as.factor(educ_cat)High school                 0.15919    0.12862   1.238
-    ## as.factor(educ_cat)Less than high school       0.03991    0.17550   0.227
-    ## as.factor(educ_cat)Some college               -0.05026    0.13497  -0.372
-    ## as.factor(finc_cat)>=200%, no further detail  -0.22468    0.27252  -0.824
-    ## as.factor(finc_cat)>=500%                      0.07477    0.16618   0.450
-    ## as.factor(finc_cat)200–299%                   -0.21664    0.17010  -1.274
-    ## as.factor(finc_cat)300–399%                   -0.42433    0.21412  -1.982
-    ## as.factor(finc_cat)400–499%                    0.03688    0.17421   0.212
-    ## as.factor(ausualpl_cat)Other                 -11.43331    1.11741 -10.232
-    ## as.factor(ausualpl_cat)Yes                     0.67635    0.41562   1.627
-    ## as.factor(cover_cat)Private/Military          -0.63457    0.36052  -1.760
-    ## as.factor(cover_cat)Public                    -0.37710    0.36078  -1.045
-    ## as.factor(eth_cat)Non-Hispanic AN/AI          -0.79975    0.47569  -1.681
-    ## as.factor(eth_cat)Non-Hispanic Asian           0.50786    0.29555   1.718
-    ## as.factor(eth_cat)Non-Hispanic Black          -0.05696    0.20398  -0.279
-    ## as.factor(eth_cat)Non-Hispanic White          -0.49731    0.16846  -2.952
-    ##                                              Pr(>|t|)    
-    ## (Intercept)                                   0.31184    
-    ## as.factor(age_cat)65+                         0.06615 .  
-    ## as.factor(educ_cat)High school                0.21696    
-    ## as.factor(educ_cat)Less than high school      0.82028    
-    ## as.factor(educ_cat)Some college               0.70994    
-    ## as.factor(finc_cat)>=200%, no further detail  0.41046    
-    ## as.factor(finc_cat)>=500%                     0.65314    
-    ## as.factor(finc_cat)200–299%                   0.20397    
-    ## as.factor(finc_cat)300–399%                   0.04859 *  
-    ## as.factor(finc_cat)400–499%                   0.83253    
-    ## as.factor(ausualpl_cat)Other                  < 2e-16 ***
-    ## as.factor(ausualpl_cat)Yes                    0.10491    
-    ## as.factor(cover_cat)Private/Military          0.07959 .  
-    ## as.factor(cover_cat)Public                    0.29691    
-    ## as.factor(eth_cat)Non-Hispanic AN/AI          0.09395 .  
-    ## as.factor(eth_cat)Non-Hispanic Asian          0.08695 .  
-    ## as.factor(eth_cat)Non-Hispanic Black          0.78028    
-    ## as.factor(eth_cat)Non-Hispanic White          0.00345 ** 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 0.9874879)
-    ## 
-    ## Number of Fisher Scoring iterations: 11
-
-``` r
-summ(col_fit2)
-```
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Observations
-
-</td>
-
-<td style="text-align:right;">
-
-3644
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Dependent variable
-
-</td>
-
-<td style="text-align:right;">
-
-col\_2
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Type
-
-</td>
-
-<td style="text-align:right;">
-
-Survey-weighted generalized linear
-model
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Family
-
-</td>
-
-<td style="text-align:right;">
-
-binomial
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Link
-
-</td>
-
-<td style="text-align:right;">
-
-logit
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R² (Cragg-Uhler)
-
-</td>
-
-<td style="text-align:right;">
-
-0.01
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R²
-(McFadden)
-
-</td>
-
-<td style="text-align:right;">
-
-0.03
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-AIC
-
-</td>
-
-<td style="text-align:right;">
-
-4116.55
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<thead>
-
-<tr>
-
-<th style="text-align:left;">
-
-</th>
-
-<th style="text-align:right;">
-
-Est.
-
-</th>
-
-<th style="text-align:right;">
-
-S.E.
-
-</th>
-
-<th style="text-align:right;">
-
-t val.
-
-</th>
-
-<th style="text-align:right;">
-
-p
-
-</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-(Intercept)
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.56
-
-</td>
-
-<td style="text-align:right;">
-
-0.55
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.01
-
-</td>
-
-<td style="text-align:right;">
-
-0.31
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(age\_cat)65+
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.21
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.85
-
-</td>
-
-<td style="text-align:right;">
-
-0.07
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)High school
-
-</td>
-
-<td style="text-align:right;">
-
-0.16
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-1.24
-
-</td>
-
-<td style="text-align:right;">
-
-0.22
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Less than high school
-
-</td>
-
-<td style="text-align:right;">
-
-0.04
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.23
-
-</td>
-
-<td style="text-align:right;">
-
-0.82
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Some college
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.05
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.37
-
-</td>
-
-<td style="text-align:right;">
-
-0.71
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)\>=200%, no further detail
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.22
-
-</td>
-
-<td style="text-align:right;">
-
-0.27
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.82
-
-</td>
-
-<td style="text-align:right;">
-
-0.41
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)\>=500%
-
-</td>
-
-<td style="text-align:right;">
-
-0.07
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-0.45
-
-</td>
-
-<td style="text-align:right;">
-
-0.65
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)200–299%
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.22
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.27
-
-</td>
-
-<td style="text-align:right;">
-
-0.20
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)300–399%
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.42
-
-</td>
-
-<td style="text-align:right;">
-
-0.21
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.98
-
-</td>
-
-<td style="text-align:right;">
-
-0.05
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat)400–499%
-
-</td>
-
-<td style="text-align:right;">
-
-0.04
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-0.21
-
-</td>
-
-<td style="text-align:right;">
-
-0.83
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(ausualpl\_cat)Other
-
-</td>
-
-<td style="text-align:right;">
-
-\-11.43
-
-</td>
-
-<td style="text-align:right;">
-
-1.12
-
-</td>
-
-<td style="text-align:right;">
-
-\-10.23
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(ausualpl\_cat)Yes
-
-</td>
-
-<td style="text-align:right;">
-
-0.68
-
-</td>
-
-<td style="text-align:right;">
-
-0.42
-
-</td>
-
-<td style="text-align:right;">
-
-1.63
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(cover\_cat)Private/Military
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.63
-
-</td>
-
-<td style="text-align:right;">
-
-0.36
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.76
-
-</td>
-
-<td style="text-align:right;">
-
-0.08
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(cover\_cat)Public
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.38
-
-</td>
-
-<td style="text-align:right;">
-
-0.36
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.05
-
-</td>
-
-<td style="text-align:right;">
-
-0.30
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic AN/AI
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.80
-
-</td>
-
-<td style="text-align:right;">
-
-0.48
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.68
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic Asian
-
-</td>
-
-<td style="text-align:right;">
-
-0.51
-
-</td>
-
-<td style="text-align:right;">
-
-0.30
-
-</td>
-
-<td style="text-align:right;">
-
-1.72
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic Black
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.06
-
-</td>
-
-<td style="text-align:right;">
-
-0.20
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.28
-
-</td>
-
-<td style="text-align:right;">
-
-0.78
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat)Non-Hispanic White
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.50
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-\-2.95
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-</tbody>
-
-<tfoot>
-
-<tr>
-
-<td style="padding: 0; border: 0;" colspan="100%">
-
-<sup></sup> Standard errors: Robust
-
-</td>
-
-</tr>
-
-</tfoot>
-
-</table>
-
-``` r
-Anova(col_fit2, type = 3)
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: col_2
-    ##                         Df    Chisq Pr(>Chisq)    
-    ## (Intercept)              1   1.0270    0.31087    
-    ## as.factor(age_cat)       1   3.4053    0.06499 .  
-    ## as.factor(educ_cat)      3   2.5806    0.46090    
-    ## as.factor(finc_cat)      5   9.3710    0.09515 .  
-    ## as.factor(ausualpl_cat)  2 134.3579  < 2.2e-16 ***
-    ## as.factor(cover_cat)     2   5.9908    0.05002 .  
-    ## as.factor(eth_cat)       4  37.2230   1.62e-07 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
 # get sample sizes
 # 17056
 col_temp = col_dat %>%
@@ -2657,6 +783,8 @@ col_temp65 = col_temp %>%
 ```
 
 ``` r
+#models
+
 col_dat2 = col_dat %>%
   mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
                              if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
@@ -2669,12 +797,7 @@ des2 = svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRU
 col2_fit = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat),
        design = des2, subset = domain == 1, 
        family = binomial(link = "logit"))
-```
 
-    ## Warning in eval(family$initialize): non-integer #successes in a binomial
-    ## glm!
-
-``` r
 summary(col2_fit)
 ```
 
@@ -3521,46 +1644,178 @@ as.factor(imm\_stat)In U.S. \>= 10 yrs
 </table>
 
 ``` r
-Anova(col2_fit, type = 3)
+# Rao-scott LRT ANOVA
+# test significance of full model
+
+regTermTest(col2_fit, ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) +
+              as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) +
+              as.factor(lcond_chronic_cat) + as.factor(race_cat) +
+              as.factor(eth_cat2) + as.factor(imm_stat), method = "LRT")
 ```
 
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: col_2
-    ##                              Df    Chisq Pr(>Chisq)    
-    ## (Intercept)                   1   0.0068   0.934223    
-    ## as.factor(age_cat)            1   0.6363   0.425036    
-    ## as.factor(sex)                1   0.2770   0.598690    
-    ## as.factor(educ_cat)           3   3.1598   0.367639    
-    ## as.factor(finc_cat2)          1   0.6535   0.418866    
-    ## as.factor(ausualpl_cat)       1   0.0129   0.909495    
-    ## as.factor(cover_cat)          2   2.8547   0.239939    
-    ## as.factor(lcond_chronic_cat)  1   0.0009   0.975570    
-    ## as.factor(race_cat)           3  16.9286   0.000731 ***
-    ## as.factor(eth_cat2)           1   3.5031   0.061255 .  
-    ## as.factor(imm_stat)           2 206.1369  < 2.2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## Working (Rao-Scott+F) LRT for as.factor(age_cat) as.factor(sex) as.factor(educ_cat) as.factor(finc_cat2) as.factor(ausualpl_cat) as.factor(cover_cat) as.factor(lcond_chronic_cat) as.factor(race_cat) as.factor(eth_cat2) as.factor(imm_stat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  2525.396 p= < 2.22e-16 
+    ## (scale factors:  2.1 1.7 1.4 1.4 1.2 1.1 1 0.97 0.94 0.88 0.84 0.72 0.66 0.56 0.52 1.8e-06 );  denominator df= 146
 
 ``` r
-col2_fit2 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(race_cat) + as.factor(eth_cat2),
-                   design = des2, subset = domain == 1 & ausualpl_cat != "Other", 
+# test significance of individual terms/term groups
+regTermTest(col2_fit, "as.factor(age_cat)", 
+            method = "LRT") # not sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(age_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  0.6346061 p= 0.42648 
+    ## df=1;  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(sex)", 
+            method = "LRT") # not sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(sex)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  0.2767848 p= 0.59547 
+    ## df=1;  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(educ_cat)",
+            method = "LRT") # not sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(educ_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  5.594614 p= 0.13747 
+    ## (scale factors:  1.2 0.98 0.8 );  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(finc_cat2)",
+            method = "LRT") # sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(finc_cat2)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  60.50919 p= 1.3612e-12 
+    ## df=1;  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(ausualpl_cat)",
+            method = "LRT") # not sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(ausualpl_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  0.01313729 p= 0.90374 
+    ## df=1;  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(cover_cat)",
+            method = "LRT") # not sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(cover_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  4.648562 p= 0.10067 
+    ## (scale factors:  1.2 0.78 );  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(lcond_chronic_cat)",
+            method = "LRT") # sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(lcond_chronic_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  1971.646 p= < 2.22e-16 
+    ## df=1;  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(race_cat)",
+            method = "LRT") # sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(race_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  14.41657 p= 0.0034238 
+    ## (scale factors:  1.2 1 0.84 );  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(eth_cat2)",
+            method = "LRT") # not sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(eth_cat2)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  3.381614 p= 0.070005 
+    ## df=1;  denominator df= 146
+
+``` r
+regTermTest(col2_fit, "as.factor(imm_stat)",
+            method = "LRT") # not sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(imm_stat)
+    ##  in svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
+    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
+    ##     as.factor(cover_cat) + as.factor(lcond_chronic_cat) + as.factor(race_cat) + 
+    ##     as.factor(eth_cat2) + as.factor(imm_stat), design = des2, 
+    ##     subset = domain == 1, family = binomial(link = "logit"))
+    ## Working 2logLR =  3.661241 p= 0.18087 
+    ## (scale factors:  2 7.3e-06 );  denominator df= 146
+
+``` r
+# fit reduced model with significant predictors
+col2_fit2 = svyglm(col_2 ~ as.factor(finc_cat2) + as.factor(lcond_chronic_cat) +
+                     as.factor(race_cat),
+                   design = des2, subset = domain == 1, 
                    family = binomial(link = "logit"))
-```
-
-    ## Warning in eval(family$initialize): non-integer #successes in a binomial
-    ## glm!
-
-``` r
 summary(col2_fit2)
 ```
 
     ## 
     ## Call:
-    ## svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
-    ##     as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat) + 
-    ##     as.factor(cover_cat) + as.factor(race_cat) + as.factor(eth_cat2), 
-    ##     design = des2, subset = domain == 1 & ausualpl_cat != "Other", 
+    ## svyglm(formula = col_2 ~ as.factor(finc_cat2) + as.factor(lcond_chronic_cat) + 
+    ##     as.factor(race_cat), design = des2, subset = domain == 1, 
     ##     family = binomial(link = "logit"))
     ## 
     ## Survey design:
@@ -3568,42 +1823,20 @@ summary(col2_fit2)
     ##     nest = TRUE, data = col_dat2)
     ## 
     ## Coefficients:
-    ##                                          Estimate Std. Error t value
-    ## (Intercept)                              -0.82859    0.67517  -1.227
-    ## as.factor(age_cat)65+                    -0.24222    0.11754  -2.061
-    ## as.factor(sex)M                           0.15184    0.10740   1.414
-    ## as.factor(educ_cat)High school            0.09253    0.12539   0.738
-    ## as.factor(educ_cat)Less than high school -0.02329    0.17219  -0.135
-    ## as.factor(educ_cat)Some college          -0.10038    0.13234  -0.758
-    ## as.factor(finc_cat2)>=200%               -0.10572    0.13003  -0.813
-    ## as.factor(ausualpl_cat)Yes                0.66919    0.41450   1.614
-    ## as.factor(cover_cat)Private/Military     -0.62799    0.35715  -1.758
-    ## as.factor(cover_cat)Public               -0.37542    0.35840  -1.048
-    ## as.factor(race_cat)Asian                  1.12245    0.47116   2.382
-    ## as.factor(race_cat)Black                  0.59928    0.43593   1.375
-    ## as.factor(race_cat)White                  0.24717    0.41834   0.591
-    ## as.factor(eth_cat2)Non-Hispanic          -0.43929    0.16364  -2.684
-    ##                                          Pr(>|t|)   
-    ## (Intercept)                               0.22086   
-    ## as.factor(age_cat)65+                     0.04033 * 
-    ## as.factor(sex)M                           0.15863   
-    ## as.factor(educ_cat)High school            0.46124   
-    ## as.factor(educ_cat)Less than high school  0.89252   
-    ## as.factor(educ_cat)Some college           0.44887   
-    ## as.factor(finc_cat2)>=200%                0.41693   
-    ## as.factor(ausualpl_cat)Yes                0.10766   
-    ## as.factor(cover_cat)Private/Military      0.07988 . 
-    ## as.factor(cover_cat)Public                0.29585   
-    ## as.factor(race_cat)Asian                  0.01793 * 
-    ## as.factor(race_cat)Black                  0.17042   
-    ## as.factor(race_cat)White                  0.55514   
-    ## as.factor(eth_cat2)Non-Hispanic           0.00774 **
+    ##                                   Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)                     -1.364e+00  8.698e-01  -1.568   0.1190    
+    ## as.factor(finc_cat2)>=200%      -2.251e-01  1.833e-01  -1.228   0.2213    
+    ## as.factor(finc_cat2)Unknown     -1.352e+01  6.192e-01 -21.834   <2e-16 ***
+    ## as.factor(lcond_chronic_cat)Yes -2.521e-04  6.705e-01   0.000   0.9997    
+    ## as.factor(race_cat)Asian         7.727e-01  7.517e-01   1.028   0.3056    
+    ## as.factor(race_cat)Black         1.059e+00  6.196e-01   1.709   0.0895 .  
+    ## as.factor(race_cat)White         3.106e-01  6.114e-01   0.508   0.6122    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## (Dispersion parameter for binomial family taken to be 0.9879249)
+    ## (Dispersion parameter for binomial family taken to be 0.8962369)
     ## 
-    ## Number of Fisher Scoring iterations: 4
+    ## Number of Fisher Scoring iterations: 13
 
 ``` r
 summ(col2_fit2)
@@ -3623,7 +1856,7 @@ Observations
 
 <td style="text-align:right;">
 
-3643
+1200
 
 </td>
 
@@ -3712,7 +1945,7 @@ Pseudo-R² (Cragg-Uhler)
 
 <td style="text-align:right;">
 
-0.01
+0.04
 
 </td>
 
@@ -3729,7 +1962,7 @@ Pseudo-R²
 
 <td style="text-align:right;">
 
-0.03
+0.12
 
 </td>
 
@@ -3745,7 +1978,7 @@ AIC
 
 <td style="text-align:right;">
 
-4125.78
+1168.87
 
 </td>
 
@@ -3805,13 +2038,47 @@ p
 
 <td style="text-align:right;">
 
-\-0.83
+\-1.36
 
 </td>
 
 <td style="text-align:right;">
 
-0.68
+0.87
+
+</td>
+
+<td style="text-align:right;">
+
+\-1.57
+
+</td>
+
+<td style="text-align:right;">
+
+0.12
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+as.factor(finc\_cat2)\>=200%
+
+</td>
+
+<td style="text-align:right;">
+
+\-0.23
+
+</td>
+
+<td style="text-align:right;">
+
+0.18
 
 </td>
 
@@ -3833,783 +2100,25 @@ p
 
 <td style="text-align:left;font-weight: bold;">
 
-as.factor(age\_cat)65+
+as.factor(finc\_cat2)Unknown
 
 </td>
 
 <td style="text-align:right;">
 
-\-0.24
+\-13.52
 
 </td>
 
 <td style="text-align:right;">
 
-0.12
+0.62
 
 </td>
 
 <td style="text-align:right;">
 
-\-2.06
-
-</td>
-
-<td style="text-align:right;">
-
-0.04
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(sex)M
-
-</td>
-
-<td style="text-align:right;">
-
-0.15
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-1.41
-
-</td>
-
-<td style="text-align:right;">
-
-0.16
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)High school
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-0.74
-
-</td>
-
-<td style="text-align:right;">
-
-0.46
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Less than high school
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.02
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.14
-
-</td>
-
-<td style="text-align:right;">
-
-0.89
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Some college
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.76
-
-</td>
-
-<td style="text-align:right;">
-
-0.45
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(finc\_cat2)\>=200%
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.81
-
-</td>
-
-<td style="text-align:right;">
-
-0.42
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(ausualpl\_cat)Yes
-
-</td>
-
-<td style="text-align:right;">
-
-0.67
-
-</td>
-
-<td style="text-align:right;">
-
-0.41
-
-</td>
-
-<td style="text-align:right;">
-
-1.61
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(cover\_cat)Private/Military
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.63
-
-</td>
-
-<td style="text-align:right;">
-
-0.36
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.76
-
-</td>
-
-<td style="text-align:right;">
-
-0.08
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(cover\_cat)Public
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.38
-
-</td>
-
-<td style="text-align:right;">
-
-0.36
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.05
-
-</td>
-
-<td style="text-align:right;">
-
-0.30
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(race\_cat)Asian
-
-</td>
-
-<td style="text-align:right;">
-
-1.12
-
-</td>
-
-<td style="text-align:right;">
-
-0.47
-
-</td>
-
-<td style="text-align:right;">
-
-2.38
-
-</td>
-
-<td style="text-align:right;">
-
-0.02
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(race\_cat)Black
-
-</td>
-
-<td style="text-align:right;">
-
-0.60
-
-</td>
-
-<td style="text-align:right;">
-
-0.44
-
-</td>
-
-<td style="text-align:right;">
-
-1.37
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(race\_cat)White
-
-</td>
-
-<td style="text-align:right;">
-
-0.25
-
-</td>
-
-<td style="text-align:right;">
-
-0.42
-
-</td>
-
-<td style="text-align:right;">
-
-0.59
-
-</td>
-
-<td style="text-align:right;">
-
-0.56
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat2)Non-Hispanic
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.44
-
-</td>
-
-<td style="text-align:right;">
-
-0.16
-
-</td>
-
-<td style="text-align:right;">
-
-\-2.68
-
-</td>
-
-<td style="text-align:right;">
-
-0.01
-
-</td>
-
-</tr>
-
-</tbody>
-
-<tfoot>
-
-<tr>
-
-<td style="padding: 0; border: 0;" colspan="100%">
-
-<sup></sup> Standard errors: Robust
-
-</td>
-
-</tr>
-
-</tfoot>
-
-</table>
-
-``` r
-Anova(col2_fit2, type = 3)
-```
-
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: col_2
-    ##                         Df   Chisq Pr(>Chisq)    
-    ## (Intercept)              1  1.5061  0.2197362    
-    ## as.factor(age_cat)       1  4.2470  0.0393203 *  
-    ## as.factor(sex)           1  1.9988  0.1574233    
-    ## as.factor(educ_cat)      3  1.9912  0.5742335    
-    ## as.factor(finc_cat2)     1  0.6611  0.4161803    
-    ## as.factor(ausualpl_cat)  1  2.6065  0.1064286    
-    ## as.factor(cover_cat)     2  5.9703  0.0505308 .  
-    ## as.factor(race_cat)      3 20.0702  0.0001642 ***
-    ## as.factor(eth_cat2)      1  7.2064  0.0072642 ** 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-col2_fit3 = svyglm(col_2 ~ as.factor(age_cat) + as.factor(sex) + as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + as.factor(eth_cat2),
-                   design = des2, subset = (domain == 1 & ausualpl_cat != "Other"),
-                   family = binomial(link = "logit")) 
-```
-
-    ## Warning in eval(family$initialize): non-integer #successes in a binomial
-    ## glm!
-
-``` r
-summary(col2_fit3)
-```
-
-    ## 
-    ## Call:
-    ## svyglm(formula = col_2 ~ as.factor(age_cat) + as.factor(sex) + 
-    ##     as.factor(educ_cat) + as.factor(ausualpl_cat) + as.factor(cover_cat) + 
-    ##     as.factor(eth_cat2), design = des2, subset = (domain == 1 & 
-    ##     ausualpl_cat != "Other"), family = binomial(link = "logit"))
-    ## 
-    ## Survey design:
-    ## svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, 
-    ##     nest = TRUE, data = col_dat2)
-    ## 
-    ## Coefficients:
-    ##                                          Estimate Std. Error t value
-    ## (Intercept)                              -0.76043    0.53262  -1.428
-    ## as.factor(age_cat)65+                    -0.33441    0.11429  -2.926
-    ## as.factor(sex)M                           0.12996    0.10424   1.247
-    ## as.factor(educ_cat)High school            0.13679    0.11505   1.189
-    ## as.factor(educ_cat)Less than high school  0.11763    0.16795   0.700
-    ## as.factor(educ_cat)Some college          -0.02506    0.12701  -0.197
-    ## as.factor(ausualpl_cat)Yes                0.66688    0.39211   1.701
-    ## as.factor(cover_cat)Private/Military     -0.55222    0.36407  -1.517
-    ## as.factor(cover_cat)Public               -0.25172    0.36839  -0.683
-    ## as.factor(eth_cat2)Non-Hispanic          -0.33581    0.15406  -2.180
-    ##                                          Pr(>|t|)   
-    ## (Intercept)                               0.15454   
-    ## as.factor(age_cat)65+                     0.00373 **
-    ## as.factor(sex)M                           0.21359   
-    ## as.factor(educ_cat)High school            0.23549   
-    ## as.factor(educ_cat)Less than high school  0.48427   
-    ## as.factor(educ_cat)Some college           0.84375   
-    ## as.factor(ausualpl_cat)Yes                0.09016 . 
-    ## as.factor(cover_cat)Private/Military      0.13050   
-    ## as.factor(cover_cat)Public                0.49501   
-    ## as.factor(eth_cat2)Non-Hispanic           0.03016 * 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 0.990493)
-    ## 
-    ## Number of Fisher Scoring iterations: 4
-
-``` r
-summ(col2_fit3)
-```
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Observations
-
-</td>
-
-<td style="text-align:right;">
-
-3950
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Dependent variable
-
-</td>
-
-<td style="text-align:right;">
-
-col\_2
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Type
-
-</td>
-
-<td style="text-align:right;">
-
-Survey-weighted generalized linear
-model
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Family
-
-</td>
-
-<td style="text-align:right;">
-
-binomial
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Link
-
-</td>
-
-<td style="text-align:right;">
-
-logit
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R² (Cragg-Uhler)
-
-</td>
-
-<td style="text-align:right;">
-
-0.01
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-Pseudo-R²
-(McFadden)
-
-</td>
-
-<td style="text-align:right;">
-
-0.02
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-AIC
-
-</td>
-
-<td style="text-align:right;">
-
-4500.41
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-<table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
-
-<thead>
-
-<tr>
-
-<th style="text-align:left;">
-
-</th>
-
-<th style="text-align:right;">
-
-Est.
-
-</th>
-
-<th style="text-align:right;">
-
-S.E.
-
-</th>
-
-<th style="text-align:right;">
-
-t val.
-
-</th>
-
-<th style="text-align:right;">
-
-p
-
-</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-(Intercept)
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.76
-
-</td>
-
-<td style="text-align:right;">
-
-0.53
-
-</td>
-
-<td style="text-align:right;">
-
-\-1.43
-
-</td>
-
-<td style="text-align:right;">
-
-0.15
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(age\_cat)65+
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.33
-
-</td>
-
-<td style="text-align:right;">
-
-0.11
-
-</td>
-
-<td style="text-align:right;">
-
-\-2.93
+\-21.83
 
 </td>
 
@@ -4625,143 +2134,13 @@ as.factor(age\_cat)65+
 
 <td style="text-align:left;font-weight: bold;">
 
-as.factor(sex)M
+as.factor(lcond\_chronic\_cat)Yes
 
 </td>
 
 <td style="text-align:right;">
 
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-1.25
-
-</td>
-
-<td style="text-align:right;">
-
-0.21
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)High school
-
-</td>
-
-<td style="text-align:right;">
-
-0.14
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-1.19
-
-</td>
-
-<td style="text-align:right;">
-
-0.24
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Less than high school
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-0.17
-
-</td>
-
-<td style="text-align:right;">
-
-0.70
-
-</td>
-
-<td style="text-align:right;">
-
-0.48
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(educ\_cat)Some college
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.03
-
-</td>
-
-<td style="text-align:right;">
-
-0.13
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.20
-
-</td>
-
-<td style="text-align:right;">
-
-0.84
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(ausualpl\_cat)Yes
+\-0.00
 
 </td>
 
@@ -4773,13 +2152,75 @@ as.factor(ausualpl\_cat)Yes
 
 <td style="text-align:right;">
 
-0.39
+\-0.00
 
 </td>
 
 <td style="text-align:right;">
 
-1.70
+1.00
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+as.factor(race\_cat)Asian
+
+</td>
+
+<td style="text-align:right;">
+
+0.77
+
+</td>
+
+<td style="text-align:right;">
+
+0.75
+
+</td>
+
+<td style="text-align:right;">
+
+1.03
+
+</td>
+
+<td style="text-align:right;">
+
+0.31
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+as.factor(race\_cat)Black
+
+</td>
+
+<td style="text-align:right;">
+
+1.06
+
+</td>
+
+<td style="text-align:right;">
+
+0.62
+
+</td>
+
+<td style="text-align:right;">
+
+1.71
 
 </td>
 
@@ -4795,99 +2236,31 @@ as.factor(ausualpl\_cat)Yes
 
 <td style="text-align:left;font-weight: bold;">
 
-as.factor(cover\_cat)Private/Military
+as.factor(race\_cat)White
 
 </td>
 
 <td style="text-align:right;">
 
-\-0.55
+0.31
 
 </td>
 
 <td style="text-align:right;">
 
-0.36
+0.61
 
 </td>
 
 <td style="text-align:right;">
 
-\-1.52
+0.51
 
 </td>
 
 <td style="text-align:right;">
 
-0.13
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(cover\_cat)Public
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.25
-
-</td>
-
-<td style="text-align:right;">
-
-0.37
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.68
-
-</td>
-
-<td style="text-align:right;">
-
-0.50
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-as.factor(eth\_cat2)Non-Hispanic
-
-</td>
-
-<td style="text-align:right;">
-
-\-0.34
-
-</td>
-
-<td style="text-align:right;">
-
-0.15
-
-</td>
-
-<td style="text-align:right;">
-
-\-2.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.03
+0.61
 
 </td>
 
@@ -4912,35 +2285,95 @@ as.factor(eth\_cat2)Non-Hispanic
 </table>
 
 ``` r
-Anova(col2_fit3, type = 3)
+# Rao-Scott of full model
+regTermTest(col2_fit2,  ~ as.factor(finc_cat2) + as.factor(lcond_chronic_cat) +
+                     as.factor(race_cat))
 ```
 
-    ## Analysis of Deviance Table (Type III tests)
-    ## 
-    ## Response: col_2
-    ##                         Df  Chisq Pr(>Chisq)   
-    ## (Intercept)              1 2.0384   0.153371   
-    ## as.factor(age_cat)       1 8.5612   0.003434 **
-    ## as.factor(sex)           1 1.5543   0.212498   
-    ## as.factor(educ_cat)      3 2.2055   0.530874   
-    ## as.factor(ausualpl_cat)  1 2.8925   0.088992 . 
-    ## as.factor(cover_cat)     2 7.8631   0.019613 * 
-    ## as.factor(eth_cat2)      1 4.7510   0.029282 * 
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## Wald test for as.factor(finc_cat2) as.factor(lcond_chronic_cat) as.factor(race_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(finc_cat2) + as.factor(lcond_chronic_cat) + 
+    ##     as.factor(race_cat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## F =  91.32922  on  6  and  157  df: p= < 2.22e-16
 
 ``` r
-#use fit 2
+# single term/term group significance
+regTermTest(col2_fit2, "as.factor(finc_cat2)",
+            method = "LRT") # sig
+```
 
+    ## Working (Rao-Scott+F) LRT for as.factor(finc_cat2)
+    ##  in svyglm(formula = col_2 ~ as.factor(finc_cat2) + as.factor(lcond_chronic_cat) + 
+    ##     as.factor(race_cat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  121.1718 p= 9.9137e-13 
+    ## (scale factors:  2 1.7e-06 );  denominator df= 157
+
+``` r
+regTermTest(col2_fit2, "as.factor(lcond_chronic_cat)",
+            method = "LRT") # sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(lcond_chronic_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(finc_cat2) + as.factor(lcond_chronic_cat) + 
+    ##     as.factor(race_cat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  2259.881 p= < 2.22e-16 
+    ## df=1;  denominator df= 157
+
+``` r
+regTermTest(col2_fit2, "as.factor(race_cat)",
+            method = "LRT") # sig
+```
+
+    ## Working (Rao-Scott+F) LRT for as.factor(race_cat)
+    ##  in svyglm(formula = col_2 ~ as.factor(finc_cat2) + as.factor(lcond_chronic_cat) + 
+    ##     as.factor(race_cat), design = des2, subset = domain == 1, 
+    ##     family = binomial(link = "logit"))
+    ## Working 2logLR =  13.55765 p= 0.0050541 
+    ## (scale factors:  1.2 1 0.78 );  denominator df= 157
+
+``` r
+# give labels to the coefficients to look nicer on the OR graph
 coef <- names(coef(col2_fit2))
 coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
 coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
-coef_new = stringr::str_remove(coef_new, "^[^_]*sex[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_stat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*lcond_chronic_cat[)]")
 names(coef) <- coef_new
-coef = coef[-1]
+coef1 = coef[-1] # remove intercept 
+coef2 = coef1[-7] # remove coefficient for Usual Care = Other
+coef3c = coef2[-2] # remove income = unknown
 
-jtools::plot_summs(col2_fit, coefs = coef, exp = TRUE) +
-  labs(title = "Colorectal Screen Significant Predictors")
+model_coef = broom::tidy(col2_fit2, conf.int = TRUE, 
+                         conf.level = 0.95, exponentiate = TRUE) %>%
+  mutate(term = case_when(term == "(Intercept)" ~ "Intercept",
+                          term == "as.factor(finc_cat2)>=200%" ~ ">=200% vs <200% Poverty Level",
+                          term == "as.factor(race_cat)Asian" ~ "Asian vs American Indian/Alaskan Native",
+                          term == "as.factor(race_cat)Black" ~ "Black vs American Indian/Alaskan Native",
+                          term == "as.factor(race_cat)White" ~ "White vs American Indian/Alaskan Native")) 
+
+model_coef[is.na(model_coef)] = "Chronic Condition vs No Chronic Condition"
+model_coef = model_coef[-3,]
+
+model_coef %>% knitr::kable()
 ```
 
-![](colorectalscreen_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+| term                                      |  estimate | std.error |   statistic |   p.value |  conf.low | conf.high |
+| :---------------------------------------- | --------: | --------: | ----------: | --------: | --------: | --------: |
+| Intercept                                 | 0.2557411 | 0.8698380 | \-1.5676366 | 0.1189793 | 0.0464936 |  1.406721 |
+| \>=200% vs \<200% Poverty Level           | 0.7984074 | 0.1833352 | \-1.2280042 | 0.2212832 | 0.5574031 |  1.143615 |
+| Chronic Condition vs No Chronic Condition | 0.9997479 | 0.6704593 | \-0.0003760 | 0.9997005 | 0.2686547 |  3.720373 |
+| Asian vs American Indian/Alaskan Native   | 2.1655465 | 0.7517048 |   1.0278939 | 0.3055807 | 0.4962668 |  9.449738 |
+| Black vs American Indian/Alaskan Native   | 2.8826869 | 0.6195526 |   1.7088505 | 0.0894547 | 0.8559203 |  9.708713 |
+| White vs American Indian/Alaskan Native   | 1.3642359 | 0.6114087 |   0.5079981 | 0.6121676 | 0.4115830 |  4.521906 |
+
+``` r
+# plot ORs with CIs
+jtools::plot_summs(col2_fit2, coefs = coef3c, exp = TRUE) +
+  labs(title = "Colorectal Screen Significant Predictors") +
+  scale_x_continuous(limits = c(0, 6), breaks = c(0, 2, 4, 6))
+```
+
+![](colorectalscreen_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
