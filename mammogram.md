@@ -129,16 +129,22 @@ edu_pct = svyby(~mam_2, by = ~domain+educ_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+edu_counts = filter(mam_dat, domain == 1) %>%
+  group_by(educ_cat) %>%
+  summarise(count = n())
+
+edu_pct = left_join(edu_pct, edu_counts, by = "educ_cat")
+
 edu_pct %>% 
   knitr::kable()
 ```
 
-| educ\_cat             |     mam\_2|      ci\_l|      ci\_u|
-|:----------------------|----------:|----------:|----------:|
-| College graduate      |  0.7952259|  0.7759755|  0.8144763|
-| High school           |  0.6785310|  0.6548180|  0.7022440|
-| Less than high school |  0.6233975|  0.5880548|  0.6587402|
-| Some college          |  0.7298794|  0.7085698|  0.7511891|
+| educ\_cat             |     mam\_2|      ci\_l|      ci\_u|  count|
+|:----------------------|----------:|----------:|----------:|------:|
+| College graduate      |  0.7952259|  0.7759755|  0.8144763|   3535|
+| High school           |  0.6785310|  0.6548180|  0.7022440|   3234|
+| Less than high school |  0.6233975|  0.5880548|  0.6587402|   1842|
+| Some college          |  0.7298794|  0.7085698|  0.7511891|   3794|
 
 ``` r
 # percent of women who have had mammogram by financial category
@@ -147,18 +153,24 @@ finc_pct = svyby(~mam_2, by = ~domain+finc_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+finc_counts = filter(mam_dat, domain == 1) %>%
+  group_by(finc_cat) %>%
+  summarise(count = n())
+
+finc_pct = left_join(finc_pct, finc_counts, by = "finc_cat")
+
 finc_pct %>% knitr::kable()
 ```
 
-| finc\_cat                    |     mam\_2|      ci\_l|      ci\_u|
-|:-----------------------------|----------:|----------:|----------:|
-| &lt;200%                     |  0.6336404|  0.6102688|  0.6570120|
-| &gt;=200%, no further detail |  0.6829528|  0.6182815|  0.7476241|
-| &gt;=500%                    |  0.8049806|  0.7828196|  0.8271415|
-| 200–299%                     |  0.6846054|  0.6473660|  0.7218448|
-| 300–399%                     |  0.7389614|  0.7026038|  0.7753189|
-| 400–499%                     |  0.7582742|  0.7263519|  0.7901964|
-| Unknown                      |  0.4531864|  0.1993634|  0.7070094|
+| finc\_cat                    |     mam\_2|      ci\_l|      ci\_u|  count|
+|:-----------------------------|----------:|----------:|----------:|------:|
+| &lt;200%                     |  0.6336404|  0.6102688|  0.6570120|   4294|
+| &gt;=200%, no further detail |  0.6829528|  0.6182815|  0.7476241|    409|
+| &gt;=500%                    |  0.8049806|  0.7828196|  0.8271415|   2571|
+| 200–299%                     |  0.6846054|  0.6473660|  0.7218448|   1618|
+| 300–399%                     |  0.7389614|  0.7026038|  0.7753189|   1196|
+| 400–499%                     |  0.7582742|  0.7263519|  0.7901964|   1501|
+| Unknown                      |  0.4531864|  0.1993634|  0.7070094|     27|
 
 ``` r
 # percent of women who have had mammogram by usual care category
@@ -167,14 +179,20 @@ ausualp_pct = svyby(~mam_2, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+usual_counts = filter(mam_dat, domain == 1) %>%
+  group_by(ausualpl_cat) %>%
+  summarise(count = n())
+
+ausualp_pct = left_join(ausualp_pct, usual_counts, by = "ausualpl_cat")
+
 ausualp_pct %>% knitr::kable()
 ```
 
-| ausualpl\_cat |     mam\_2|       ci\_l|      ci\_u|
-|:--------------|----------:|-----------:|----------:|
-| No            |  0.4426809|   0.3857382|  0.4996237|
-| Other         |  0.6349977|  -0.0074398|  1.2774351|
-| Yes           |  0.7374589|   0.7258591|  0.7490586|
+| ausualpl\_cat |     mam\_2|       ci\_l|      ci\_u|  count|
+|:--------------|----------:|-----------:|----------:|------:|
+| No            |  0.4426809|   0.3857382|  0.4996237|    749|
+| Other         |  0.6349977|  -0.0074398|  1.2774351|    102|
+| Yes           |  0.7374589|   0.7258591|  0.7490586|  11632|
 
 ``` r
 # percent of women who have had mammogram by health coverage
@@ -183,14 +201,20 @@ cover_pct = svyby(~mam_2, by = ~domain+cover_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+cover_counts = filter(mam_dat, domain == 1) %>%
+  group_by(cover_cat) %>%
+  summarise(count = n())
+
+cover_pct = left_join(cover_pct, cover_counts, by = "cover_cat")
+
 cover_pct %>% knitr::kable()
 ```
 
-| cover\_cat       |     mam\_2|      ci\_l|      ci\_u|
-|:-----------------|----------:|----------:|----------:|
-| None             |  0.4711737|  0.4004064|  0.5419410|
-| Private/Military |  0.7605363|  0.7467293|  0.7743434|
-| Public           |  0.6643714|  0.6409525|  0.6877904|
+| cover\_cat       |     mam\_2|      ci\_l|      ci\_u|  count|
+|:-----------------|----------:|----------:|----------:|------:|
+| None             |  0.4711737|  0.4004064|  0.5419410|    785|
+| Private/Military |  0.7605363|  0.7467293|  0.7743434|   8041|
+| Public           |  0.6643714|  0.6409525|  0.6877904|   3610|
 
 ``` r
 # percent of women who have had mammogram by chronic conditions
@@ -199,13 +223,19 @@ lcond_chronic_pct = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svymean,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+chronic_counts = filter(mam_dat, domain == 1) %>%
+  group_by(lcond_chronic_cat) %>%
+  summarise(count = n())
+
+lcond_chronic_pct = left_join(lcond_chronic_pct, chronic_counts, by = "lcond_chronic_cat")
+
 lcond_chronic_pct %>% knitr::kable()
 ```
 
-| lcond\_chronic\_cat |     mam\_2|      ci\_l|      ci\_u|
-|:--------------------|----------:|----------:|----------:|
-| No                  |  0.6235415|  0.4602961|  0.7867868|
-| Yes                 |  0.6105575|  0.5844282|  0.6366868|
+| lcond\_chronic\_cat |     mam\_2|      ci\_l|      ci\_u|  count|
+|:--------------------|----------:|----------:|----------:|------:|
+| No                  |  0.6235415|  0.4602961|  0.7867868|     71|
+| Yes                 |  0.6105575|  0.5844282|  0.6366868|   3285|
 
 ``` r
 # percent of women who have had mammogram by race
@@ -214,15 +244,21 @@ race_pct = svyby(~mam_2, by = ~domain+race_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+race_counts = filter(mam_dat, domain == 1) %>%
+  group_by(race_cat) %>%
+  summarise(count = n())
+
+race_pct = left_join(race_pct, race_counts, by = "race_cat")
+
 race_pct %>% knitr::kable()
 ```
 
-| race\_cat |     mam\_2|      ci\_l|      ci\_u|
-|:----------|----------:|----------:|----------:|
-| AN/AI     |  0.6382206|  0.5275676|  0.7488735|
-| Asian     |  0.7023464|  0.6479896|  0.7567032|
-| Black     |  0.7688270|  0.7385748|  0.7990792|
-| White     |  0.7203100|  0.7071951|  0.7334248|
+| race\_cat |     mam\_2|      ci\_l|      ci\_u|  count|
+|:----------|----------:|----------:|----------:|------:|
+| AN/AI     |  0.6382206|  0.5275676|  0.7488735|    175|
+| Asian     |  0.7023464|  0.6479896|  0.7567032|    640|
+| Black     |  0.7688270|  0.7385748|  0.7990792|   1908|
+| White     |  0.7203100|  0.7071951|  0.7334248|   9760|
 
 ``` r
 # percent of women who have had mammogram by ethnicity
@@ -231,16 +267,22 @@ eth_pct = svyby(~mam_2, by = ~domain+eth_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+eth_counts = filter(mam_dat, domain == 1) %>%
+  group_by(eth_cat) %>%
+  summarise(count = n())
+
+eth_pct = left_join(eth_pct, eth_counts, by = "eth_cat")
+
 eth_pct %>% knitr::kable()
 ```
 
-| eth\_cat           |     mam\_2|      ci\_l|      ci\_u|
-|:-------------------|----------:|----------:|----------:|
-| Hispanic           |  0.7434129|  0.7136199|  0.7732058|
-| Non-Hispanic AN/AI |  0.6787829|  0.5493178|  0.8082481|
-| Non-Hispanic Asian |  0.7005102|  0.6454834|  0.7555370|
-| Non-Hispanic Black |  0.7684556|  0.7377942|  0.7991169|
-| Non-Hispanic White |  0.7165402|  0.7025792|  0.7305012|
+| eth\_cat           |     mam\_2|      ci\_l|      ci\_u|  count|
+|:-------------------|----------:|----------:|----------:|------:|
+| Hispanic           |  0.7434129|  0.7136199|  0.7732058|   1685|
+| Non-Hispanic AN/AI |  0.6787829|  0.5493178|  0.8082481|    123|
+| Non-Hispanic Asian |  0.7005102|  0.6454834|  0.7555370|    613|
+| Non-Hispanic Black |  0.7684556|  0.7377942|  0.7991169|   1833|
+| Non-Hispanic White |  0.7165402|  0.7025792|  0.7305012|   8229|
 
 ``` r
 # percent of women who have had mammogram by immigration status
@@ -249,14 +291,20 @@ imm_pct = svyby(~mam_2, by = ~domain+imm_stat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+imm_counts = filter(mam_dat, domain == 1) %>%
+  group_by(imm_stat) %>%
+  summarise(count = n())
+
+imm_pct = left_join(imm_pct, imm_counts, by = "imm_stat")
+
 imm_pct %>% knitr::kable()
 ```
 
-| imm\_stat            |     mam\_2|      ci\_l|      ci\_u|
-|:---------------------|----------:|----------:|----------:|
-| Born in U.S.         |  0.7247355|  0.7124950|  0.7369760|
-| In U.S. &lt; 10 yrs  |  0.6920384|  0.5859504|  0.7981264|
-| In U.S. &gt;= 10 yrs |  0.7232266|  0.6925968|  0.7538563|
+| imm\_stat            |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------------------|----------:|----------:|----------:|------:|
+| Born in U.S.         |  0.7247355|  0.7124950|  0.7369760|  10312|
+| In U.S. &lt; 10 yrs  |  0.6920384|  0.5859504|  0.7981264|    195|
+| In U.S. &gt;= 10 yrs |  0.7232266|  0.6925968|  0.7538563|   1947|
 
 Tables By Age Group
 
@@ -268,23 +316,29 @@ edu_tab = edu_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+edu_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, educ_cat) %>%
+  summarise(count = n())
+
+edu_tab = left_join(edu_tab, edu_counts2, by = c("age_cat", "educ_cat"))
+
 edu_tab %>% knitr::kable()
 ```
 
-| age\_cat | educ\_cat             |     mam\_2|      ci\_l|      ci\_u|
-|:---------|:----------------------|----------:|----------:|----------:|
-| 40–49    | College graduate      |  0.8085672|  0.7707166|  0.8464178|
-| 50–64    | College graduate      |  0.8109270|  0.7831941|  0.8386598|
-| 65+      | College graduate      |  0.7537526|  0.7172640|  0.7902411|
-| 40–49    | High school           |  0.6818410|  0.6144456|  0.7492364|
-| 50–64    | High school           |  0.7247121|  0.6848474|  0.7645768|
-| 65+      | High school           |  0.6336142|  0.5983451|  0.6688834|
-| 40–49    | Less than high school |  0.6999305|  0.6228325|  0.7770285|
-| 50–64    | Less than high school |  0.6506867|  0.5928630|  0.7085104|
-| 65+      | Less than high school |  0.5719782|  0.5172242|  0.6267323|
-| 40–49    | Some college          |  0.7628288|  0.7164342|  0.8092234|
-| 50–64    | Some college          |  0.7406601|  0.7105614|  0.7707588|
-| 65+      | Some college          |  0.6909571|  0.6565986|  0.7253157|
+| age\_cat | educ\_cat             |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|:----------------------|----------:|----------:|----------:|------:|
+| 40–49    | College graduate      |  0.8085672|  0.7707166|  0.8464178|   1021|
+| 50–64    | College graduate      |  0.8109270|  0.7831941|  0.8386598|   1435|
+| 65+      | College graduate      |  0.7537526|  0.7172640|  0.7902411|   1079|
+| 40–49    | High school           |  0.6818410|  0.6144456|  0.7492364|    586|
+| 50–64    | High school           |  0.7247121|  0.6848474|  0.7645768|   1156|
+| 65+      | High school           |  0.6336142|  0.5983451|  0.6688834|   1492|
+| 40–49    | Less than high school |  0.6999305|  0.6228325|  0.7770285|    355|
+| 50–64    | Less than high school |  0.6506867|  0.5928630|  0.7085104|    570|
+| 65+      | Less than high school |  0.5719782|  0.5172242|  0.6267323|    917|
+| 40–49    | Some college          |  0.7628288|  0.7164342|  0.8092234|    889|
+| 50–64    | Some college          |  0.7406601|  0.7105614|  0.7707588|   1536|
+| 65+      | Some college          |  0.6909571|  0.6565986|  0.7253157|   1369|
 
 ``` r
 # percent of women who have had mammogram by financial category and age
@@ -295,32 +349,38 @@ finc_tab = finc_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+finc_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, finc_cat) %>%
+  summarise(count = n())
+
+finc_tab = left_join(finc_tab, finc_counts2, by = c("age_cat", "finc_cat"))
+
 finc_tab %>% knitr::kable()
 ```
 
-| age\_cat | finc\_cat                    |     mam\_2|       ci\_l|      ci\_u|
-|:---------|:-----------------------------|----------:|-----------:|----------:|
-| 40–49    | &lt;200%                     |  0.6956259|   0.6448771|  0.7463748|
-| 50–64    | &lt;200%                     |  0.6495575|   0.6101441|  0.6889709|
-| 65+      | &lt;200%                     |  0.5848766|   0.5493209|  0.6204322|
-| 40–49    | &gt;=200%, no further detail |  0.8594243|   0.7506689|  0.9681797|
-| 50–64    | &gt;=200%, no further detail |  0.7350658|   0.6237214|  0.8464101|
-| 65+      | &gt;=200%, no further detail |  0.6088342|   0.5150514|  0.7026171|
-| 40–49    | &gt;=500%                    |  0.8120277|   0.7701024|  0.8539529|
-| 50–64    | &gt;=500%                    |  0.8105147|   0.7804614|  0.8405680|
-| 65+      | &gt;=500%                    |  0.7855235|   0.7417109|  0.8293361|
-| 40–49    | 200–299%                     |  0.7072433|   0.6214273|  0.7930594|
-| 50–64    | 200–299%                     |  0.7089483|   0.6459559|  0.7719406|
-| 65+      | 200–299%                     |  0.6470099|   0.5991062|  0.6949135|
-| 40–49    | 300–399%                     |  0.7310784|   0.6541823|  0.8079745|
-| 50–64    | 300–399%                     |  0.7706667|   0.7051139|  0.8362195|
-| 65+      | 300–399%                     |  0.7085731|   0.6507690|  0.7663771|
-| 40–49    | 400–499%                     |  0.8174002|   0.7382089|  0.8965915|
-| 50–64    | 400–499%                     |  0.7917000|   0.7382696|  0.8451305|
-| 65+      | 400–499%                     |  0.7010436|   0.6564844|  0.7456028|
-| 40–49    | Unknown                      |  0.0000000|   0.0000000|  0.0000000|
-| 50–64    | Unknown                      |  0.9962176|   0.9879882|  1.0044469|
-| 65+      | Unknown                      |  0.2035140|  -0.0544638|  0.4614919|
+| age\_cat | finc\_cat                    |     mam\_2|       ci\_l|      ci\_u|  count|
+|:---------|:-----------------------------|----------:|-----------:|----------:|------:|
+| 40–49    | &lt;200%                     |  0.6956259|   0.6448771|  0.7463748|    957|
+| 50–64    | &lt;200%                     |  0.6495575|   0.6101441|  0.6889709|   1488|
+| 65+      | &lt;200%                     |  0.5848766|   0.5493209|  0.6204322|   1849|
+| 40–49    | &gt;=200%, no further detail |  0.8594243|   0.7506689|  0.9681797|     64|
+| 50–64    | &gt;=200%, no further detail |  0.7350658|   0.6237214|  0.8464101|    123|
+| 65+      | &gt;=200%, no further detail |  0.6088342|   0.5150514|  0.7026171|    222|
+| 40–49    | &gt;=500%                    |  0.8120277|   0.7701024|  0.8539529|    683|
+| 50–64    | &gt;=500%                    |  0.8105147|   0.7804614|  0.8405680|   1220|
+| 65+      | &gt;=500%                    |  0.7855235|   0.7417109|  0.8293361|    668|
+| 40–49    | 200–299%                     |  0.7072433|   0.6214273|  0.7930594|    394|
+| 50–64    | 200–299%                     |  0.7089483|   0.6459559|  0.7719406|    548|
+| 65+      | 200–299%                     |  0.6470099|   0.5991062|  0.6949135|    676|
+| 40–49    | 300–399%                     |  0.7310784|   0.6541823|  0.8079745|    304|
+| 50–64    | 300–399%                     |  0.7706667|   0.7051139|  0.8362195|    446|
+| 65+      | 300–399%                     |  0.7085731|   0.6507690|  0.7663771|    446|
+| 40–49    | 400–499%                     |  0.8174002|   0.7382089|  0.8965915|    219|
+| 50–64    | 400–499%                     |  0.7917000|   0.7382696|  0.8451305|    534|
+| 65+      | 400–499%                     |  0.7010436|   0.6564844|  0.7456028|    748|
+| 40–49    | Unknown                      |  0.0000000|   0.0000000|  0.0000000|      2|
+| 50–64    | Unknown                      |  0.9962176|   0.9879882|  1.0044469|      7|
+| 65+      | Unknown                      |  0.2035140|  -0.0544638|  0.4614919|     18|
 
 ``` r
 # percent of women who have had mammogram by usual care and age
@@ -332,20 +392,26 @@ usual_tab = ausualp_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+usual_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, ausualpl_cat) %>%
+  summarise(count = n())
+
+usual_tab = left_join(usual_tab, usual_counts2, by = c("age_cat", "ausualpl_cat"))
+
 usual_tab %>% knitr::kable()
 ```
 
-| age\_cat | ausualpl\_cat |     mam\_2|      ci\_l|      ci\_u|
-|:---------|:--------------|----------:|----------:|----------:|
-| 40–49    | No            |  0.5056792|  0.4057956|  0.6055628|
-| 50–64    | No            |  0.3810310|  0.2889497|  0.4731123|
-| 65+      | No            |  0.4840104|  0.3523452|  0.6156756|
-| 40–49    | Other         |  0.0000000|  0.0000000|  0.0000000|
-| 50–64    | Other         |  1.0000000|  1.0000000|  1.0000000|
-| 65+      | Other         |  0.0000000|  0.0000000|  0.0000000|
-| 40–49    | Yes           |  0.7802444|  0.7542141|  0.8062747|
-| 50–64    | Yes           |  0.7700861|  0.7529459|  0.7872262|
-| 65+      | Yes           |  0.6714421|  0.6525374|  0.6903469|
+| age\_cat | ausualpl\_cat |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|:--------------|----------:|----------:|----------:|------:|
+| 40–49    | No            |  0.5056792|  0.4057956|  0.6055628|    295|
+| 50–64    | No            |  0.3810310|  0.2889497|  0.4731123|    304|
+| 65+      | No            |  0.4840104|  0.3523452|  0.6156756|    150|
+| 40–49    | Other         |  0.0000000|  0.0000000|  0.0000000|     23|
+| 50–64    | Other         |  1.0000000|  1.0000000|  1.0000000|     43|
+| 65+      | Other         |  0.0000000|  0.0000000|  0.0000000|     36|
+| 40–49    | Yes           |  0.7802444|  0.7542141|  0.8062747|   2545|
+| 50–64    | Yes           |  0.7700861|  0.7529459|  0.7872262|   4369|
+| 65+      | Yes           |  0.6714421|  0.6525374|  0.6903469|   4718|
 
 ``` r
 # percent of women who have had mammogram by health coverage and age
@@ -356,20 +422,26 @@ ins_tab = cover_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se)
 
+ins_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, cover_cat) %>%
+  summarise(count = n())
+
+ins_tab = left_join(ins_tab, ins_counts2, by = c("age_cat", "cover_cat"))
+
 ins_tab %>% knitr::kable()
 ```
 
-| age\_cat | cover\_cat       |     mam\_2|      ci\_l|      ci\_u|
-|:---------|:-----------------|----------:|----------:|----------:|
-| 40–49    | None             |  0.4829030|  0.3629256|  0.6028804|
-| 50–64    | None             |  0.4603852|  0.3769433|  0.5438272|
-| 65+      | None             |  0.5160788|  0.2196597|  0.8124978|
-| 40–49    | Private/Military |  0.7914360|  0.7633846|  0.8194874|
-| 50–64    | Private/Military |  0.7802779|  0.7610562|  0.7994996|
-| 65+      | Private/Military |  0.6871598|  0.6611642|  0.7131553|
-| 40–49    | Public           |  0.7370242|  0.6725539|  0.8014945|
-| 50–64    | Public           |  0.6818896|  0.6241168|  0.7396625|
-| 65+      | Public           |  0.6486552|  0.6199508|  0.6773596|
+| age\_cat | cover\_cat       |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|:-----------------|----------:|----------:|----------:|------:|
+| 40–49    | None             |  0.4829030|  0.3629256|  0.6028804|    362|
+| 50–64    | None             |  0.4603852|  0.3769433|  0.5438272|    392|
+| 65+      | None             |  0.5160788|  0.2196597|  0.8124978|     31|
+| 40–49    | Private/Military |  0.7914360|  0.7633846|  0.8194874|   2021|
+| 50–64    | Private/Military |  0.7802779|  0.7610562|  0.7994996|   3586|
+| 65+      | Private/Military |  0.6871598|  0.6611642|  0.7131553|   2434|
+| 40–49    | Public           |  0.7370242|  0.6725539|  0.8014945|    469|
+| 50–64    | Public           |  0.6818896|  0.6241168|  0.7396625|    717|
+| 65+      | Public           |  0.6486552|  0.6199508|  0.6773596|   2424|
 
 ``` r
 # percent of women who have had mammogram by chronic conditions and age
@@ -380,19 +452,25 @@ lcond_chronic_pct_strat = svyby(~mam_2,
 
 dis_tab = lcond_chronic_pct_strat %>% 
   filter(domain == 1) %>% 
-  select(-domain, -se) 
+  select(-domain, -se)
+
+dis_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, lcond_chronic_cat) %>%
+  summarise(count = n())
+
+dis_tab = left_join(dis_tab, dis_counts2, by = c("age_cat", "lcond_chronic_cat"))
 
 dis_tab %>% knitr::kable()
 ```
 
-| age\_cat | lcond\_chronic\_cat |     mam\_2|      ci\_l|      ci\_u|
-|:---------|:--------------------|----------:|----------:|----------:|
-| 40–49    | No                  |  0.7176907|  0.3453040|  1.0900773|
-| 50–64    | No                  |  0.8619131|  0.7174233|  1.0064030|
-| 65+      | No                  |  0.4720814|  0.2627660|  0.6813969|
-| 40–49    | Yes                 |  0.6903587|  0.6133066|  0.7674109|
-| 50–64    | Yes                 |  0.6848202|  0.6423921|  0.7272482|
-| 65+      | Yes                 |  0.5381731|  0.5032309|  0.5731153|
+| age\_cat | lcond\_chronic\_cat |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|:--------------------|----------:|----------:|----------:|------:|
+| 40–49    | No                  |  0.7176907|  0.3453040|  1.0900773|     11|
+| 50–64    | No                  |  0.8619131|  0.7174233|  1.0064030|     20|
+| 65+      | No                  |  0.4720814|  0.2627660|  0.6813969|     40|
+| 40–49    | Yes                 |  0.6903587|  0.6133066|  0.7674109|    354|
+| 50–64    | Yes                 |  0.6848202|  0.6423921|  0.7272482|   1126|
+| 65+      | Yes                 |  0.5381731|  0.5032309|  0.5731153|   1805|
 
 ``` r
 # percent of women who have had mammogram by race and age
@@ -403,23 +481,29 @@ race_tab = race_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+race_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, race_cat) %>%
+  summarise(count = n())
+
+race_tab = left_join(race_tab, race_counts2, by = c("age_cat", "race_cat"))
+
 race_tab %>% knitr::kable()
 ```
 
-| age\_cat | race\_cat |     mam\_2|      ci\_l|      ci\_u|
-|:---------|:----------|----------:|----------:|----------:|
-| 40–49    | AN/AI     |  0.6820006|  0.4637318|  0.9002694|
-| 50–64    | AN/AI     |  0.5832300|  0.4209941|  0.7454660|
-| 65+      | AN/AI     |  0.6798373|  0.4792802|  0.8803944|
-| 40–49    | Asian     |  0.7285098|  0.6249686|  0.8320510|
-| 50–64    | Asian     |  0.7388677|  0.6510686|  0.8266667|
-| 65+      | Asian     |  0.6051615|  0.5083183|  0.7020048|
-| 40–49    | Black     |  0.8109375|  0.7584382|  0.8634368|
-| 50–64    | Black     |  0.7983266|  0.7574828|  0.8391704|
-| 65+      | Black     |  0.6804674|  0.6261574|  0.7347773|
-| 40–49    | White     |  0.7567230|  0.7267415|  0.7867046|
-| 50–64    | White     |  0.7467055|  0.7263464|  0.7670646|
-| 65+      | White     |  0.6680536|  0.6481251|  0.6879822|
+| age\_cat | race\_cat |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|:----------|----------:|----------:|----------:|------:|
+| 40–49    | AN/AI     |  0.6820006|  0.4637318|  0.9002694|     52|
+| 50–64    | AN/AI     |  0.5832300|  0.4209941|  0.7454660|     78|
+| 65+      | AN/AI     |  0.6798373|  0.4792802|  0.8803944|     45|
+| 40–49    | Asian     |  0.7285098|  0.6249686|  0.8320510|    191|
+| 50–64    | Asian     |  0.7388677|  0.6510686|  0.8266667|    235|
+| 65+      | Asian     |  0.6051615|  0.5083183|  0.7020048|    214|
+| 40–49    | Black     |  0.8109375|  0.7584382|  0.8634368|    482|
+| 50–64    | Black     |  0.7983266|  0.7574828|  0.8391704|    773|
+| 65+      | Black     |  0.6804674|  0.6261574|  0.7347773|    653|
+| 40–49    | White     |  0.7567230|  0.7267415|  0.7867046|   2138|
+| 50–64    | White     |  0.7467055|  0.7263464|  0.7670646|   3630|
+| 65+      | White     |  0.6680536|  0.6481251|  0.6879822|   3992|
 
 ``` r
 # percent of women who have had mammogram by ethnicity and age
@@ -430,26 +514,32 @@ eth_tab = eth_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+eth_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, eth_cat) %>%
+  summarise(count = n())
+
+eth_tab = left_join(eth_tab, eth_counts2, by = c("age_cat", "eth_cat"))
+
 eth_tab %>% knitr::kable()
 ```
 
-| age\_cat | eth\_cat           |     mam\_2|      ci\_l|      ci\_u|
-|:---------|:-------------------|----------:|----------:|----------:|
-| 40–49    | Hispanic           |  0.7350049|  0.6860044|  0.7840053|
-| 50–64    | Hispanic           |  0.7887929|  0.7425060|  0.8350797|
-| 65+      | Hispanic           |  0.6757057|  0.6174945|  0.7339170|
-| 40–49    | Non-Hispanic AN/AI |  0.8614933|  0.7233204|  0.9996662|
-| 50–64    | Non-Hispanic AN/AI |  0.5788007|  0.3741846|  0.7834168|
-| 65+      | Non-Hispanic AN/AI |  0.6618173|  0.4220170|  0.9016176|
-| 40–49    | Non-Hispanic Asian |  0.7255322|  0.6191024|  0.8319621|
-| 50–64    | Non-Hispanic Asian |  0.7358176|  0.6461917|  0.8254434|
-| 65+      | Non-Hispanic Asian |  0.6088310|  0.5113248|  0.7063372|
-| 40–49    | Non-Hispanic Black |  0.8174351|  0.7624666|  0.8724036|
-| 50–64    | Non-Hispanic Black |  0.7971501|  0.7556416|  0.8386587|
-| 65+      | Non-Hispanic Black |  0.6774079|  0.6234387|  0.7313772|
-| 40–49    | Non-Hispanic White |  0.7584481|  0.7227714|  0.7941248|
-| 50–64    | Non-Hispanic White |  0.7405940|  0.7183667|  0.7628213|
-| 65+      | Non-Hispanic White |  0.6676896|  0.6471933|  0.6881859|
+| age\_cat | eth\_cat           |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|:-------------------|----------:|----------:|----------:|------:|
+| 40–49    | Hispanic           |  0.7350049|  0.6860044|  0.7840053|    590|
+| 50–64    | Hispanic           |  0.7887929|  0.7425060|  0.8350797|    600|
+| 65+      | Hispanic           |  0.6757057|  0.6174945|  0.7339170|    495|
+| 40–49    | Non-Hispanic AN/AI |  0.8614933|  0.7233204|  0.9996662|     35|
+| 50–64    | Non-Hispanic AN/AI |  0.5788007|  0.3741846|  0.7834168|     55|
+| 65+      | Non-Hispanic AN/AI |  0.6618173|  0.4220170|  0.9016176|     33|
+| 40–49    | Non-Hispanic Asian |  0.7255322|  0.6191024|  0.8319621|    178|
+| 50–64    | Non-Hispanic Asian |  0.7358176|  0.6461917|  0.8254434|    225|
+| 65+      | Non-Hispanic Asian |  0.6088310|  0.5113248|  0.7063372|    210|
+| 40–49    | Non-Hispanic Black |  0.8174351|  0.7624666|  0.8724036|    449|
+| 50–64    | Non-Hispanic Black |  0.7971501|  0.7556416|  0.8386587|    746|
+| 65+      | Non-Hispanic Black |  0.6774079|  0.6234387|  0.7313772|    638|
+| 40–49    | Non-Hispanic White |  0.7584481|  0.7227714|  0.7941248|   1611|
+| 50–64    | Non-Hispanic White |  0.7405940|  0.7183667|  0.7628213|   3090|
+| 65+      | Non-Hispanic White |  0.6676896|  0.6471933|  0.6881859|   3528|
 
 ``` r
 # percent of women who have had mammogram by immigration and age
@@ -460,20 +550,26 @@ imm_tab = imm_pct_strat %>%
   filter(domain == 1) %>%
   select(-domain, -se)
 
+imm_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, imm_stat) %>%
+  summarise(count = n())
+
+imm_tab = left_join(imm_tab, imm_counts2, by = c("age_cat", "imm_stat"))
+
 imm_tab %>% knitr::kable()
 ```
 
-| age\_cat | imm\_stat            |     mam\_2|      ci\_l|      ci\_u|
-|:---------|:---------------------|----------:|----------:|----------:|
-| 40–49    | Born in U.S.         |  0.7648196|  0.7336183|  0.7960209|
-| 50–64    | Born in U.S.         |  0.7475203|  0.7283139|  0.7667267|
-| 65+      | Born in U.S.         |  0.6740989|  0.6550582|  0.6931396|
-| 40–49    | In U.S. &lt; 10 yrs  |  0.6718178|  0.5154111|  0.8282245|
-| 50–64    | In U.S. &lt; 10 yrs  |  0.7269500|  0.5430927|  0.9108074|
-| 65+      | In U.S. &lt; 10 yrs  |  0.6844641|  0.4369705|  0.9319578|
-| 40–49    | In U.S. &gt;= 10 yrs |  0.7543553|  0.6990657|  0.8096448|
-| 50–64    | In U.S. &gt;= 10 yrs |  0.7729488|  0.7269979|  0.8188997|
-| 65+      | In U.S. &gt;= 10 yrs |  0.6163448|  0.5632557|  0.6694340|
+| age\_cat | imm\_stat            |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|:---------------------|----------:|----------:|----------:|------:|
+| 40–49    | Born in U.S.         |  0.7648196|  0.7336183|  0.7960209|   2153|
+| 50–64    | Born in U.S.         |  0.7475203|  0.7283139|  0.7667267|   3964|
+| 65+      | Born in U.S.         |  0.6740989|  0.6550582|  0.6931396|   4195|
+| 40–49    | In U.S. &lt; 10 yrs  |  0.6718178|  0.5154111|  0.8282245|    101|
+| 50–64    | In U.S. &lt; 10 yrs  |  0.7269500|  0.5430927|  0.9108074|     54|
+| 65+      | In U.S. &lt; 10 yrs  |  0.6844641|  0.4369705|  0.9319578|     40|
+| 40–49    | In U.S. &gt;= 10 yrs |  0.7543553|  0.6990657|  0.8096448|    596|
+| 50–64    | In U.S. &gt;= 10 yrs |  0.7729488|  0.7269979|  0.8188997|    690|
+| 65+      | In U.S. &gt;= 10 yrs |  0.6163448|  0.5632557|  0.6694340|    661|
 
 ``` r
 # overall percent of women who have had mammogram
@@ -484,21 +580,30 @@ tot_tab = total %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+tot_counts = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat) %>%
+  summarise(count = n())
+
+tot_tab = left_join(tot_tab, tot_counts, by = "age_cat")
+
 tot_tab %>% knitr::kable()
 ```
 
-| age\_cat |     mam\_2|      ci\_l|      ci\_u|
-|:---------|----------:|----------:|----------:|
-| 40–49    |  0.7609720|  0.7348160|  0.7871280|
-| 50–64    |  0.7510356|  0.7339199|  0.7681512|
-| 65+      |  0.6669962|  0.6481919|  0.6858006|
+| age\_cat |     mam\_2|      ci\_l|      ci\_u|  count|
+|:---------|----------:|----------:|----------:|------:|
+| 40–49    |  0.7609720|  0.7348160|  0.7871280|   2863|
+| 50–64    |  0.7510356|  0.7339199|  0.7681512|   4716|
+| 65+      |  0.6669962|  0.6481919|  0.6858006|   4904|
 
 ``` r
+all_counts = filter(mam_dat, domain == 1)
+
 tot_pct = svyby(~mam_2, by = ~domain, svymean, na.rm = TRUE, design = des,
                 vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se) %>%
-  mutate(age_cat = "40+")
+  mutate(age_cat = "40+",
+         count = 12483)
 ```
 
 Combine into paper table
@@ -507,6 +612,7 @@ Combine into paper table
 # COMBINE TABLES BY AGE WITH TABLES OVERALL
 
 # overall
+
 tot_tab = rbind(tot_pct, tot_tab)
 
 tot_tab2 = tot_tab %>%
@@ -620,56 +726,69 @@ imm_tab2 = imm_tab %>%
 
 # create table of percentages of women who have gotten mammograms within the last two years (still need to add CIs)
 tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, eth_tab2, race_tab2, imm_tab2) %>%
-  mutate(mam_2 = round(mam_2*100, 2),
-         ci_l = round(ci_l*100, 2),
-         ci_u = round(ci_u*100, 2),
+  mutate(mam_2 = round(mam_2*100, 1),
+         ci_l = round(ci_l*100, 1),
+         ci_u = round(ci_u*100, 1),
          CI = str_c(ci_l, ", ", ci_u)) %>%
-  rename(Percent = mam_2) %>%
+  rename(Percent = mam_2,
+         N = count) %>%
   select(-ci_l, -ci_u) %>%
-  pivot_wider(names_from = age_cat, values_from = c(Percent, CI)) %>%
+  pivot_wider(names_from = age_cat, values_from = c(N, Percent, CI)) %>%
   janitor::clean_names() %>%
-  select(type, level, percent_40, ci_40, percent_40_49, ci_40_49, percent_50_64, ci_50_64, everything())
+  select(type, level, n_40, percent_40, ci_40, n_40_49, percent_40_49, ci_40_49, n_50_64, percent_50_64, ci_50_64, everything())
 
 # print percentages
 tab_one %>% knitr::kable()
 ```
 
-| type                        | level                        |  percent\_40| ci\_40        |  percent\_40\_49| ci\_40\_49    |  percent\_50\_64| ci\_50\_64    |  percent\_65| ci\_65       |
-|:----------------------------|:-----------------------------|------------:|:--------------|----------------:|:--------------|----------------:|:--------------|------------:|:-------------|
-| Total                       | -                            |        72.42| 71.28, 73.57  |            76.10| 73.48, 78.71  |            75.10| 73.39, 76.82  |        66.70| 64.82, 68.58 |
-| Education                   | Less than high school        |        62.34| 58.81, 65.87  |            69.99| 62.28, 77.7   |            65.07| 59.29, 70.85  |        57.20| 51.72, 62.67 |
-| Education                   | High school                  |        67.85| 65.48, 70.22  |            68.18| 61.44, 74.92  |            72.47| 68.48, 76.46  |        63.36| 59.83, 66.89 |
-| Education                   | Some college                 |        72.99| 70.86, 75.12  |            76.28| 71.64, 80.92  |            74.07| 71.06, 77.08  |        69.10| 65.66, 72.53 |
-| Education                   | College graduate             |        79.52| 77.6, 81.45   |            80.86| 77.07, 84.64  |            81.09| 78.32, 83.87  |        75.38| 71.73, 79.02 |
-| Family Income Poverty Ratio | &lt;200%                     |        63.36| 61.03, 65.7   |            69.56| 64.49, 74.64  |            64.96| 61.01, 68.9   |        58.49| 54.93, 62.04 |
-| Family Income Poverty Ratio | &gt;=200%, no further detail |        68.30| 61.83, 74.76  |            85.94| 75.07, 96.82  |            73.51| 62.37, 84.64  |        60.88| 51.51, 70.26 |
-| Family Income Poverty Ratio | 200–299%                     |        68.46| 64.74, 72.18  |            70.72| 62.14, 79.31  |            70.89| 64.6, 77.19   |        64.70| 59.91, 69.49 |
-| Family Income Poverty Ratio | 300–399%                     |        73.90| 70.26, 77.53  |            73.11| 65.42, 80.8   |            77.07| 70.51, 83.62  |        70.86| 65.08, 76.64 |
-| Family Income Poverty Ratio | 400–499%                     |        75.83| 72.64, 79.02  |            81.74| 73.82, 89.66  |            79.17| 73.83, 84.51  |        70.10| 65.65, 74.56 |
-| Family Income Poverty Ratio | &gt;=500%                    |        80.50| 78.28, 82.71  |            81.20| 77.01, 85.4   |            81.05| 78.05, 84.06  |        78.55| 74.17, 82.93 |
-| Family Income Poverty Ratio | Unknown                      |        45.32| 19.94, 70.7   |             0.00| 0, 0          |            99.62| 98.8, 100.44  |        20.35| -5.45, 46.15 |
-| Usual Source of Care        | No                           |        44.27| 38.57, 49.96  |            50.57| 40.58, 60.56  |            38.10| 28.89, 47.31  |        48.40| 35.23, 61.57 |
-| Usual Source of Care        | Yes                          |        73.75| 72.59, 74.91  |            78.02| 75.42, 80.63  |            77.01| 75.29, 78.72  |        67.14| 65.25, 69.03 |
-| Usual Source of Care        | Other                        |        63.50| -0.74, 127.74 |             0.00| 0, 0          |           100.00| 100, 100      |         0.00| 0, 0         |
-| Insurance Type              | None                         |        47.12| 40.04, 54.19  |            48.29| 36.29, 60.29  |            46.04| 37.69, 54.38  |        51.61| 21.97, 81.25 |
-| Insurance Type              | Public                       |        66.44| 64.1, 68.78   |            73.70| 67.26, 80.15  |            68.19| 62.41, 73.97  |        64.87| 62, 67.74    |
-| Insurance Type              | Private/Military             |        76.05| 74.67, 77.43  |            79.14| 76.34, 81.95  |            78.03| 76.11, 79.95  |        68.72| 66.12, 71.32 |
-| Chronic Disability          | Yes                          |        61.06| 58.44, 63.67  |            69.04| 61.33, 76.74  |            68.48| 64.24, 72.72  |        53.82| 50.32, 57.31 |
-| Chronic Disability          | No                           |        62.35| 46.03, 78.68  |            71.77| 34.53, 109.01 |            86.19| 71.74, 100.64 |        47.21| 26.28, 68.14 |
-| Ethnicity                   | Hispanic                     |        74.34| 71.36, 77.32  |            73.50| 68.6, 78.4    |            78.88| 74.25, 83.51  |        67.57| 61.75, 73.39 |
-| Ethnicity                   | Non-Hispanic White           |        71.65| 70.26, 73.05  |            75.84| 72.28, 79.41  |            74.06| 71.84, 76.28  |        66.77| 64.72, 68.82 |
-| Ethnicity                   | Non-Hispanic Black           |        76.85| 73.78, 79.91  |            81.74| 76.25, 87.24  |            79.72| 75.56, 83.87  |        67.74| 62.34, 73.14 |
-| Ethnicity                   | Non-Hispanic AN/AI           |        67.88| 54.93, 80.82  |            86.15| 72.33, 99.97  |            57.88| 37.42, 78.34  |        66.18| 42.2, 90.16  |
-| Ethnicity                   | Non-Hispanic Asian           |        70.05| 64.55, 75.55  |            72.55| 61.91, 83.2   |            73.58| 64.62, 82.54  |        60.88| 51.13, 70.63 |
-| Race                        | White                        |        72.03| 70.72, 73.34  |            75.67| 72.67, 78.67  |            74.67| 72.63, 76.71  |        66.81| 64.81, 68.8  |
-| Race                        | Black                        |        76.88| 73.86, 79.91  |            81.09| 75.84, 86.34  |            79.83| 75.75, 83.92  |        68.05| 62.62, 73.48 |
-| Race                        | AN/AI                        |        63.82| 52.76, 74.89  |            68.20| 46.37, 90.03  |            58.32| 42.1, 74.55   |        67.98| 47.93, 88.04 |
-| Race                        | Asian                        |        70.23| 64.8, 75.67   |            72.85| 62.5, 83.21   |            73.89| 65.11, 82.67  |        60.52| 50.83, 70.2  |
-| Immigration                 | In U.S. &lt; 10 yrs          |        69.20| 58.6, 79.81   |            67.18| 51.54, 82.82  |            72.70| 54.31, 91.08  |        68.45| 43.7, 93.2   |
-| Immigration                 | In U.S. &gt;= 10 yrs         |        72.32| 69.26, 75.39  |            75.44| 69.91, 80.96  |            77.29| 72.7, 81.89   |        61.63| 56.33, 66.94 |
-| Immigration                 | Born in U.S.                 |        72.47| 71.25, 73.7   |            76.48| 73.36, 79.6   |            74.75| 72.83, 76.67  |        67.41| 65.51, 69.31 |
+| type                        | level                        |  n\_40|  percent\_40| ci\_40      |  n\_40\_49|  percent\_40\_49| ci\_40\_49 |  n\_50\_64|  percent\_50\_64| ci\_50\_64  |  n\_65|  percent\_65| ci\_65     |
+|:----------------------------|:-----------------------------|------:|------------:|:------------|----------:|----------------:|:-----------|----------:|----------------:|:------------|------:|------------:|:-----------|
+| Total                       | -                            |  12483|         72.4| 71.3, 73.6  |       2863|             76.1| 73.5, 78.7 |       4716|             75.1| 73.4, 76.8  |   4904|         66.7| 64.8, 68.6 |
+| Education                   | Less than high school        |   1842|         62.3| 58.8, 65.9  |        355|             70.0| 62.3, 77.7 |        570|             65.1| 59.3, 70.9  |    917|         57.2| 51.7, 62.7 |
+| Education                   | High school                  |   3234|         67.9| 65.5, 70.2  |        586|             68.2| 61.4, 74.9 |       1156|             72.5| 68.5, 76.5  |   1492|         63.4| 59.8, 66.9 |
+| Education                   | Some college                 |   3794|         73.0| 70.9, 75.1  |        889|             76.3| 71.6, 80.9 |       1536|             74.1| 71.1, 77.1  |   1369|         69.1| 65.7, 72.5 |
+| Education                   | College graduate             |   3535|         79.5| 77.6, 81.4  |       1021|             80.9| 77.1, 84.6 |       1435|             81.1| 78.3, 83.9  |   1079|         75.4| 71.7, 79   |
+| Family Income Poverty Ratio | &lt;200%                     |   4294|         63.4| 61, 65.7    |        957|             69.6| 64.5, 74.6 |       1488|             65.0| 61, 68.9    |   1849|         58.5| 54.9, 62   |
+| Family Income Poverty Ratio | &gt;=200%, no further detail |    409|         68.3| 61.8, 74.8  |         64|             85.9| 75.1, 96.8 |        123|             73.5| 62.4, 84.6  |    222|         60.9| 51.5, 70.3 |
+| Family Income Poverty Ratio | 200–299%                     |   1618|         68.5| 64.7, 72.2  |        394|             70.7| 62.1, 79.3 |        548|             70.9| 64.6, 77.2  |    676|         64.7| 59.9, 69.5 |
+| Family Income Poverty Ratio | 300–399%                     |   1196|         73.9| 70.3, 77.5  |        304|             73.1| 65.4, 80.8 |        446|             77.1| 70.5, 83.6  |    446|         70.9| 65.1, 76.6 |
+| Family Income Poverty Ratio | 400–499%                     |   1501|         75.8| 72.6, 79    |        219|             81.7| 73.8, 89.7 |        534|             79.2| 73.8, 84.5  |    748|         70.1| 65.6, 74.6 |
+| Family Income Poverty Ratio | &gt;=500%                    |   2571|         80.5| 78.3, 82.7  |        683|             81.2| 77, 85.4   |       1220|             81.1| 78, 84.1    |    668|         78.6| 74.2, 82.9 |
+| Family Income Poverty Ratio | Unknown                      |     27|         45.3| 19.9, 70.7  |          2|              0.0| 0, 0       |          7|             99.6| 98.8, 100.4 |     18|         20.4| -5.4, 46.1 |
+| Usual Source of Care        | No                           |    749|         44.3| 38.6, 50    |        295|             50.6| 40.6, 60.6 |        304|             38.1| 28.9, 47.3  |    150|         48.4| 35.2, 61.6 |
+| Usual Source of Care        | Yes                          |  11632|         73.7| 72.6, 74.9  |       2545|             78.0| 75.4, 80.6 |       4369|             77.0| 75.3, 78.7  |   4718|         67.1| 65.3, 69   |
+| Usual Source of Care        | Other                        |    102|         63.5| -0.7, 127.7 |         23|              0.0| 0, 0       |         43|            100.0| 100, 100    |     36|          0.0| 0, 0       |
+| Insurance Type              | None                         |    785|         47.1| 40, 54.2    |        362|             48.3| 36.3, 60.3 |        392|             46.0| 37.7, 54.4  |     31|         51.6| 22, 81.2   |
+| Insurance Type              | Public                       |   3610|         66.4| 64.1, 68.8  |        469|             73.7| 67.3, 80.1 |        717|             68.2| 62.4, 74    |   2424|         64.9| 62, 67.7   |
+| Insurance Type              | Private/Military             |   8041|         76.1| 74.7, 77.4  |       2021|             79.1| 76.3, 81.9 |       3586|             78.0| 76.1, 79.9  |   2434|         68.7| 66.1, 71.3 |
+| Chronic Disability          | Yes                          |   3285|         61.1| 58.4, 63.7  |        354|             69.0| 61.3, 76.7 |       1126|             68.5| 64.2, 72.7  |   1805|         53.8| 50.3, 57.3 |
+| Chronic Disability          | No                           |     71|         62.4| 46, 78.7    |         11|             71.8| 34.5, 109  |         20|             86.2| 71.7, 100.6 |     40|         47.2| 26.3, 68.1 |
+| Ethnicity                   | Hispanic                     |   1685|         74.3| 71.4, 77.3  |        590|             73.5| 68.6, 78.4 |        600|             78.9| 74.3, 83.5  |    495|         67.6| 61.7, 73.4 |
+| Ethnicity                   | Non-Hispanic White           |   8229|         71.7| 70.3, 73.1  |       1611|             75.8| 72.3, 79.4 |       3090|             74.1| 71.8, 76.3  |   3528|         66.8| 64.7, 68.8 |
+| Ethnicity                   | Non-Hispanic Black           |   1833|         76.8| 73.8, 79.9  |        449|             81.7| 76.2, 87.2 |        746|             79.7| 75.6, 83.9  |    638|         67.7| 62.3, 73.1 |
+| Ethnicity                   | Non-Hispanic AN/AI           |    123|         67.9| 54.9, 80.8  |         35|             86.1| 72.3, 100  |         55|             57.9| 37.4, 78.3  |     33|         66.2| 42.2, 90.2 |
+| Ethnicity                   | Non-Hispanic Asian           |    613|         70.1| 64.5, 75.6  |        178|             72.6| 61.9, 83.2 |        225|             73.6| 64.6, 82.5  |    210|         60.9| 51.1, 70.6 |
+| Race                        | White                        |   9760|         72.0| 70.7, 73.3  |       2138|             75.7| 72.7, 78.7 |       3630|             74.7| 72.6, 76.7  |   3992|         66.8| 64.8, 68.8 |
+| Race                        | Black                        |   1908|         76.9| 73.9, 79.9  |        482|             81.1| 75.8, 86.3 |        773|             79.8| 75.7, 83.9  |    653|         68.0| 62.6, 73.5 |
+| Race                        | AN/AI                        |    175|         63.8| 52.8, 74.9  |         52|             68.2| 46.4, 90   |         78|             58.3| 42.1, 74.5  |     45|         68.0| 47.9, 88   |
+| Race                        | Asian                        |    640|         70.2| 64.8, 75.7  |        191|             72.9| 62.5, 83.2 |        235|             73.9| 65.1, 82.7  |    214|         60.5| 50.8, 70.2 |
+| Immigration                 | In U.S. &lt; 10 yrs          |    195|         69.2| 58.6, 79.8  |        101|             67.2| 51.5, 82.8 |         54|             72.7| 54.3, 91.1  |     40|         68.4| 43.7, 93.2 |
+| Immigration                 | In U.S. &gt;= 10 yrs         |   1947|         72.3| 69.3, 75.4  |        596|             75.4| 69.9, 81   |        690|             77.3| 72.7, 81.9  |    661|         61.6| 56.3, 66.9 |
+| Immigration                 | Born in U.S.                 |  10312|         72.5| 71.2, 73.7  |       2153|             76.5| 73.4, 79.6 |       3964|             74.8| 72.8, 76.7  |   4195|         67.4| 65.5, 69.3 |
 
 Barplots of Usual Care and Insurance Coverage
+
+``` r
+# sample size
+usual_size = mam_dat %>%
+  filter(domain == 1) %>%
+  group_by(ausualpl_cat) %>%
+  summarise(count = n()) %>%
+  filter(ausualpl_cat != "NA")
+sum(pull(usual_size, count))
+```
+
+    ## [1] 12483
 
 ``` r
 # usual source of care barchart
@@ -680,10 +799,22 @@ usual_tab %>%
   scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
   facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
-  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Usual Source of Care (Have/Have Not)")
+  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Usual Source of Care (Have/Have Not)", title = "N = 12483")
 ```
 
 ![](mammogram_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
+``` r
+# sample size
+ins_size = mam_dat %>%
+  filter(domain == 1) %>%
+  group_by(cover_cat) %>%
+  summarise(count = n()) %>%
+  filter(cover_cat != "NA")
+sum(pull(ins_size, count))
+```
+
+    ## [1] 12436
 
 ``` r
 # insurance type barchart
@@ -694,52 +825,12 @@ ins_tab %>%
   scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
   facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
-  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Type of Insurance Coverage")
+  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Type of Insurance Coverage", title = "N = 12436")
 ```
 
 ![](mammogram_files/figure-markdown_github/unnamed-chunk-4-2.png)
 
 Models
-
-Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram. 
-The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448. 
-The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784. 
-The OR for having a recent mammogram when comparing women who only have a high school degree to women who have a college degree is 0.6985. 
-The OR for having a recent mammogram when comparing women who have less than a high school degree to women who have a college degree is 0.5821. 
-The OR for having a recent mammogram when comparing women who have some college education to women who have a college degree is 0.7943. 
-The OR for having a recent mammogram when comparing women who are only known as having a poverty ratio of &gt;200% to women who have a poverty ratio &lt;200% is 1.1436. 
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 200-299% to women who have a poverty ratio &lt;200% is 1.1586. 
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 300-399% to women who have a poverty ratio &lt;200% is 1.4398. 
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 400-499% to women who have a poverty ratio &lt;200% is 1.5428. 
-The OR for having a recent mammogram when comparing women who have a poverty ratio &gt;=500% to women who have a poverty ratio &lt;200% is 1.8111. 
-The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.8878. 
-The OR for having a recent mammogram when comparing having private/military insurance to none is 2.5213. 
-The OR for having a recent mammogram when comparing having public insurance to none is 2.3978. 
-The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 0.623. 
-The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 0.4583. 
-The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.8474. 
-The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.5621. 
-
-The groups least likely to have had a recent mammogram are women aged 65+, women who have less than a high school degree, women who have a poverty ratio &lt;200%, women who do not have a usual source of care, women who have no insurance, and Non-Hispanic women.
-
-``` r
-# get sample sizes
-# 12483
-mam_temp = mam_dat %>%
-  filter(domain == 1)
-
-# 2863
-mam_temp40 = mam_temp %>%
-  filter(age_cat == "40–49")
-
-# 4716
-mam_temp50 = mam_temp %>%
-  filter(age_cat == "50–64")
-
-# 4904
-mam_temp65 = mam_temp %>%
-  filter(age_cat == "65+")
-```
 
 *collapsing some categories*
 
@@ -1312,7 +1403,7 @@ jtools::plot_summs(mam2_fit2, coefs = coef1, exp = TRUE) +
   labs(title = "Mammogram Significant Predictors") 
 ```
 
-![](mammogram_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](mammogram_files/figure-markdown_github/unnamed-chunk-5-1.png)
 
 ``` r
 # write out analysis data set
