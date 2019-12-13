@@ -573,10 +573,6 @@ coef3b = coef2[12] # pull out immigration status because of the intercept magnit
 jtools::plot_summs(col2_fit2, coefs = coef3a, exp = TRUE) +
   labs(title = "Colorectal Screen Significant Predictors") +
   scale_x_continuous(limits = c(0, 6), breaks = c(0, 2, 4, 6))
-
-jtools::plot_summs(col2_fit2, coefs = coef3b, exp = TRUE) +
-  labs(title = "Colorectal Screen Significant Predictors") +
-  scale_x_continuous(labels = scales::comma)
 ```
 
 
