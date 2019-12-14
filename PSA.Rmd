@@ -1,0 +1,628 @@
+---
+title: "PSA"
+author: "Sijia Yue"
+date: "12/14/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(survey)
+library(tidyverse)
+library(jtools)
+library(caret)
+library(leaps)
+library(ggthemes)
+library(MASS)
+```
+
+### Data Preparation
+```{r}
+cancer_df = read_csv("cancerxx.csv") %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(hhx, fmx, fpx, #identifiers
+         wtfa_sa, #weights
+         strat_p, psu_p, #for design
+         region, 
+         psahad, #ever has a psa test
+         rpsa1_mt, #month of most recent psa test
+         rpsa1n:psaexp)
+
+fam_dat = read_csv("familyxx.csv") %>%
+    janitor::clean_names() %>% 
+    dplyr::select(hhx, fmx,  #identifiers
+         rat_cat4, rat_cat5) # Ratio of family income to the poverty threshold (not sure the difference)
+
+pers_dat = read_csv("personsx.csv") %>%
+   janitor::clean_names() %>% 
+    dplyr::select(hhx, fmx, fpx, #identifiers
+         age_p, #age
+         educ1, #education
+         sex, #gender
+         notcov, cover, cover65, cover65o,  #coverage > 65, 65+, alternate 65+
+         la1ar, #limitation
+         lcondrt, #limitation is chronic
+         lachronr, #chronic limitation
+         hiscodi3, #ethnicity recode,
+         racreci3, #race recode
+         yrsinus, #immigration status (for people not born in the US)
+         plborn # place born
+         )
+
+adult_dat = read_csv("samadult.csv") %>%
+   janitor::clean_names() %>% 
+    dplyr::select(hhx, fmx, fpx, #identifiers
+    ausualpl, ahcplrou, ahcplknd, #Usual source of care - different options
+    fla1ar) #functional limitation
+```
+
+```{r}
+psa_df = cancer_df %>% 
+  left_join(adult_dat, by = c("hhx", "fmx", "fpx")) %>% 
+  left_join(pers_dat, by = c("hhx", "fmx", "fpx")) %>% 
+  left_join(fam_dat, by = c("hhx", "fmx"))
+head(psa_df)
+```
+
+### Data Manipulation
+
+
+
+```{r}
+psa_df=psa_df %>% 
+  mutate(educ_cat = case_when(educ1 < 13 ~ "Less than high school",
+                              educ1 >= 13 & educ1 < 15 ~ "High school",
+                              educ1 >= 15 & educ1 < 18 ~ "Some college",
+                              educ1 >= 18 & educ1 <= 21 ~ "College graduate"))
+
+```
+
+```{r}
+psa_df=psa_df %>% 
+  mutate(finc_cat = case_when(rat_cat5 <= 7 |  rat_cat5 %in% c(15, 16) ~ "<200%",
+                              rat_cat5 %in% c(8, 9) ~ "200–299%", 
+                              rat_cat5 %in% c(10, 11) ~ "300–399%",
+                              rat_cat5 >= 18 & educ1 <= 21 ~ "400–499%",
+                              rat_cat5 == 14  ~">=500%",
+                              rat_cat5 == 17  ~">=200%, no further detail",
+                              rat_cat5 %in% c(96, 99) ~ "Unknown"))
+
+```
+
+```{r}
+psa_df = psa_df %>% 
+  mutate(ausualpl_cat  = case_when(ausualpl == 2 ~ "No",
+                                 ausualpl %in% c(1, 3) ~ "Yes",
+                                 ausualpl %in% c(7, 8, 9) ~ "Other"))
+
+```
+
+```{r}
+psa_df <- psa_df %>% 
+  mutate(cover_cat  = case_when(notcov == 1 | cover == 4 | cover65 == 6 ~ "None",
+                                cover == 2 | cover65 %in% 2:4 ~ "Public",
+                                cover %in% c(1, 3) | cover65 %in% c(1, 5) ~ "Private/Military"))
+
+```
+
+```{r}
+psa_df <- psa_df %>% 
+  mutate(lcond_chronic_cat = if_else(lcondrt == 1, "Yes", "No"))
+
+```
+
+```{r}
+psa_df <- psa_df %>% 
+  mutate(race_cat = case_when(racreci3 == 1 ~ "White",
+                              racreci3 == 2 ~ "Black",
+                              racreci3 == 3 ~ "Asian",
+                              racreci3 == 4 ~ "AN/AI"),
+         eth_cat = case_when(hiscodi3 == 1 ~ "Hispanic",
+                             hiscodi3 == 2 ~ "Non-Hispanic White",
+                             hiscodi3 == 3 ~ "Non-Hispanic Black",
+                             hiscodi3 == 4 ~ "Non-Hispanic Asian",
+                             hiscodi3 == 5 ~ "Non-Hispanic AN/AI"),
+         yrus_cat = case_when(yrsinus < 4 ~ "In U.S. < 10 yrs",
+                              yrsinus == 4 | yrsinus == 5 ~ "In U.S. >= 10 yrs",
+                              plborn == 1 ~ "Born in U.S.")) %>% 
+    mutate_at(vars(psaadv, psadisav, psaexp, psasugg), ~factor(.x))
+         
+        
+```
+
+```{r}
+psa_df =
+  psa_df %>%
+  # create domain variable for inclusion criteria
+  mutate(domain = if_else(sex == 1 & age_p >= 50, 1,0),
+         age_cat = case_when(age_p >= 50 & age_p < 65 ~ "50–64",
+                              age_p >= 65 ~ "65+"),
+         imm_stat = case_when(yrsinus < 4 ~ "In U.S. < 10 yrs",
+                              yrsinus == 4 | yrsinus == 5 ~ "In U.S. >= 10 yrs",
+                              plborn == 1 ~ "Born in U.S.")) 
+```
+
+
+### Survey design
+
+Domain analysis:
+add indicationg variable into the by function.
+
+```{r}
+psa_df %>% count(rpsa1_mt)
+
+psa_df = 
+  psa_df %>% 
+  mutate(psa_1yr = case_when(rpsa1_mt %in% c(1:12) ~ 1,
+                             rpsa1_mt %in% c(96,97,99) ~ 0)) %>% 
+  filter(strat_p != 70)
+
+psa_df %>% 
+  filter(domain==1) %>% 
+  summarise(n())
+
+des = svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE, data = psa_df)
+```
+
+
+### Tables
+```{r}
+# percent of men who have had PSA in the last two years by age
+age_pct = svyby(~psa_1yr, by = ~domain+age_cat, svymean, na.rm = TRUE, 
+                design = des, vartype = c("ci", "se"))
+age_pct %>% filter(domain == 1) %>% dplyr::select(-domain, -se) %>% knitr::kable()
+
+# percent of men who have had PSA by education
+edu_pct = svyby(~psa_1yr, by = ~domain+educ_cat, svymean, na.rm = TRUE, 
+                design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+edu_counts = filter(psa_df, domain == 1) %>%
+  group_by(educ_cat) %>%
+  summarise(count = n())
+edu_pct = left_join(edu_pct, edu_counts, by = "educ_cat")
+edu_pct %>% 
+  knitr::kable()
+
+# percent of men who have had PSA by financial category
+finc_pct = svyby(~psa_1yr, by = ~domain+finc_cat, svymean, na.rm = TRUE, 
+                 design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+finc_counts = filter(psa_df, domain == 1) %>%
+  group_by(finc_cat) %>%
+  summarise(count = n())
+finc_pct = left_join(finc_pct, finc_counts, by = "finc_cat")
+finc_pct %>% knitr::kable()
+
+# percent of men who have had PSA by usual care category
+ausualp_pct = svyby(~psa_1yr, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE, 
+                    design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+usual_counts = filter(psa_df, domain == 1) %>%
+  group_by(ausualpl_cat) %>%
+  summarise(count = n())
+ausualp_pct = left_join(ausualp_pct, usual_counts, by = "ausualpl_cat")
+ausualp_pct %>% knitr::kable()
+
+# percent of men who have had PSA by health coverage
+cover_pct = svyby(~psa_1yr, by = ~domain+cover_cat, svymean, na.rm = TRUE, 
+                  design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+cover_counts = filter(psa_df, domain == 1) %>%
+  group_by(cover_cat) %>%
+  summarise(count = n())
+cover_pct = left_join(cover_pct, cover_counts, by = "cover_cat")
+cover_pct %>% knitr::kable()
+
+# percent of men who have had PSA by chronic conditions
+lcond_chronic_pct = svyby(~psa_1yr, by = ~domain+lcond_chronic_cat, svymean, 
+                          na.rm = TRUE, design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+chronic_counts = filter(psa_df, domain == 1) %>%
+  group_by(lcond_chronic_cat) %>%
+  summarise(count = n())
+lcond_chronic_pct = left_join(lcond_chronic_pct, chronic_counts, by = "lcond_chronic_cat")
+lcond_chronic_pct %>% knitr::kable()
+
+# percent of men who have had PSA by race
+race_pct = svyby(~psa_1yr, by = ~domain+race_cat, svymean, na.rm = TRUE, 
+                 design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+race_counts = filter(psa_df, domain == 1) %>%
+  group_by(race_cat) %>%
+  summarise(count = n())
+race_pct = left_join(race_pct, race_counts, by = "race_cat")
+race_pct %>% knitr::kable()
+
+# percent of men who have had PSA by ethnicity
+eth_pct = svyby(~psa_1yr, by = ~domain+eth_cat, svymean, na.rm = TRUE, 
+                design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+eth_counts = filter(psa_df, domain == 1) %>%
+  group_by(eth_cat) %>%
+  summarise(count = n())
+eth_pct = left_join(eth_pct, eth_counts, by = "eth_cat")
+eth_pct %>% knitr::kable()
+
+# percent of men who have had PSA by immigration status
+imm_pct = svyby(~psa_1yr, by = ~domain+imm_stat, svymean, na.rm = TRUE,
+                design = des, vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+imm_counts = filter(psa_df, domain == 1) %>%
+  group_by(imm_stat) %>%
+  summarise(count = n())
+imm_pct = left_join(imm_pct, imm_counts, by = "imm_stat")
+imm_pct %>% knitr::kable()
+```
+
+Tables By Age Group 
+
+```{r, age_table}
+# percent of men who have had PSA by education and age 
+edu_pct_strat = svyby(~psa_1yr, by = ~domain + age_cat + educ_cat, svymean, 
+                      na.rm = TRUE, design = des, vartype = c("se", "ci"))
+edu_tab = edu_pct_strat %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se) 
+edu_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, educ_cat) %>%
+  summarise(count = n())
+edu_tab = left_join(edu_tab, edu_counts2, by = c("age_cat", "educ_cat"))
+edu_tab %>% knitr::kable()
+
+# percent of men who have had PSA by financial category and age
+finc_pct_strat = svyby(~psa_1yr, by = ~domain + age_cat + finc_cat, svymean, 
+                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
+finc_tab = finc_pct_strat %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se) 
+finc_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, finc_cat) %>%
+  summarise(count = n())
+finc_tab = left_join(finc_tab, finc_counts2, by = c("age_cat", "finc_cat"))
+finc_tab %>% knitr::kable()
+
+# percent of men who have had PSA by usual care and age
+ausualp_pct_strat = svyby(~psa_1yr, by = ~domain + age_cat + ausualpl_cat,
+                          svymean, na.rm = TRUE, design = des, 
+                          vartype = c("se", "ci"))
+usual_tab = ausualp_pct_strat %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se) 
+usual_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, ausualpl_cat) %>%
+  summarise(count = n())
+usual_tab = left_join(usual_tab, usual_counts2, by = c("age_cat", "ausualpl_cat"))
+usual_tab %>% knitr::kable()
+
+# percent of men who have had PSA by health coverage and age
+cover_pct_strat = svyby(~psa_1yr, by = ~domain + age_cat + cover_cat, svymean,
+                        na.rm = TRUE, design = des, vartype = c("se", "ci"))
+ins_tab = cover_pct_strat %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se)
+ins_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, cover_cat) %>%
+  summarise(count = n())
+ins_tab = left_join(ins_tab, ins_counts2, by = c("age_cat", "cover_cat"))
+ins_tab %>% knitr::kable()
+
+# percent of men who have had PSA by chronic conditions and age
+lcond_chronic_pct_strat = svyby(~psa_1yr, 
+                                by = ~domain + age_cat + lcond_chronic_cat,
+                                svymean, na.rm = TRUE, design = des,
+                                vartype = c("se", "ci"))
+dis_tab = lcond_chronic_pct_strat %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se)
+dis_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, lcond_chronic_cat) %>%
+  summarise(count = n())
+dis_tab = left_join(dis_tab, dis_counts2, by = c("age_cat", "lcond_chronic_cat"))
+dis_tab %>% knitr::kable()
+
+# percent of men who have had PSA by race and age
+race_pct_strat = svyby(~psa_1yr, by = ~domain + age_cat + race_cat, svymean, 
+                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
+race_tab = race_pct_strat %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se) 
+race_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, race_cat) %>%
+  summarise(count = n())
+race_tab = left_join(race_tab, race_counts2, by = c("age_cat", "race_cat"))
+race_tab %>% knitr::kable()
+
+# percent of men who have had PSA by ethnicity and age
+eth_pct_strat = svyby(~psa_1yr, by = ~domain + age_cat + eth_cat, svymean, 
+                      na.rm = TRUE, design = des, vartype = c("se", "ci"))
+eth_tab = eth_pct_strat %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se) 
+eth_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, eth_cat) %>%
+  summarise(count = n())
+eth_tab = left_join(eth_tab, eth_counts2, by = c("age_cat", "eth_cat"))
+eth_tab %>% knitr::kable()
+
+# percent of men who have had PSA by immigration and age
+imm_pct_strat = svyby(~psa_1yr, by = ~domain + age_cat + imm_stat, svymean,
+                      na.rm = TRUE, design = des, vartype = c("se", "ci"))
+imm_tab = imm_pct_strat %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se)
+imm_counts2 = filter(psa_df, domain == 1) %>%
+  group_by(age_cat, imm_stat) %>%
+  summarise(count = n())
+imm_tab = left_join(imm_tab, imm_counts2, by = c("age_cat", "imm_stat"))
+imm_tab %>% knitr::kable()
+
+# overall percent of men who have had PSA
+total = svyby(~psa_1yr, by = ~domain + age_cat, svymean, na.rm = TRUE, 
+              design = des, vartype = c("se", "ci"))
+tot_tab = total %>% 
+  filter(domain == 1) %>% 
+  dplyr::select(-domain, -se) 
+tot_counts = filter(psa_df, domain == 1) %>%
+  group_by(age_cat) %>%
+  summarise(count = n())
+tot_tab = left_join(tot_tab, tot_counts, by = "age_cat")
+tot_tab %>% knitr::kable()
+all_counts = filter(psa_df, domain == 1)
+tot_pct = svyby(~psa_1yr, by = ~domain, svymean, na.rm = TRUE, design = des,
+                vartype = c("se", "ci")) %>%
+  filter(domain == 1) %>%
+  dplyr::select(-domain, -se) %>%
+  mutate(age_cat = "50+",
+         count = 7426)
+```
+
+Combine into paper table
+
+```{r}
+# COMBINE TABLES BY AGE WITH TABLES OVERALL
+# overall
+tot_tab = rbind(tot_pct, tot_tab)
+tot_tab2 = tot_tab %>%
+  mutate(type = "Total",
+         level = "-")
+# education
+edu_pct2 = edu_pct %>%
+  mutate(age_cat = "40+")
+edu_tab = rbind(edu_pct2, edu_tab)
+# factor levels for presentation
+edu_tab2 = edu_tab %>%
+  mutate(type = "Education") %>%
+  rename(level = educ_cat) %>%
+  mutate(level = factor(level, levels = c("Less than high school", "High school", "Some college", "College graduate"))) %>%
+  arrange(level)
+# financial category
+finc_pct2 = finc_pct %>%
+  mutate(age_cat = "50+")
+finc_tab = rbind(finc_pct2, finc_tab)
+# factor levels for presentation
+finc_tab2 = finc_tab %>%
+  mutate(type = "Family Income Poverty Ratio") %>%
+  rename(level = finc_cat) %>%
+  mutate(level = factor(level, levels = c("<200%", ">=200%, no further detail", "200–299%", "300–399%", "400–499%", ">=500%", "Unknown"))) %>%
+  arrange(level)
+# usual care category
+ausualp_pct2 = ausualp_pct %>%
+  mutate(age_cat = "50+")
+usual_tab = rbind(ausualp_pct2, usual_tab)
+# factor levels for presentation
+usual_tab2 = usual_tab %>%
+  mutate(type = "Usual Source of Care") %>%
+  rename(level = ausualpl_cat) %>%
+  mutate(level = factor(level, levels = c("No", "Yes", "Other"))) %>%
+  arrange(level)
+# insurance coverage category
+cover_pct2 = cover_pct %>%
+  mutate(age_cat = "50+")
+ins_tab = rbind(cover_pct2, ins_tab)
+# factor levels for presentation
+ins_tab2 = ins_tab %>%
+  mutate(type = "Insurance Type") %>%
+  rename(level = cover_cat) %>%
+  mutate(level = factor(level, levels = c("None", "Public", "Private/Military"))) %>%
+  arrange(level)
+# chronic condition category
+lcond_chronic_pct2 = lcond_chronic_pct %>%
+  mutate(age_cat = "50+")
+dis_tab = rbind(lcond_chronic_pct2, dis_tab)
+# factor levels for presentation
+dis_tab2 = dis_tab %>%
+  mutate(type = "Chronic Disability") %>%
+  rename(level = lcond_chronic_cat) %>%
+  mutate(level = factor(level, levels = c("Yes", "No"))) %>%
+  arrange(level)
+# ethnic category
+eth_pct2 = eth_pct %>%
+  mutate(age_cat = "50+")
+eth_tab = rbind(eth_pct2, eth_tab)
+# factor levels for presentation
+eth_tab2 = eth_tab %>%
+  mutate(type = "Ethnicity") %>%
+  rename(level = eth_cat) %>%
+  mutate(level = factor(level, levels = c("Hispanic", "Non-Hispanic White", "Non-Hispanic Black", "Non-Hispanic AN/AI", "Non-Hispanic Asian"))) %>%
+  arrange(level)
+# race category
+race_pct2 = race_pct %>%
+  mutate(age_cat = "50+")
+race_tab = rbind(race_pct2, race_tab)
+# factor levels for presentation
+race_tab2 = race_tab %>%
+  mutate(type = "Race") %>%
+  rename(level = race_cat) %>%
+  mutate(level = factor(level, levels = c("White", "Black", "AN/AI", "Asian"))) %>%
+  arrange(level)
+# immigration category
+imm_pct2 = imm_pct %>%
+  mutate(age_cat = "50+")
+imm_tab = rbind(imm_pct2, imm_tab)
+# factor levels for presentation
+imm_tab2 = imm_tab %>%
+  mutate(type = "Immigration") %>%
+  rename(level = imm_stat) %>%
+  mutate(level = factor(level, levels = c("In U.S. < 10 yrs", "In U.S. >= 10 yrs", "Born in U.S."))) %>%
+  arrange(level)
+# create table of percentages of women who have gotten mammograms within the last two years (still need to add CIs)
+tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, eth_tab2, race_tab2, imm_tab2) %>%
+  mutate(psa_1yr = round(psa_1yr*100, 1),
+         ci_l = round(ci_l*100, 1),
+         ci_u = round(ci_u*100, 1),
+         CI = str_c(ci_l, ", ", ci_u)) %>%
+  rename(Percent = psa_1yr,
+         N = count) %>%
+  dplyr::select(-ci_l, -ci_u) %>%
+  pivot_wider(names_from = age_cat, values_from = c(N, Percent, CI)) %>%
+  janitor::clean_names() %>% 
+  dplyr::select(type, level, n_50, percent_50, ci_50, n_50_64, percent_50_64, ci_50_64, n_65, percent_65, ci_65, everything())
+# print percentages
+tab_one %>% knitr::kable()
+```
+
+### EDA
+```{r}
+# sample size
+usual_size = psa_df %>%
+  filter(domain == 1) %>%
+  group_by(ausualpl_cat) %>%
+  summarise(count = n()) %>%
+  filter(ausualpl_cat != "NA")
+sum(pull(usual_size, count))
+
+# usual source of care barchart
+usual_tab %>%
+  filter(age_cat != "50+" & ausualpl_cat != "Other") %>%
+  ggplot(aes(x = ausualpl_cat, y = psa_1yr, fill = ausualpl_cat)) +
+  geom_col() +
+  scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
+  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Usual Source of Care (Have/Have Not)", title = "N = 7426")
+
+# sample size
+ins_size = psa_df %>%
+  filter(domain == 1) %>%
+  group_by(cover_cat) %>%
+  summarise(count = n()) %>%
+  filter(cover_cat != "NA")
+sum(pull(ins_size, count))
+# insurance type barchart
+ins_tab %>%
+  filter(age_cat != "50+") %>%
+  ggplot(aes(x = cover_cat, y = psa_1yr, fill = cover_cat)) +
+  geom_col() + 
+  scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
+  facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
+  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Type of Insurance Coverage", title = "N = 7426")
+```
+
+
+
+## Model
+
+*collapsing some categories*
+
+```{r}
+# make financial status and ethnicity only two levels 
+psa_df2 = psa_df %>%
+  mutate(finc_cat2 = if_else(finc_cat == "<200%", finc_cat,
+                             if_else(finc_cat == "Unknown", finc_cat, ">=200%")),
+         eth_cat2 = if_else(eth_cat == "Hispanic", eth_cat, "Non-Hispanic"),
+         imm_stat2 = if_else(imm_stat == "Born in U.S.", imm_stat, "Immigrated"),
+         ausualpl_cat2 = replace(ausualpl_cat, ausualpl_cat == "Other", NA),
+         lcond_chronic_cat2 = if_else(lcond_chronic_cat == "Yes", "Yes (Chronic)", lcond_chronic_cat))
+
+des2 = svydesign(ids = ~psu_p, strata = ~strat_p, weights = ~wtfa_sa, nest = TRUE, data = psa_df2)
+
+model1 = svyglm(psa_1yr ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat2) + as.factor(cover_cat) + as.factor(lcond_chronic_cat2) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat2), 
+       design = des2, subset = domain == 1, family = binomial(link = "logit")) 
+summary(model1)
+summ(model1) 
+  
+regTermTest(model1,  ~ as.factor(age_cat) + as.factor(educ_cat) + as.factor(finc_cat2) + as.factor(ausualpl_cat2) + as.factor(cover_cat) + as.factor(lcond_chronic_cat2) + as.factor(race_cat) + as.factor(eth_cat2) + as.factor(imm_stat2),
+            method = "LRT")
+
+# test significance of individual terms/term groups
+regTermTest(model1, "as.factor(age_cat)", 
+            method = "LRT") # not sig
+regTermTest(model1, "as.factor(educ_cat)",
+            method = "LRT") # not sig
+regTermTest(model1, "as.factor(finc_cat2)",
+            method = "LRT") # sig
+regTermTest(model1, "as.factor(ausualpl_cat2)",
+            method = "LRT") # not sig
+regTermTest(model1, "as.factor(cover_cat)",
+            method = "LRT") # sig
+regTermTest(model1, "as.factor(lcond_chronic_cat2)",
+            method = "LRT") # sig
+regTermTest(model1, "as.factor(race_cat)",
+            method = "LRT") # not sig
+regTermTest(model1, "as.factor(eth_cat2)",
+            method = "LRT") # not sig
+regTermTest(model1, "as.factor(imm_stat2)",
+            method = "LRT") # not sig
+
+# fit reduced model with significant predictors
+# remove finc_cat2, cover_cat, lcond_chronic_cat2
+model2 = svyglm(psa_1yr ~  as.factor(finc_cat2) +  as.factor(cover_cat) + as.factor(lcond_chronic_cat2), 
+       design = des2, subset = domain == 1, family = binomial(link = "logit")) 
+summary(model2)
+summ(model2)
+
+
+# Rao-Scott of full model
+regTermTest(model2,  ~as.factor(finc_cat2) +  as.factor(cover_cat) + as.factor(lcond_chronic_cat2))
+
+# single term/term group significance
+regTermTest(model2, "as.factor(finc_cat2)",
+            method = "LRT") # sig
+regTermTest(model2, "as.factor(cover_cat)",
+            method = "LRT") # sig
+regTermTest(model2, "as.factor(lcond_chronic_cat2)",
+            method = "LRT") # sig
+
+# give labels to the coefficients to look nicer on the OR graph
+coef = names(coef(model2))
+coef_new = stringr::str_remove(coef, "^[^_]*_cat[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_cat2[)]")
+coef_new = stringr::str_remove(coef_new, "^[^_]*_chronic")
+coef_new = stringr::str_remove(coef_new, "^*_cat2[)]")
+names(coef) <- coef_new
+coef1 = coef[-1] # remove intercept 
+model_coef = broom::tidy(model2, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
+  mutate(term = case_when(term == "(Intercept)" ~ "Intercept",
+                          term == "as.factor(age_cat)50–64" ~ "50-64 vs <50",
+                          term == "as.factor(age_cat)65+" ~ "65+ vs <50",
+                          term == "as.factor(educ_cat)High school" ~ "High School Degree vs College Degree",
+                          term == "as.factor(educ_cat)Less than high school" ~ "Less than High School vs College Degree",
+                          term == "as.factor(educ_cat)Some college" ~ "Some college vs College Degree",
+                          term == "as.factor(finc_cat2)>=200%" ~ ">=200% vs <200% Poverty Level",
+                          term == "as.factor(ausualpl_cat2)Yes" ~ "Usual Source of Care vs No Usual Source of Care",
+                          term == "as.factor(cover_cat)Private/Military" ~ "Private/Military Insurance vs No Insurance",
+                          term == "as.factor(cover_cat)Public" ~ "Public Insurance vs No Insurance",
+                          term == "as.factor(lcond_chronic_cat2)Yes (Chronic)" ~ "Chronic Condition vs No Chronic Condition",
+                          term == "as.factor(eth_cat2)Non-Hispanic" ~ "Non-Hispanic vs Hispanic"))
+model_coef %>% knitr::kable(digits = 2)
+# plot ORs with CIs
+jtools::plot_summs(model2, coefs = coef1, exp = TRUE) +
+  labs(title = "PSA Significant Predictors") 
+```
+```
