@@ -1377,25 +1377,29 @@ model_coef = broom::tidy(mam2_fit2, conf.int = TRUE, conf.level = 0.95, exponent
                           term == "as.factor(cover_cat)Private/Military" ~ "Private/Military Insurance vs No Insurance",
                           term == "as.factor(cover_cat)Public" ~ "Public Insurance vs No Insurance",
                           term == "as.factor(lcond_chronic_cat2)Yes (Chronic)" ~ "Chronic Condition vs No Chronic Condition",
-                          term == "as.factor(eth_cat2)Non-Hispanic" ~ "Non-Hispanic vs Hispanic"))
+                          term == "as.factor(eth_cat2)Non-Hispanic" ~ "Non-Hispanic vs Hispanic"),
+         estimate = round(estimate, 2),
+         conf.low = round(conf.low, 2),
+         conf.high = round(conf.high, 2)) %>%
+  select(term, estimate, conf.low, conf.high)
 
 model_coef %>% knitr::kable()
 ```
 
-| term                                            |   estimate|  std.error|   statistic|    p.value|   conf.low|  conf.high|
-|:------------------------------------------------|----------:|----------:|-----------:|----------:|----------:|----------:|
-| Intercept                                       |  0.8964110|  0.6530027|  -0.1674668|  0.8671382|  0.2492701|  3.2236219|
-| 50-64 vs &lt;50                                 |  1.0110433|  0.2213390|   0.0496196|  0.9604652|  0.6551876|  1.5601769|
-| 65+ vs &lt;50                                   |  0.5213820|  0.2199770|  -2.9606389|  0.0033652|  0.3387749|  0.8024181|
-| High School Degree vs College Degree            |  0.6173656|  0.1679324|  -2.8719521|  0.0044295|  0.4442200|  0.8579990|
-| Less than High School vs College Degree         |  0.5519431|  0.2047641|  -2.9024151|  0.0040335|  0.3694867|  0.8244983|
-| Some college vs College Degree                  |  0.8303975|  0.1785244|  -1.0410388|  0.2988633|  0.5852290|  1.1782739|
-| &gt;=200% vs &lt;200% Poverty Level             |  1.0087555|  0.1347671|   0.0646847|  0.9484768|  0.7745901|  1.3137111|
-| Usual Source of Care vs No Usual Source of Care |  2.2203490|  0.3684664|   2.1648224|  0.0313479|  1.0784054|  4.5715181|
-| Private/Military Insurance vs No Insurance      |  3.2345472|  0.3414396|   3.4380579|  0.0006862|  1.6564549|  6.3160762|
-| Public Insurance vs No Insurance                |  3.3028596|  0.3612523|   3.3073523|  0.0010802|  1.6270151|  6.7048432|
-| Chronic Condition vs No Chronic Condition       |  0.9320685|  0.3582005|  -0.1963955|  0.8444601|  0.4618990|  1.8808262|
-| Non-Hispanic vs Hispanic                        |  0.5235020|  0.2068611|  -3.1287391|  0.0019638|  0.3490100|  0.7852335|
+| term                                            |  estimate|  conf.low|  conf.high|
+|:------------------------------------------------|---------:|---------:|----------:|
+| Intercept                                       |      0.90|      0.25|       3.22|
+| 50-64 vs &lt;50                                 |      1.01|      0.66|       1.56|
+| 65+ vs &lt;50                                   |      0.52|      0.34|       0.80|
+| High School Degree vs College Degree            |      0.62|      0.44|       0.86|
+| Less than High School vs College Degree         |      0.55|      0.37|       0.82|
+| Some college vs College Degree                  |      0.83|      0.59|       1.18|
+| &gt;=200% vs &lt;200% Poverty Level             |      1.01|      0.77|       1.31|
+| Usual Source of Care vs No Usual Source of Care |      2.22|      1.08|       4.57|
+| Private/Military Insurance vs No Insurance      |      3.23|      1.66|       6.32|
+| Public Insurance vs No Insurance                |      3.30|      1.63|       6.70|
+| Chronic Condition vs No Chronic Condition       |      0.93|      0.46|       1.88|
+| Non-Hispanic vs Hispanic                        |      0.52|      0.35|       0.79|
 
 ``` r
 # plot ORs with CIs

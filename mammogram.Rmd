@@ -707,7 +707,11 @@ model_coef = broom::tidy(mam2_fit2, conf.int = TRUE, conf.level = 0.95, exponent
                           term == "as.factor(cover_cat)Private/Military" ~ "Private/Military Insurance vs No Insurance",
                           term == "as.factor(cover_cat)Public" ~ "Public Insurance vs No Insurance",
                           term == "as.factor(lcond_chronic_cat2)Yes (Chronic)" ~ "Chronic Condition vs No Chronic Condition",
-                          term == "as.factor(eth_cat2)Non-Hispanic" ~ "Non-Hispanic vs Hispanic"))
+                          term == "as.factor(eth_cat2)Non-Hispanic" ~ "Non-Hispanic vs Hispanic"),
+         estimate = round(estimate, 2),
+         conf.low = round(conf.low, 2),
+         conf.high = round(conf.high, 2)) %>%
+  select(term, estimate, conf.low, conf.high)
 
 model_coef %>% knitr::kable()
 
