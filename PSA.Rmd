@@ -2,7 +2,7 @@
 title: "PSA"
 author: "Sijia Yue"
 date: "12/14/2019"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -402,7 +402,7 @@ tot_tab2 = tot_tab %>%
          level = "-")
 # education
 edu_pct2 = edu_pct %>%
-  mutate(age_cat = "40+")
+  mutate(age_cat = "50+")
 edu_tab = rbind(edu_pct2, edu_tab)
 # factor levels for presentation
 edu_tab2 = edu_tab %>%
