@@ -130,6 +130,12 @@ edu_pct = svyby(~col_2, by = ~domain + educ_cat + sex, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+edu_counts = filter(col_dat, domain == 1) %>%
+  group_by(educ_cat) %>%
+  summarise(count = n())
+
+edu_pct = left_join(edu_pct, edu_counts, by = "educ_cat")
+
 edu_pct %>% 
   knitr::kable()
 
@@ -140,6 +146,12 @@ finc_pct = svyby(~col_2, by = ~domain + finc_cat + sex, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+finc_counts = filter(col_dat, domain == 1) %>%
+  group_by(finc_cat) %>%
+  summarise(count = n())
+
+finc_pct = left_join(finc_pct, finc_counts, by = "finc_cat")
+
 finc_pct %>% knitr::kable()
 
 
@@ -148,6 +160,11 @@ ausualp_pct = svyby(~col_2, by = ~domain + ausualpl_cat + sex, svymean,
                     na.rm = TRUE, design = des, vartype = c("se", "ci")) %>% 
   filter(domain == 1) %>%
   select(-domain, -se)
+
+usual_counts = filter(col_dat, domain == 1) %>%
+  group_by(ausualpl_cat) %>%
+  summarise(count = n())
+ausualp_pct = left_join(ausualp_pct, usual_counts, by = "ausualpl_cat")
 
 ausualp_pct %>% knitr::kable()
 
@@ -158,6 +175,11 @@ cover_pct = svyby(~col_2, by = ~domain + cover_cat + sex, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+cover_counts = filter(col_dat, domain == 1) %>%
+  group_by(cover_cat) %>%
+  summarise(count = n())
+cover_pct = left_join(cover_pct, cover_counts, by = "cover_cat")
+
 cover_pct %>% knitr::kable()
 
 
@@ -166,6 +188,12 @@ lcond_chronic_pct = svyby(~col_2, by = ~domain + lcond_chronic_cat + sex, svymea
                           na.rm = TRUE, design = des, vartype = c("se", "ci")) %>% 
   filter(domain == 1) %>%
   select(-domain, -se)
+
+chronic_counts = filter(col_dat, domain == 1) %>%
+  group_by(lcond_chronic_cat) %>%
+  summarise(count = n())
+
+lcond_chronic_pct = left_join(lcond_chronic_pct, chronic_counts, by = "lcond_chronic_cat")
 
 lcond_chronic_pct %>% knitr::kable()
 
@@ -176,6 +204,12 @@ race_pct = svyby(~col_2, by = ~domain + race_cat + sex, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+
+race_counts = filter(col_dat, domain == 1) %>%
+  group_by(race_cat) %>%
+  summarise(count = n())
+race_pct = left_join(race_pct, race_counts, by = "race_cat")
+
 race_pct %>% knitr::kable()
 
 
@@ -185,6 +219,12 @@ eth_pct = svyby(~col_2, by = ~domain + eth_cat + sex, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+
+eth_counts = filter(col_dat, domain == 1) %>%
+  group_by(eth_cat) %>%
+  summarise(count = n())
+eth_pct = left_join(eth_pct, eth_counts, by = "eth_cat")
+
 eth_pct %>% knitr::kable()
 
 
@@ -193,6 +233,12 @@ imm_pct = svyby(~col_2, by = ~domain + imm_stat + sex, svymean, na.rm = TRUE,
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se)
+
+imm_counts = filter(col_dat, domain == 1) %>%
+  group_by(imm_stat) %>%
+  summarise(count = n())
+imm_pct = left_join(imm_pct, imm_counts, by = "imm_stat")
+
 imm_pct %>% knitr::kable()
 ```
 
@@ -204,7 +250,12 @@ edu_pct_strat = svyby(~col_2, by = ~domain + age_cat + educ_cat + sex, svymean,
                       na.rm = TRUE, design = des, vartype = c("se", "ci"))
 edu_tab = edu_pct_strat %>% 
   filter(domain == 1) %>% 
-  select(-domain, -se) 
+  select(-domain, -se)
+
+edu_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, educ_cat) %>%
+  summarise(count = n())
+edu_tab = left_join(edu_tab, edu_counts2, by = c("age_cat", "educ_cat"))
 
 edu_tab %>% knitr::kable()
 
@@ -217,6 +268,11 @@ finc_tab = finc_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+finc_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, finc_cat) %>%
+  summarise(count = n())
+finc_tab = left_join(finc_tab, finc_counts2, by = c("age_cat", "finc_cat"))
+
 finc_tab %>% knitr::kable()
 
 
@@ -228,6 +284,11 @@ usual_tab = ausualp_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+usual_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, ausualpl_cat) %>%
+  summarise(count = n())
+usual_tab = left_join(usual_tab, usual_counts2, by = c("age_cat", "ausualpl_cat"))
+
 usual_tab %>% knitr::kable()
 
 
@@ -237,6 +298,11 @@ cover_pct_strat = svyby(~col_2, by = ~domain + age_cat + cover_cat + sex, svymea
 ins_tab = cover_pct_strat %>% 
   filter(domain == 1) %>% 
   select(-domain, -se)
+
+ins_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, cover_cat) %>%
+  summarise(count = n())
+ins_tab = left_join(ins_tab, ins_counts2, by = c("age_cat", "cover_cat"))
 
 ins_tab %>% knitr::kable()
 
@@ -250,6 +316,11 @@ dis_tab = lcond_chronic_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+dis_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, lcond_chronic_cat) %>%
+  summarise(count = n())
+dis_tab = left_join(dis_tab, dis_counts2, by = c("age_cat", "lcond_chronic_cat"))
+
 dis_tab %>% knitr::kable()
 
 
@@ -259,6 +330,11 @@ race_pct_strat = svyby(~col_2, by = ~domain + age_cat + race_cat + sex, svymean,
 race_tab = race_pct_strat %>% 
   filter(domain == 1) %>% 
   select(-domain, -se) 
+
+race_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, race_cat) %>%
+  summarise(count = n())
+race_tab = left_join(race_tab, race_counts2, by = c("age_cat", "race_cat"))
 
 race_tab %>% knitr::kable()
 
@@ -270,6 +346,11 @@ eth_tab = eth_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+eth_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, eth_cat) %>%
+  summarise(count = n())
+eth_tab = left_join(eth_tab, eth_counts2, by = c("age_cat", "eth_cat"))
+
 eth_tab %>% knitr::kable()
 
 
@@ -279,6 +360,12 @@ imm_pct_strat = svyby(~col_2, by = ~domain + age_cat + imm_stat + sex, svymean,
 imm_tab = imm_pct_strat %>%
   filter(domain == 1) %>%
   select(-domain, -se)
+
+imm_counts2 = filter(col_dat, domain == 1) %>%
+  group_by(age_cat, imm_stat) %>%
+  summarise(count = n())
+imm_tab = left_join(imm_tab, imm_counts2, by = c("age_cat", "imm_stat"))
+
 imm_tab %>% knitr::kable()
 
 
@@ -290,13 +377,21 @@ tot_tab = total %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+tot_counts = filter(col_dat, domain == 1) %>%
+  group_by(age_cat) %>%
+  summarise(count = n())
+tot_tab = left_join(tot_tab, tot_counts, by = "age_cat")
+
 tot_tab %>% knitr::kable()
+
+all_counts = filter(col_dat, domain == 1)
 
 tot_pct = svyby(~col_2, by = ~domain + sex, svymean, na.rm = TRUE, 
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se) %>%
-  mutate(age_cat = "50+")
+  mutate(age_cat = "50+",
+         count = 17056)
 
 ```
 
@@ -401,21 +496,26 @@ imm_tab2 = imm_tab %>%
 
 # create table of percentages of people who have gotten fobts within the last year
 tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, eth_tab2, race_tab2, imm_tab2) %>%
-  mutate(col_2 = round(col_2*100, 2),
-         ci_l = round(ci_l*100, 2),
-         ci_u = round(ci_u*100, 2),
+  mutate(col_2 = round(col_2*100, 1),
+         ci_l = round(ci_l*100, 1),
+         ci_u = round(ci_u*100, 1),
          CI = str_c(ci_l, ", ", ci_u)) %>%
-  rename(Percent = col_2) %>%
+  rename(Percent = col_2,
+         N = count) %>%
   select(-ci_l, -ci_u) %>%
-  pivot_wider(names_from = c(sex, age_cat), values_from = c(Percent, CI)) %>%
+  pivot_wider(names_from = c(sex, age_cat), values_from = c(N, Percent, CI)) %>%
   janitor::clean_names() %>%
   select(Type = type, Level = level, 
+         "Number Men Age 50-64" = n_1_50_64,
          "Percent Men Age 50-64" = percent_1_50_64, 
          "CI Men Age 50-64" = ci_1_50_64, 
+         "Number Men Age 65+" = n_1_65,
          "Percent Men Age 65+" = percent_1_65, 
          "CI Men Age 65+" = ci_1_65,
+         "Number Women Age 50-64" = n_2_50_64,
          "Percent Women Age 50-64" = percent_2_50_64, 
          "CI Women Age 50-64" = ci_2_50_64, 
+         "Number Women Age 65+" = n_2_65,
          "Percent Women Age 65+" = percent_2_65, 
          "CI Women Age 65+" = ci_2_65)
 
