@@ -133,6 +133,12 @@ edu_pct = svyby(~mam_2, by = ~domain+educ_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+edu_counts = filter(mam_dat, domain == 1) %>%
+  group_by(educ_cat) %>%
+  summarise(count = n())
+
+edu_pct = left_join(edu_pct, edu_counts, by = "educ_cat")
+
 edu_pct %>% 
   knitr::kable()
 
@@ -141,6 +147,12 @@ finc_pct = svyby(~mam_2, by = ~domain+finc_cat, svymean, na.rm = TRUE,
                  design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se)
+
+finc_counts = filter(mam_dat, domain == 1) %>%
+  group_by(finc_cat) %>%
+  summarise(count = n())
+
+finc_pct = left_join(finc_pct, finc_counts, by = "finc_cat")
 
 finc_pct %>% knitr::kable()
 
@@ -151,6 +163,12 @@ ausualp_pct = svyby(~mam_2, by = ~domain+ausualpl_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+usual_counts = filter(mam_dat, domain == 1) %>%
+  group_by(ausualpl_cat) %>%
+  summarise(count = n())
+
+ausualp_pct = left_join(ausualp_pct, usual_counts, by = "ausualpl_cat")
+
 ausualp_pct %>% knitr::kable()
 
 
@@ -159,6 +177,12 @@ cover_pct = svyby(~mam_2, by = ~domain+cover_cat, svymean, na.rm = TRUE,
                   design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se)
+
+cover_counts = filter(mam_dat, domain == 1) %>%
+  group_by(cover_cat) %>%
+  summarise(count = n())
+
+cover_pct = left_join(cover_pct, cover_counts, by = "cover_cat")
 
 cover_pct %>% knitr::kable()
 
@@ -169,6 +193,12 @@ lcond_chronic_pct = svyby(~mam_2, by = ~domain+lcond_chronic_cat, svymean,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+chronic_counts = filter(mam_dat, domain == 1) %>%
+  group_by(lcond_chronic_cat) %>%
+  summarise(count = n())
+
+lcond_chronic_pct = left_join(lcond_chronic_pct, chronic_counts, by = "lcond_chronic_cat")
+
 lcond_chronic_pct %>% knitr::kable()
 
 
@@ -177,6 +207,12 @@ race_pct = svyby(~mam_2, by = ~domain+race_cat, svymean, na.rm = TRUE,
                  design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se)
+
+race_counts = filter(mam_dat, domain == 1) %>%
+  group_by(race_cat) %>%
+  summarise(count = n())
+
+race_pct = left_join(race_pct, race_counts, by = "race_cat")
 
 race_pct %>% knitr::kable()
 
@@ -187,6 +223,12 @@ eth_pct = svyby(~mam_2, by = ~domain+eth_cat, svymean, na.rm = TRUE,
   filter(domain == 1) %>%
   select(-domain, -se)
 
+eth_counts = filter(mam_dat, domain == 1) %>%
+  group_by(eth_cat) %>%
+  summarise(count = n())
+
+eth_pct = left_join(eth_pct, eth_counts, by = "eth_cat")
+
 eth_pct %>% knitr::kable()
 
 # percent of women who have had mammogram by immigration status
@@ -194,6 +236,12 @@ imm_pct = svyby(~mam_2, by = ~domain+imm_stat, svymean, na.rm = TRUE,
                 design = des, vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se)
+
+imm_counts = filter(mam_dat, domain == 1) %>%
+  group_by(imm_stat) %>%
+  summarise(count = n())
+
+imm_pct = left_join(imm_pct, imm_counts, by = "imm_stat")
 
 imm_pct %>% knitr::kable()
 ```
@@ -209,6 +257,12 @@ edu_tab = edu_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+edu_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, educ_cat) %>%
+  summarise(count = n())
+
+edu_tab = left_join(edu_tab, edu_counts2, by = c("age_cat", "educ_cat"))
+
 edu_tab %>% knitr::kable()
 
 
@@ -219,6 +273,12 @@ finc_pct_strat = svyby(~mam_2, by = ~domain + age_cat + finc_cat, svymean,
 finc_tab = finc_pct_strat %>% 
   filter(domain == 1) %>% 
   select(-domain, -se) 
+
+finc_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, finc_cat) %>%
+  summarise(count = n())
+
+finc_tab = left_join(finc_tab, finc_counts2, by = c("age_cat", "finc_cat"))
 
 finc_tab %>% knitr::kable()
 
@@ -232,6 +292,12 @@ usual_tab = ausualp_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+usual_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, ausualpl_cat) %>%
+  summarise(count = n())
+
+usual_tab = left_join(usual_tab, usual_counts2, by = c("age_cat", "ausualpl_cat"))
+
 usual_tab %>% knitr::kable()
 
 
@@ -242,6 +308,12 @@ cover_pct_strat = svyby(~mam_2, by = ~domain + age_cat + cover_cat, svymean,
 ins_tab = cover_pct_strat %>% 
   filter(domain == 1) %>% 
   select(-domain, -se)
+
+ins_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, cover_cat) %>%
+  summarise(count = n())
+
+ins_tab = left_join(ins_tab, ins_counts2, by = c("age_cat", "cover_cat"))
 
 ins_tab %>% knitr::kable()
 
@@ -255,7 +327,13 @@ lcond_chronic_pct_strat = svyby(~mam_2,
 
 dis_tab = lcond_chronic_pct_strat %>% 
   filter(domain == 1) %>% 
-  select(-domain, -se) 
+  select(-domain, -se)
+
+dis_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, lcond_chronic_cat) %>%
+  summarise(count = n())
+
+dis_tab = left_join(dis_tab, dis_counts2, by = c("age_cat", "lcond_chronic_cat"))
 
 dis_tab %>% knitr::kable()
 
@@ -268,6 +346,12 @@ race_tab = race_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+race_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, race_cat) %>%
+  summarise(count = n())
+
+race_tab = left_join(race_tab, race_counts2, by = c("age_cat", "race_cat"))
+
 race_tab %>% knitr::kable()
 
 
@@ -279,6 +363,12 @@ eth_tab = eth_pct_strat %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+eth_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, eth_cat) %>%
+  summarise(count = n())
+
+eth_tab = left_join(eth_tab, eth_counts2, by = c("age_cat", "eth_cat"))
+
 eth_tab %>% knitr::kable()
 
 # percent of women who have had mammogram by immigration and age
@@ -288,6 +378,12 @@ imm_pct_strat = svyby(~mam_2, by = ~domain + age_cat + imm_stat, svymean,
 imm_tab = imm_pct_strat %>%
   filter(domain == 1) %>%
   select(-domain, -se)
+
+imm_counts2 = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat, imm_stat) %>%
+  summarise(count = n())
+
+imm_tab = left_join(imm_tab, imm_counts2, by = c("age_cat", "imm_stat"))
 
 imm_tab %>% knitr::kable()
 
@@ -299,13 +395,23 @@ tot_tab = total %>%
   filter(domain == 1) %>% 
   select(-domain, -se) 
 
+tot_counts = filter(mam_dat, domain == 1) %>%
+  group_by(age_cat) %>%
+  summarise(count = n())
+
+tot_tab = left_join(tot_tab, tot_counts, by = "age_cat")
+
 tot_tab %>% knitr::kable()
+
+all_counts = filter(mam_dat, domain == 1)
 
 tot_pct = svyby(~mam_2, by = ~domain, svymean, na.rm = TRUE, design = des,
                 vartype = c("se", "ci")) %>%
   filter(domain == 1) %>%
   select(-domain, -se) %>%
-  mutate(age_cat = "40+")
+  mutate(age_cat = "40+",
+         count = 12483)
+
 
 ```
 
@@ -315,6 +421,7 @@ Combine into paper table
 # COMBINE TABLES BY AGE WITH TABLES OVERALL
 
 # overall
+
 tot_tab = rbind(tot_pct, tot_tab)
 
 tot_tab2 = tot_tab %>%
@@ -428,15 +535,16 @@ imm_tab2 = imm_tab %>%
 
 # create table of percentages of women who have gotten mammograms within the last two years (still need to add CIs)
 tab_one = rbind(tot_tab2, edu_tab2, finc_tab2, usual_tab2, ins_tab2, dis_tab2, eth_tab2, race_tab2, imm_tab2) %>%
-  mutate(mam_2 = round(mam_2*100, 2),
-         ci_l = round(ci_l*100, 2),
-         ci_u = round(ci_u*100, 2),
+  mutate(mam_2 = round(mam_2*100, 1),
+         ci_l = round(ci_l*100, 1),
+         ci_u = round(ci_u*100, 1),
          CI = str_c(ci_l, ", ", ci_u)) %>%
-  rename(Percent = mam_2) %>%
+  rename(Percent = mam_2,
+         N = count) %>%
   select(-ci_l, -ci_u) %>%
-  pivot_wider(names_from = age_cat, values_from = c(Percent, CI)) %>%
+  pivot_wider(names_from = age_cat, values_from = c(N, Percent, CI)) %>%
   janitor::clean_names() %>%
-  select(type, level, percent_40, ci_40, percent_40_49, ci_40_49, percent_50_64, ci_50_64, everything())
+  select(type, level, n_40, percent_40, ci_40, n_40_49, percent_40_49, ci_40_49, n_50_64, percent_50_64, ci_50_64, everything())
 
 # print percentages
 tab_one %>% knitr::kable()
@@ -445,6 +553,14 @@ tab_one %>% knitr::kable()
 Barplots of Usual Care and Insurance Coverage
 
 ```{r}
+# sample size
+usual_size = mam_dat %>%
+  filter(domain == 1) %>%
+  group_by(ausualpl_cat) %>%
+  summarise(count = n()) %>%
+  filter(ausualpl_cat != "NA")
+sum(pull(usual_size, count))
+
 # usual source of care barchart
 usual_tab %>%
   filter(age_cat != "40+" & ausualpl_cat != "Other") %>%
@@ -453,7 +569,15 @@ usual_tab %>%
   scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
   facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
-  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Usual Source of Care (Have/Have Not)")
+  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Usual Source of Care (Have/Have Not)", title = "N = 12483")
+
+# sample size
+ins_size = mam_dat %>%
+  filter(domain == 1) %>%
+  group_by(cover_cat) %>%
+  summarise(count = n()) %>%
+  filter(cover_cat != "NA")
+sum(pull(ins_size, count))
 
 # insurance type barchart
 ins_tab %>%
@@ -463,51 +587,11 @@ ins_tab %>%
   scale_y_continuous(limits = c(0,1), breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   geom_errorbar(aes(ymin = ci_l, ymax = ci_u)) +
   facet_grid(~age_cat) + ggthemes::theme_few() + ggthemes::scale_fill_few() + theme(legend.position = "none") +
-  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Type of Insurance Coverage")
+  labs(y = "Percent Had Mammogram, Last 2 Years", x = "Type of Insurance Coverage", title = "N = 12436")
 ```
 
 
 Models
-
-Age cateogry, education level, financial status, usual care, insurance type, and ethnicity are significant predictors of having a recent mammogram.\   
-The OR for having a recent mammogram when comparing 50-64 year old women to 40-49 year old women is 0.9448.\   
-The OR for having a recent mammogram when comparing 65+ women to 40-49 year old women is 0.6784.\   
-The OR for having a recent mammogram when comparing women who only have a high school degree to women who have a college degree is 0.6985.\   
-The OR for having a recent mammogram when comparing women who have less than a high school degree to women who have a college degree is 0.5821.\   
-The OR for having a recent mammogram when comparing women who have some college education to women who have a college degree is 0.7943.\   
-The OR for having a recent mammogram when comparing women who are only known as having a poverty ratio of >200% to women who have a poverty ratio <200% is 1.1436.\   
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 200-299% to women who have a poverty ratio <200% is 1.1586.\   
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 300-399% to women who have a poverty ratio <200% is 1.4398.\   
-The OR for having a recent mammogram when comparing women who have a poverty ratio between 400-499% to women who have a poverty ratio <200% is 1.5428.\   
-The OR for having a recent mammogram when comparing women who have a poverty ratio >=500% to women who have a poverty ratio <200% is 1.8111.\   
-The OR for having a recent mammogram when comparing having a source of usual care to not having a source of usual care is 2.8878.\   
-The OR for having a recent mammogram when comparing having private/military insurance to none is 2.5213.\   
-The OR for having a recent mammogram when comparing having public insurance to none is 2.3978.\   
-The OR for having a recent mammogram when comparing Non-Hispanic AN/AI women to Hispanic women is 0.623.\   
-The OR for having a recent mammogram when comparing Non-Hispanic Asian women to Hispanic women is 0.4583.\   
-The OR for having a recent mammogram when comparing Non-Hispanic Black women to Hispanic women is 0.8474.\   
-The OR for having a recent mammogram when comparing Non-Hispanic White women to Hispanic women is 0.5621.\   
-
-The groups least likely to have had a recent mammogram are women aged 65+, women who have less than a high school degree, women who have a poverty ratio <200%, women who do not have a usual source of care, women who have no insurance, and Non-Hispanic women.
-
-```{r}
-# get sample sizes
-# 12483
-mam_temp = mam_dat %>%
-  filter(domain == 1)
-
-# 2863
-mam_temp40 = mam_temp %>%
-  filter(age_cat == "40–49")
-
-# 4716
-mam_temp50 = mam_temp %>%
-  filter(age_cat == "50–64")
-
-# 4904
-mam_temp65 = mam_temp %>%
-  filter(age_cat == "65+")
-```
 
 
 *collapsing some categories*
@@ -623,7 +707,11 @@ model_coef = broom::tidy(mam2_fit2, conf.int = TRUE, conf.level = 0.95, exponent
                           term == "as.factor(cover_cat)Private/Military" ~ "Private/Military Insurance vs No Insurance",
                           term == "as.factor(cover_cat)Public" ~ "Public Insurance vs No Insurance",
                           term == "as.factor(lcond_chronic_cat2)Yes (Chronic)" ~ "Chronic Condition vs No Chronic Condition",
-                          term == "as.factor(eth_cat2)Non-Hispanic" ~ "Non-Hispanic vs Hispanic"))
+                          term == "as.factor(eth_cat2)Non-Hispanic" ~ "Non-Hispanic vs Hispanic"),
+         estimate = round(estimate, 2),
+         conf.low = round(conf.low, 2),
+         conf.high = round(conf.high, 2)) %>%
+  select(term, estimate, conf.low, conf.high)
 
 model_coef %>% knitr::kable()
 

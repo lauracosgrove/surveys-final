@@ -455,7 +455,10 @@ p1 / p2 / p3
 pap_formod <- pap_dat %>% 
   select(psu_p, strat_p, wtfa_sa, ends_with("cat"), imm_stat, hpvhrd, paphad1, mdrecp1, inc) %>% 
   mutate(imm_stat = if_else(imm_stat == "Born in U.S.", "Born in U.S.", "Immigrated")) %>% 
-  mutate(lcond_chronic_cat = forcats::fct_explicit_na(lcond_chronic_cat, "None Reported"))
+  mutate(lcond_chronic_cat = forcats::fct_explicit_na(lcond_chronic_cat, "None Reported")) %>% 
+  mutate(finc_cat = case_when(finc_cat == "<200%" ~ "<200%",
+                              finc_cat == "Unknown" ~ "Unkwown", 
+                              TRUE ~ ">=200%"))
 
 pap_formod <- pap_formod %>% 
   mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
@@ -470,7 +473,7 @@ varssym = map(vars, ~sym(.x))
 
 .form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
 
-map(.x = varssym, ~count(pap_formod, !!.x))
+map(.x = varssym, ~count(pap_formod %>% filter(inc == 1) %>% filter(!is.na(paprec_3bcat)), !!.x))
 
 
 des2 <- svydesign(ids = ~psu_p, strata = ~strat_p, 
@@ -482,7 +485,7 @@ mod <- svyglm(paprec_3bcat ~ age_cat + educ_cat +
        family = binomial,
        subset = inc == 1) 
 
-jtools::summ(mod)
+jtools::summ(mod, exp = TRUE, confint = TRUE, pvals = FALSE, digits  = 2)
 
 # test significance of individual terms/term groups
 sig1 = tibble(vars) %>% 
