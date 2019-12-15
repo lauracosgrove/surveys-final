@@ -756,7 +756,10 @@ p1 / p2 / p3
 pap_formod <- pap_dat %>% 
   select(psu_p, strat_p, wtfa_sa, ends_with("cat"), imm_stat, hpvhrd, paphad1, mdrecp1, inc) %>% 
   mutate(imm_stat = if_else(imm_stat == "Born in U.S.", "Born in U.S.", "Immigrated")) %>% 
-  mutate(lcond_chronic_cat = forcats::fct_explicit_na(lcond_chronic_cat, "None Reported"))
+  mutate(lcond_chronic_cat = forcats::fct_explicit_na(lcond_chronic_cat, "None Reported")) %>% 
+  mutate(finc_cat = case_when(finc_cat == "<200%" ~ "<200%",
+                              finc_cat == "Unknown" ~ "Unkwown", 
+                              TRUE ~ ">=200%"))
 
 pap_formod <- pap_formod %>% 
   mutate_at(vars(hpvhrd, paphad1, mdrecp1), ~factor(.x)) %>% 
@@ -779,96 +782,87 @@ varssym = map(vars, ~sym(.x))
 
 .form = reformulate(response = "paprec_3bcat", termlabels = c(vars) )
 
-map(.x = varssym, ~count(pap_formod, !!.x))
+map(.x = varssym, ~count(pap_formod %>% filter(inc == 1) %>% filter(!is.na(paprec_3bcat)), !!.x))
 ```
-
-    ## Warning: Factor `finc_cat` contains implicit NA, consider using
-    ## `forcats::fct_explicit_na`
 
     ## Warning: Factor `ausualpl_cat` contains implicit NA, consider using
     ## `forcats::fct_explicit_na`
 
     ## [[1]]
-    ## # A tibble: 5 x 2
+    ## # A tibble: 4 x 2
     ##   age_cat     n
     ##   <chr>   <int>
-    ## 1 25–39    8454
-    ## 2 40–49    5272
-    ## 3 50–64    8678
-    ## 4 65+      8378
-    ## 5 <NA>     2890
+    ## 1 25–39    3980
+    ## 2 40–49    2551
+    ## 3 50–64    4256
+    ## 4 65+      4384
     ## 
     ## [[2]]
     ## # A tibble: 5 x 2
     ##   educ_cat                  n
     ##   <chr>                 <int>
-    ## 1 College graduate      10048
-    ## 2 High school            8359
-    ## 3 Less than high school  4681
-    ## 4 Some college          10436
-    ## 5 <NA>                    148
+    ## 1 College graduate       4703
+    ## 2 High school            3616
+    ## 3 Less than high school  1991
+    ## 4 Some college           4798
+    ## 5 <NA>                     63
     ## 
     ## [[3]]
-    ## # A tibble: 8 x 2
-    ##   finc_cat                      n
-    ##   <fct>                     <int>
-    ## 1 <200%                     11684
-    ## 2 200–299%                   4709
-    ## 3 300–399%                   3440
-    ## 4 400–499%                   3273
-    ## 5 >=500%                     6988
-    ## 6 >=200%, no further detail   911
-    ## 7 Unknown                      49
-    ## 8 <NA>                       2618
+    ## # A tibble: 3 x 2
+    ##   finc_cat     n
+    ##   <chr>    <int>
+    ## 1 <200%     5459
+    ## 2 >=200%    9693
+    ## 3 Unkwown     19
     ## 
     ## [[4]]
     ## # A tibble: 3 x 2
     ##   ausualpl_cat     n
     ##   <fct>        <int>
-    ## 1 Yes          28899
-    ## 2 No            4506
-    ## 3 <NA>           267
+    ## 1 Yes          13928
+    ## 2 No            1240
+    ## 3 <NA>             3
     ## 
     ## [[5]]
     ## # A tibble: 4 x 2
     ##   cover_cat            n
     ##   <chr>            <int>
-    ## 1 None              3567
-    ## 2 Private/Military 22164
-    ## 3 Public            7786
-    ## 4 <NA>               155
+    ## 1 None              1253
+    ## 2 Private/Military  9884
+    ## 3 Public            3983
+    ## 4 <NA>                51
     ## 
     ## [[6]]
     ## # A tibble: 3 x 2
     ##   lcond_chronic_cat     n
     ##   <fct>             <int>
-    ## 1 No                  166
-    ## 2 Yes                6331
-    ## 3 None Reported     27175
+    ## 1 No                   74
+    ## 2 Yes                3220
+    ## 3 None Reported     11877
     ## 
     ## [[7]]
     ## # A tibble: 4 x 2
     ##   race_cat     n
     ##   <chr>    <int>
-    ## 1 AN/AI      615
-    ## 2 Asian     2065
-    ## 3 Black     4842
-    ## 4 White    26150
+    ## 1 AN/AI      251
+    ## 2 Asian      773
+    ## 3 Black     2343
+    ## 4 White    11804
     ## 
     ## [[8]]
     ## # A tibble: 2 x 2
     ##   eth_cat          n
     ##   <chr>        <int>
-    ## 1 Hispanic      5591
-    ## 2 Not Hispanic 28081
+    ## 1 Hispanic      2372
+    ## 2 Not Hispanic 12799
     ## 
     ## [[9]]
     ## # A tibble: 3 x 2
     ##   imm_stat         n
     ##   <chr>        <int>
-    ## 1 Born in U.S. 27430
-    ## 2 Immigrated    6154
-    ## 3 <NA>            88
+    ## 1 Born in U.S. 12532
+    ## 2 Immigrated    2612
+    ## 3 <NA>            27
 
 ``` r
 des2 <- svydesign(ids = ~psu_p, strata = ~strat_p, 
@@ -885,7 +879,7 @@ mod <- svyglm(paprec_3bcat ~ age_cat + educ_cat +
     ## glm!
 
 ``` r
-jtools::summ(mod)
+jtools::summ(mod, exp = TRUE, confint = TRUE, pvals = FALSE, digits  = 2)
 ```
 
 <table class="table table-striped table-hover table-condensed table-responsive" style="width: auto !important; margin-left: auto; margin-right: auto;">
@@ -902,7 +896,7 @@ Observations
 
 <td style="text-align:right;">
 
-13929
+15039
 
 </td>
 
@@ -1024,7 +1018,7 @@ AIC
 
 <td style="text-align:right;">
 
-12700.69
+13718.37
 
 </td>
 
@@ -1046,25 +1040,25 @@ AIC
 
 <th style="text-align:right;">
 
-Est.
+exp(Est.)
 
 </th>
 
 <th style="text-align:right;">
 
-S.E.
+2.5%
+
+</th>
+
+<th style="text-align:right;">
+
+97.5%
 
 </th>
 
 <th style="text-align:right;">
 
 t val.
-
-</th>
-
-<th style="text-align:right;">
-
-p
 
 </th>
 
@@ -1084,25 +1078,25 @@ p
 
 <td style="text-align:right;">
 
-1.72
+5.96
 
 </td>
 
 <td style="text-align:right;">
 
-0.38
+2.87
 
 </td>
 
 <td style="text-align:right;">
 
-4.52
+12.38
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+4.79
 
 </td>
 
@@ -1118,25 +1112,25 @@ age\_cat40–49
 
 <td style="text-align:right;">
 
-\-0.78
+0.44
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.36
 
 </td>
 
 <td style="text-align:right;">
 
-\-6.93
+0.55
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+\-7.38
 
 </td>
 
@@ -1152,25 +1146,25 @@ age\_cat50–64
 
 <td style="text-align:right;">
 
-\-1.32
+0.27
 
 </td>
 
 <td style="text-align:right;">
 
-0.10
+0.23
 
 </td>
 
 <td style="text-align:right;">
 
-\-13.57
+0.33
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+\-13.92
 
 </td>
 
@@ -1186,25 +1180,25 @@ age\_cat65+
 
 <td style="text-align:right;">
 
-\-2.52
+0.08
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.06
 
 </td>
 
 <td style="text-align:right;">
 
-\-23.32
+0.10
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+\-23.76
 
 </td>
 
@@ -1220,25 +1214,25 @@ educ\_catHigh school
 
 <td style="text-align:right;">
 
-\-0.52
+0.54
 
 </td>
 
 <td style="text-align:right;">
 
-0.08
+0.47
 
 </td>
 
 <td style="text-align:right;">
 
-\-6.32
+0.63
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+\-7.80
 
 </td>
 
@@ -1254,25 +1248,25 @@ educ\_catLess than high school
 
 <td style="text-align:right;">
 
-\-0.62
+0.49
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.40
 
 </td>
 
 <td style="text-align:right;">
 
-\-5.55
+0.61
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+\-6.73
 
 </td>
 
@@ -1288,25 +1282,25 @@ educ\_catSome college
 
 <td style="text-align:right;">
 
-\-0.31
+0.68
 
 </td>
 
 <td style="text-align:right;">
 
-0.08
+0.59
 
 </td>
 
 <td style="text-align:right;">
 
-\-4.11
+0.77
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+\-5.76
 
 </td>
 
@@ -1322,195 +1316,59 @@ ausualpl\_catNo
 
 <td style="text-align:right;">
 
-\-0.78
+0.46
 
 </td>
 
 <td style="text-align:right;">
 
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-\-7.55
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat200–299%
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-<td style="text-align:right;">
-
-0.09
-
-</td>
-
-<td style="text-align:right;">
-
-1.05
-
-</td>
-
-<td style="text-align:right;">
-
-0.30
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat300–399%
-
-</td>
-
-<td style="text-align:right;">
-
-0.21
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-2.04
-
-</td>
-
-<td style="text-align:right;">
-
-0.04
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat400–499%
-
-</td>
-
-<td style="text-align:right;">
-
-0.12
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-1.19
-
-</td>
-
-<td style="text-align:right;">
-
-0.24
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat\>=500%
-
-</td>
-
-<td style="text-align:right;">
-
-0.48
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-5.01
-
-</td>
-
-<td style="text-align:right;">
-
-0.00
-
-</td>
-
-</tr>
-
-<tr>
-
-<td style="text-align:left;font-weight: bold;">
-
-finc\_cat\>=200%, no further detail
-
-</td>
-
-<td style="text-align:right;">
-
-0.10
-
-</td>
-
-<td style="text-align:right;">
-
-0.18
-
-</td>
-
-<td style="text-align:right;">
-
-0.59
+0.38
 
 </td>
 
 <td style="text-align:right;">
 
 0.56
+
+</td>
+
+<td style="text-align:right;">
+
+\-7.84
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;font-weight: bold;">
+
+finc\_cat\>=200%
+
+</td>
+
+<td style="text-align:right;">
+
+1.25
+
+</td>
+
+<td style="text-align:right;">
+
+1.10
+
+</td>
+
+<td style="text-align:right;">
+
+1.41
+
+</td>
+
+<td style="text-align:right;">
+
+3.36
 
 </td>
 
@@ -1526,25 +1384,25 @@ cover\_catPrivate/Military
 
 <td style="text-align:right;">
 
-0.70
+2.07
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+1.68
 
 </td>
 
 <td style="text-align:right;">
 
-6.61
+2.53
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+6.97
 
 </td>
 
@@ -1560,25 +1418,25 @@ cover\_catPublic
 
 <td style="text-align:right;">
 
-0.57
+1.77
 
 </td>
 
 <td style="text-align:right;">
 
-0.12
+1.40
 
 </td>
 
 <td style="text-align:right;">
 
-4.73
+2.24
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+4.79
 
 </td>
 
@@ -1594,25 +1452,25 @@ lcond\_chronic\_catYes
 
 <td style="text-align:right;">
 
-0.11
+1.12
 
 </td>
 
 <td style="text-align:right;">
 
-0.29
+0.64
 
 </td>
 
 <td style="text-align:right;">
 
-0.40
+1.96
 
 </td>
 
 <td style="text-align:right;">
 
-0.69
+0.41
 
 </td>
 
@@ -1628,25 +1486,25 @@ lcond\_chronic\_catNone Reported
 
 <td style="text-align:right;">
 
-0.46
+1.62
 
 </td>
 
 <td style="text-align:right;">
 
-0.28
+0.93
 
 </td>
 
 <td style="text-align:right;">
 
-1.64
+2.80
 
 </td>
 
 <td style="text-align:right;">
 
-0.10
+1.71
 
 </td>
 
@@ -1662,25 +1520,25 @@ eth\_catNot Hispanic
 
 <td style="text-align:right;">
 
-\-0.46
+0.64
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.52
 
 </td>
 
 <td style="text-align:right;">
 
-\-4.02
+0.80
 
 </td>
 
 <td style="text-align:right;">
 
-0.00
+\-3.99
 
 </td>
 
@@ -1696,25 +1554,25 @@ race\_catAsian
 
 <td style="text-align:right;">
 
-0.16
+1.14
 
 </td>
 
 <td style="text-align:right;">
 
-0.27
+0.68
 
 </td>
 
 <td style="text-align:right;">
 
-0.59
+1.91
 
 </td>
 
 <td style="text-align:right;">
 
-0.55
+0.50
 
 </td>
 
@@ -1730,25 +1588,25 @@ race\_catBlack
 
 <td style="text-align:right;">
 
-0.61
+1.80
 
 </td>
 
 <td style="text-align:right;">
 
-0.23
+1.16
 
 </td>
 
 <td style="text-align:right;">
 
-2.58
+2.79
 
 </td>
 
 <td style="text-align:right;">
 
-0.01
+2.62
 
 </td>
 
@@ -1764,25 +1622,25 @@ race\_catWhite
 
 <td style="text-align:right;">
 
-0.23
+1.24
 
 </td>
 
 <td style="text-align:right;">
 
-0.22
+0.82
 
 </td>
 
 <td style="text-align:right;">
 
-1.02
+1.88
 
 </td>
 
 <td style="text-align:right;">
 
-0.31
+1.01
 
 </td>
 
@@ -1798,25 +1656,25 @@ imm\_statImmigrated
 
 <td style="text-align:right;">
 
-0.11
+1.12
 
 </td>
 
 <td style="text-align:right;">
 
-0.11
+0.91
 
 </td>
 
 <td style="text-align:right;">
 
-0.98
+1.39
 
 </td>
 
 <td style="text-align:right;">
 
-0.33
+1.08
 
 </td>
 
@@ -1883,15 +1741,15 @@ sig1
     ## # A tibble: 9 x 4
     ##   vars              test           pval   sig
     ##   <chr>             <list>        <dbl> <dbl>
-    ## 1 imm_stat          <rgTrTLRT> 1.01e- 3     1
-    ## 2 race_cat          <rgTrTLRT> 1.00e- 4     1
-    ## 3 eth_cat           <rgTrTLRT> 6.27e- 5     1
-    ## 4 lcond_chronic_cat <rgTrTLRT> 3.49e- 6     1
-    ## 5 cover_cat         <rgTrTLRT> 3.39e-13     1
-    ## 6 ausualpl_cat      <rgTrTLRT> 2.80e-13     1
-    ## 7 educ_cat          <rgTrTLRT> 4.37e-15     1
-    ## 8 finc_cat          <rgTrTLRT> 4.90e-61     1
-    ## 9 age_cat           <rgTrTLRT> 1.41e-77     1
+    ## 1 finc_cat          <rgTrTLRT> 9.54e- 4     1
+    ## 2 imm_stat          <rgTrTLRT> 4.15e- 4     1
+    ## 3 race_cat          <rgTrTLRT> 1.06e- 4     1
+    ## 4 eth_cat           <rgTrTLRT> 7.00e- 5     1
+    ## 5 lcond_chronic_cat <rgTrTLRT> 3.81e- 7     1
+    ## 6 ausualpl_cat      <rgTrTLRT> 4.47e-14     1
+    ## 7 cover_cat         <rgTrTLRT> 1.96e-14     1
+    ## 8 educ_cat          <rgTrTLRT> 1.31e-18     1
+    ## 9 age_cat           <rgTrTLRT> 4.04e-80     1
 
 ``` r
 # mod2 <- svyglm(paprec_3bcat ~ age_cat + educ_cat + 
